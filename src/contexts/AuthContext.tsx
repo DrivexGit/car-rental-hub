@@ -28,85 +28,102 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [staffProfile, setStaffProfile] = useState<StaffProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authStatus, setAuthStatus] = useState<string>('');
 
   useEffect(() => {
-    // Safety timeout to prevent infinite loading
-    const timer = setTimeout(() => {
-      console.warn("Auth initialization timed out, forcing loading to false");
-      setLoading(false);
-    }, 5000);
+    let mounted = true;
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const initializeAuth = async () => {
+      setAuthStatus('Connecting...');
+      
+      // Safety timeout
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('TIMEOUT')), 15000)
+      );
+
       try {
-        setSession(session);
-        if (session?.user) {
-          const { data, error } = await supabase
+        // Run getSession first as it's often faster for initial hit
+        const sessionPromise = supabase.auth.getSession();
+        
+        const result = await Promise.race([sessionPromise, timeoutPromise]) as any;
+        const initialSession = result.data?.session;
+
+        if (mounted) {
+          setSession(initialSession);
+          if (initialSession?.user) {
+            setAuthStatus('Syncing profile...');
+            const { data: profile, error: profileError } = await supabase
+              .from('staff_profiles')
+              .select('id, full_name, role, tenant_id')
+              .eq('id', initialSession.user.id)
+              .maybeSingle();
+            
+            if (profileError) throw profileError;
+            if (mounted) setStaffProfile(profile);
+          }
+        }
+      } catch (error: any) {
+        if (error.message === 'TIMEOUT') {
+          console.warn("Auth initialization timed out, proceeding with fallback...");
+        } else {
+          console.error("Auth initialization error:", error);
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+          setAuthStatus('');
+        }
+      }
+    };
+
+    initializeAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
+      if (mounted) {
+        setSession(currentSession);
+        
+        if (event === 'SIGNED_IN' && currentSession?.user) {
+          const { data: profile } = await supabase
             .from('staff_profiles')
             .select('id, full_name, role, tenant_id')
-            .eq('id', session.user.id)
+            .eq('id', currentSession.user.id)
             .maybeSingle();
-          
-          if (error) throw error;
-
-          if (!data) {
-            // Auto-create tenant + staff profile on first login
-            const { data: tenant, error: tenantError } = await supabase
-              .from('tenants')
-              .insert({ name: session.user.email || 'My Company', slug: session.user.id.slice(0, 8) })
-              .select('id')
-              .single();
-
-            if (tenantError) throw tenantError;
-
-            if (tenant) {
-              const { data: newProfile, error: profileError } = await supabase
-                .from('staff_profiles')
-                .insert({ id: session.user.id, full_name: session.user.email, role: 'admin', tenant_id: tenant.id })
-                .select('id, full_name, role, tenant_id')
-                .single();
-              
-              if (profileError) throw profileError;
-              setStaffProfile(newProfile);
-            }
-          } else {
-            setStaffProfile(data);
-          }
-        } else {
+          setStaffProfile(profile);
+        } else if (event === 'SIGNED_OUT') {
           setStaffProfile(null);
         }
-      } catch (error) {
-        console.error("Error in auth state change:", error);
-      } finally {
-        setLoading(false);
-        clearTimeout(timer);
-      }
-    });
-
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (error) {
-        console.error("Error getting session:", error);
-        setLoading(false);
-        clearTimeout(timer);
-      } else if (!session) {
-        setLoading(false);
-        clearTimeout(timer);
       }
     });
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
-      clearTimeout(timer);
     };
   }, []);
 
   const signOut = async () => {
+    setLoading(true);
     await supabase.auth.signOut();
     setSession(null);
     setStaffProfile(null);
+    setLoading(false);
   };
 
   return (
-    <AuthContext.Provider value={{ session, user: session?.user ?? null, staffProfile, tenantId: staffProfile?.tenant_id ?? null, loading, signOut }}>
+    <AuthContext.Provider value={{ 
+      session, 
+      user: session?.user ?? null, 
+      staffProfile, 
+      tenantId: staffProfile?.tenant_id ?? null, 
+      loading, 
+      signOut 
+    }}>
+      {loading && authStatus && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center text-center p-4">
+          <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4" />
+          <p className="text-xl font-semibold animate-pulse">{authStatus}</p>
+        </div>
+      )}
       {children}
     </AuthContext.Provider>
   );

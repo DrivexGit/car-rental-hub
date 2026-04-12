@@ -30,7 +30,7 @@ export function AppSidebar() {
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel>
-            {!collapsed && 'Car Rental Admin'}
+            {!collapsed && 'CarBox'}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
