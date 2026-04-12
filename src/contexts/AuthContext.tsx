@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -24,116 +24,68 @@ const AuthContext = createContext<AuthContextType>({
 
 export const useAuth = () => useContext(AuthContext);
 
-// In-memory profile cache – survives navigation but cleared on sign-out
-const profileCache = new Map<string, StaffProfile>();
-
-async function fetchProfile(userId: string): Promise<StaffProfile | null> {
-  if (profileCache.has(userId)) return profileCache.get(userId)!;
-  try {
-    const { data, error } = await supabase
-      .from('staff_profiles')
-      .select('id, full_name, role, tenant_id')
-      .eq('id', userId)
-      .maybeSingle();
-    if (error) { console.error('fetchProfile error:', error); return null; }
-    if (data) profileCache.set(userId, data);
-    return data;
-  } catch (e) {
-    console.error('fetchProfile exception:', e);
-    return null;
-  }
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [staffProfile, setStaffProfile] = useState<StaffProfile | null>(null);
+  // loading = true until we know both session + profile
   const [loading, setLoading] = useState(true);
-  const initializedRef = useRef(false);
 
   useEffect(() => {
     let mounted = true;
 
-    // Helper: finish initial loading and set session+profile atomically
-    const finishInit = (s: Session | null, p: StaffProfile | null) => {
-      if (!mounted) return;
-      setSession(s);
-      setStaffProfile(p);
-      initializedRef.current = true;
-      setLoading(false);
-    };
+    // The canonical Supabase pattern: onAuthStateChange fires INITIAL_SESSION
+    // synchronously on mount, so this is the single source of truth.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, currentSession) => {
+        if (!mounted) return;
 
-    // 1. Fast initial session check
-    supabase.auth.getSession().then(async ({ data: { session: s } }) => {
-      if (initializedRef.current) return; // onAuthStateChange already handled it
-      if (!s?.user) { finishInit(null, null); return; }
-      const profile = await fetchProfile(s.user.id);
-      finishInit(s, profile);
-    }).catch(() => {
-      if (!initializedRef.current) finishInit(null, null);
-    });
-
-    // Safety net in case both getSession and onAuthStateChange hang
-    const safetyTimer = setTimeout(() => {
-      if (!initializedRef.current && mounted) finishInit(null, null);
-    }, 10000);
-
-    // 2. Listen for ongoing session changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
-      if (!mounted) return;
-
-      if (event === 'TOKEN_REFRESHED') {
-        // Silent token refresh – just update session, keep existing profile
-        setSession(currentSession);
-        // Ensure we're not stuck in loading
-        if (!initializedRef.current) finishInit(currentSession, null);
-        return;
-      }
-
-      if (event === 'SIGNED_OUT') {
-        profileCache.clear();
-        clearTimeout(safetyTimer);
-        finishInit(null, null);
-        return;
-      }
-
-      if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
-        if (currentSession?.user) {
-          // ✅ Set session FIRST so LoginRoute can redirect immediately
+        // Token silently refreshed – keep existing profile, no flicker
+        if (event === 'TOKEN_REFRESHED') {
           setSession(currentSession);
-          // Then load profile in background
-          fetchProfile(currentSession.user.id).then(p => {
-            if (mounted) setStaffProfile(p);
-          });
+          return;
+        }
+
+        if (event === 'SIGNED_OUT') {
+          setSession(null);
+          setStaffProfile(null);
+          setLoading(false);
+          return;
+        }
+
+        // INITIAL_SESSION or SIGNED_IN
+        if (currentSession?.user) {
+          // Fetch profile before revealing the app so tenantId is always ready
+          const { data: profile } = await supabase
+            .from('staff_profiles')
+            .select('id, full_name, role, tenant_id')
+            .eq('id', currentSession.user.id)
+            .maybeSingle();
+
+          if (!mounted) return;
+          setSession(currentSession);
+          setStaffProfile(profile ?? null);
         } else {
           setSession(null);
           setStaffProfile(null);
         }
-        // Mark as initialized after INITIAL_SESSION so loading clears
-        if (!initializedRef.current && event === 'INITIAL_SESSION') {
-          clearTimeout(safetyTimer);
-          initializedRef.current = true;
-          setLoading(false);
-        }
-        return;
-      }
 
-      // Fallback for any other event
-      setSession(currentSession);
-      if (!initializedRef.current) {
-        clearTimeout(safetyTimer);
-        finishInit(currentSession, null);
+        setLoading(false);
       }
-    });
+    );
+
+    // Guard: if Supabase never fires (network totally blocked), unblock UI
+    const fallback = setTimeout(() => {
+      if (mounted) setLoading(false);
+    }, 12000);
 
     return () => {
       mounted = false;
-      clearTimeout(safetyTimer);
+      clearTimeout(fallback);
       subscription.unsubscribe();
     };
   }, []);
 
   const signOut = async () => {
-    profileCache.clear();
     await supabase.auth.signOut();
   };
 
