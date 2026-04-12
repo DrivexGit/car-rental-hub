@@ -26,6 +26,7 @@ export type Database = {
           missing_fields: Json | null
           quoted_options: Json | null
           selected_vehicle_id: string | null
+          tenant_id: string | null
           updated_at: string
         }
         Insert: {
@@ -39,6 +40,7 @@ export type Database = {
           missing_fields?: Json | null
           quoted_options?: Json | null
           selected_vehicle_id?: string | null
+          tenant_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -52,6 +54,7 @@ export type Database = {
           missing_fields?: Json | null
           quoted_options?: Json | null
           selected_vehicle_id?: string | null
+          tenant_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -69,6 +72,13 @@ export type Database = {
             referencedRelation: "vehicles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "conversation_states_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
         ]
       }
       customer_documents: {
@@ -84,6 +94,7 @@ export type Database = {
           reservation_id: string | null
           storage_bucket: string
           storage_path: string
+          tenant_id: string | null
           uploaded_by: string
           verification_status: string
         }
@@ -99,6 +110,7 @@ export type Database = {
           reservation_id?: string | null
           storage_bucket?: string
           storage_path: string
+          tenant_id?: string | null
           uploaded_by?: string
           verification_status?: string
         }
@@ -114,6 +126,7 @@ export type Database = {
           reservation_id?: string | null
           storage_bucket?: string
           storage_path?: string
+          tenant_id?: string | null
           uploaded_by?: string
           verification_status?: string
         }
@@ -132,6 +145,13 @@ export type Database = {
             referencedRelation: "reservations"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "customer_documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
         ]
       }
       faq_entries: {
@@ -143,6 +163,7 @@ export type Database = {
           is_active: boolean
           question: string
           sort_order: number
+          tenant_id: string | null
           updated_at: string
         }
         Insert: {
@@ -153,6 +174,7 @@ export type Database = {
           is_active?: boolean
           question: string
           sort_order?: number
+          tenant_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -163,9 +185,18 @@ export type Database = {
           is_active?: boolean
           question?: string
           sort_order?: number
+          tenant_id?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "faq_entries_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       leads: {
         Row: {
@@ -179,6 +210,7 @@ export type Database = {
           notes: string | null
           source: string | null
           status: string
+          tenant_id: string | null
           updated_at: string
           whatsapp_number: string
         }
@@ -193,6 +225,7 @@ export type Database = {
           notes?: string | null
           source?: string | null
           status?: string
+          tenant_id?: string | null
           updated_at?: string
           whatsapp_number: string
         }
@@ -207,6 +240,7 @@ export type Database = {
           notes?: string | null
           source?: string | null
           status?: string
+          tenant_id?: string | null
           updated_at?: string
           whatsapp_number?: string
         }
@@ -216,6 +250,13 @@ export type Database = {
             columns: ["assigned_staff_id"]
             isOneToOne: false
             referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -231,6 +272,7 @@ export type Database = {
           message_text: string
           message_type: string
           stage_at_time: string | null
+          tenant_id: string | null
         }
         Insert: {
           channel?: string
@@ -242,6 +284,7 @@ export type Database = {
           message_text: string
           message_type?: string
           stage_at_time?: string | null
+          tenant_id?: string | null
         }
         Update: {
           channel?: string
@@ -253,6 +296,7 @@ export type Database = {
           message_text?: string
           message_type?: string
           stage_at_time?: string | null
+          tenant_id?: string | null
         }
         Relationships: [
           {
@@ -260,6 +304,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -281,6 +332,7 @@ export type Database = {
           source: string
           start_datetime: string
           status: string
+          tenant_id: string | null
           updated_at: string
           vehicle_id: string
         }
@@ -300,6 +352,7 @@ export type Database = {
           source?: string
           start_datetime: string
           status?: string
+          tenant_id?: string | null
           updated_at?: string
           vehicle_id: string
         }
@@ -319,6 +372,7 @@ export type Database = {
           source?: string
           start_datetime?: string
           status?: string
+          tenant_id?: string | null
           updated_at?: string
           vehicle_id?: string
         }
@@ -338,6 +392,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "reservations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "reservations_vehicle_id_fkey"
             columns: ["vehicle_id"]
             isOneToOne: false
@@ -353,6 +414,7 @@ export type Database = {
           id: string
           is_active: boolean
           role: string
+          tenant_id: string | null
           updated_at: string
         }
         Insert: {
@@ -361,6 +423,7 @@ export type Database = {
           id: string
           is_active?: boolean
           role?: string
+          tenant_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -369,6 +432,42 @@ export type Database = {
           id?: string
           is_active?: boolean
           role?: string
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_profiles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenants: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          slug?: string
           updated_at?: string
         }
         Relationships: []
@@ -384,6 +483,7 @@ export type Database = {
           sort_order: number
           storage_bucket: string
           storage_path: string
+          tenant_id: string | null
           vehicle_id: string
         }
         Insert: {
@@ -396,6 +496,7 @@ export type Database = {
           sort_order?: number
           storage_bucket?: string
           storage_path: string
+          tenant_id?: string | null
           vehicle_id: string
         }
         Update: {
@@ -408,9 +509,17 @@ export type Database = {
           sort_order?: number
           storage_bucket?: string
           storage_path?: string
+          tenant_id?: string | null
           vehicle_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "vehicle_images_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "vehicle_images_vehicle_id_fkey"
             columns: ["vehicle_id"]
@@ -439,6 +548,7 @@ export type Database = {
           plate_number: string
           source_row_number: number | null
           status: string
+          tenant_id: string | null
           upcoming_reservations_raw: string | null
           updated_at: string
           year: number | null
@@ -461,6 +571,7 @@ export type Database = {
           plate_number: string
           source_row_number?: number | null
           status?: string
+          tenant_id?: string | null
           upcoming_reservations_raw?: string | null
           updated_at?: string
           year?: number | null
@@ -483,17 +594,27 @@ export type Database = {
           plate_number?: string
           source_row_number?: number | null
           status?: string
+          tenant_id?: string | null
           upcoming_reservations_raw?: string | null
           updated_at?: string
           year?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "vehicles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      get_user_tenant_id: { Args: never; Returns: string }
       is_active_staff: { Args: never; Returns: boolean }
     }
     Enums: {
