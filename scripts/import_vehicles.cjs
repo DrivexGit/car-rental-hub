@@ -3,7 +3,7 @@ const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
 
 const supabaseUrl = 'https://ampdpgwcjgoqbamfttlw.supabase.co';
-const supabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFtcGRwZ3djamdvcWJhbWZ0dGx3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTkwMjQyMywiZXhwIjoyMDkxNDc4NDIzfQ.1IDOw7NRuI-iLnvKD-m_IPSUBq_Ss9hVQo5FbnjdV_Q';
+const supabaseServiceKey = 'sb_secret_8uREf_ZA-QLiFDKcFj4dFQ_5E4aVNr-';
 const tenantId = '22c42919-4f33-4463-ae13-39cc26993c64';
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);

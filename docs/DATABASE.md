@@ -26,7 +26,7 @@ Admin/staff accounts for dashboard access. One per auth.users entry.
 | Column | Type | Nullable | Default | Notes |
 |--------|------|----------|---------|-------|
 | id | uuid | No | — | PK, references auth.users |
-| tenant_id | uuid | Yes | — | FK → tenants |
+| tenant_id | uuid | No | — | FK → tenants |
 | full_name | text | Yes | — | |
 | role | text | No | 'admin' | admin, agent |
 | is_active | boolean | No | true | |
@@ -39,7 +39,7 @@ Imported vehicle inventory.
 | Column | Type | Nullable | Default | Notes |
 |--------|------|----------|---------|-------|
 | id | uuid | No | gen_random_uuid() | PK |
-| tenant_id | uuid | Yes | — | FK → tenants |
+| tenant_id | uuid | No | — | FK → tenants |
 | source_row_number | integer | Yes | — | Row # from import file |
 | plate_number | text | No | — | Unique |
 | make | text | No | — | |
@@ -66,7 +66,7 @@ Metadata for vehicle images stored in Supabase Storage (`vehicle-images` bucket)
 | Column | Type | Nullable | Default | Notes |
 |--------|------|----------|---------|-------|
 | id | uuid | No | gen_random_uuid() | PK |
-| tenant_id | uuid | Yes | — | FK → tenants |
+| tenant_id | uuid | No | — | FK → tenants |
 | vehicle_id | uuid | No | — | FK → vehicles |
 | storage_bucket | text | No | 'vehicle-images' | |
 | storage_path | text | No | — | |
@@ -83,18 +83,38 @@ Customers/leads from WhatsApp and other channels. Lightweight CRM.
 | Column | Type | Nullable | Default | Notes |
 |--------|------|----------|---------|-------|
 | id | uuid | No | gen_random_uuid() | PK |
-| tenant_id | uuid | Yes | — | FK → tenants |
-| whatsapp_number | text | No | — | Unique |
+| tenant_id | uuid | No | — | FK → tenants |
+| whatsapp_number | text | Yes | — | Non-unique fallback |
 | full_name | text | Yes | — | |
-| source | text | Yes | — | whatsapp, website, instagram, ads, manual |
-| status | text | No | 'new' | new, qualified, in_progress, waiting_customer, reserved, handed_to_human, closed |
-| current_stage | text | No | 'new_lead' | See chatbot stages below |
+| display_name | text | Yes | — | Channel-specific name |
+| primary_channel | text | Yes | — | whatsapp, telegram |
+| source | text | Yes | — | whatsapp, website, ads, etc. |
+| status | text | No | 'new' | |
+| current_stage | text | No | 'new_lead' | |
 | notes | text | Yes | — | |
-| assigned_staff_id | uuid | Yes | — | FK → staff_profiles |
+| assigned_staff_id | uuid | Yes | — | |
 | last_message_at | timestamptz | Yes | — | |
 | first_seen_at | timestamptz | No | now() | |
 | created_at | timestamptz | No | now() | |
 | updated_at | timestamptz | No | now() | |
+
+### `lead_channels`
+Source of truth for channel bindings (WhatsApp, Telegram, etc).
+
+| Column | Type | Nullable | Default | Notes |
+|--------|------|----------|---------|-------|
+| id | uuid | No | gen_random_uuid() | PK |
+| tenant_id | uuid | No | — | FK → tenants |
+| lead_id | uuid | No | — | FK → leads |
+| channel | text | No | — | whatsapp, telegram |
+| external_user_id | text | No | — | unique per channel |
+| phone_number | text | Yes | — | |
+| username | text | Yes | — | |
+| is_primary | boolean | No | false | |
+| created_at | timestamptz | No | now() | |
+| updated_at | timestamptz | No | now() | |
+
+---
 
 ### `messages`
 All inbound and outbound messages.
@@ -102,11 +122,13 @@ All inbound and outbound messages.
 | Column | Type | Nullable | Default | Notes |
 |--------|------|----------|---------|-------|
 | id | uuid | No | gen_random_uuid() | PK |
-| tenant_id | uuid | Yes | — | FK → tenants |
+| tenant_id | uuid | No | — | FK → tenants |
 | lead_id | uuid | No | — | FK → leads |
 | direction | text | No | — | inbound, outbound |
 | channel | text | No | 'whatsapp' | |
 | message_text | text | No | — | |
+| channel_message_id | text | Yes | — | ID from provider |
+| raw_payload | jsonb | Yes | — | Full provider data |
 | detected_intent | text | Yes | — | |
 | stage_at_time | text | Yes | — | |
 | message_type | text | No | 'text' | |
@@ -118,7 +140,7 @@ Structured chatbot state for each lead.
 | Column | Type | Nullable | Default | Notes |
 |--------|------|----------|---------|-------|
 | id | uuid | No | gen_random_uuid() | PK |
-| tenant_id | uuid | Yes | — | FK → tenants |
+| tenant_id | uuid | No | — | FK → tenants |
 | lead_id | uuid | No | — | FK → leads (unique) |
 | current_stage | text | No | 'new_lead' | |
 | last_intent | text | Yes | — | |
@@ -136,14 +158,14 @@ Bookings, blocks, and drafts. Powers calendar availability.
 | Column | Type | Nullable | Default | Notes |
 |--------|------|----------|---------|-------|
 | id | uuid | No | gen_random_uuid() | PK |
-| tenant_id | uuid | Yes | — | FK → tenants |
+| tenant_id | uuid | No | — | FK → tenants |
 | lead_id | uuid | Yes | — | FK → leads |
 | vehicle_id | uuid | No | — | FK → vehicles |
-| source | text | No | 'chatbot' | chatbot, manual_admin, imported |
-| status | text | No | 'draft' | draft, pending, confirmed, blocked, completed, cancelled |
-| reservation_type | text | No | 'booking' | booking, block |
+| source | text | No | 'chatbot' | |
+| status | text | No | 'draft' | |
+| reservation_type | text | No | 'booking' | |
 | start_datetime | timestamptz | No | — | |
-| end_datetime | timestamptz | No | — | |
+| end_datetime | timestamptz | No | — | Must be > start |
 | pickup_location | text | Yes | — | |
 | return_location | text | Yes | — | |
 | customer_name_snapshot | text | Yes | — | |
@@ -160,17 +182,17 @@ Metadata for customer documents stored in Supabase Storage (`customer-documents`
 | Column | Type | Nullable | Default | Notes |
 |--------|------|----------|---------|-------|
 | id | uuid | No | gen_random_uuid() | PK |
-| tenant_id | uuid | Yes | — | FK → tenants |
+| tenant_id | uuid | No | — | FK → tenants |
 | lead_id | uuid | No | — | FK → leads |
 | reservation_id | uuid | Yes | — | FK → reservations |
-| document_type | text | No | — | passport, visa, driving_license, id_card, other |
+| document_type | text | No | — | |
 | storage_bucket | text | No | 'customer-documents' | |
 | storage_path | text | No | — | |
 | file_name | text | No | — | |
 | mime_type | text | Yes | — | |
 | file_size | integer | Yes | — | |
-| uploaded_by | text | No | 'customer' | customer, admin |
-| verification_status | text | No | 'pending' | pending, approved, rejected |
+| uploaded_by | text | No | 'customer' | |
+| verification_status | text | No | 'pending' | |
 | note | text | Yes | — | |
 | created_at | timestamptz | No | now() | |
 
@@ -180,7 +202,7 @@ FAQ knowledge base for the chatbot.
 | Column | Type | Nullable | Default | Notes |
 |--------|------|----------|---------|-------|
 | id | uuid | No | gen_random_uuid() | PK |
-| tenant_id | uuid | Yes | — | FK → tenants |
+| tenant_id | uuid | No | — | FK → tenants |
 | category | text | Yes | — | |
 | question | text | No | — | |
 | answer | text | No | — | |
@@ -237,9 +259,10 @@ All tables use tenant-based RLS. The function `get_user_tenant_id()` returns the
 ## Indexes
 
 Key indexes for performance:
-- `leads`: whatsapp_number, status, current_stage, assigned_staff_id, tenant_id
-- `messages`: lead_id, created_at, direction, tenant_id
-- `vehicles`: plate_number, status, make, model, tenant_id
-- `reservations`: vehicle_id, lead_id, start_datetime, end_datetime, tenant_id
-- `customer_documents`: lead_id, tenant_id
-- `vehicle_images`: vehicle_id, tenant_id
+- `leads`: tenant_id, whatsapp_number, status, current_stage, assigned_staff_id, display_name
+- `lead_channels`: tenant_id, channel, external_user_id
+- `messages`: tenant_id, lead_id, created_at, direction
+- `vehicles`: tenant_id, plate_number, status, make, model
+- `reservations`: tenant_id, vehicle_id, start_datetime, end_datetime, lead_id
+- `customer_documents`: tenant_id, lead_id
+- `vehicle_images`: tenant_id, vehicle_id
