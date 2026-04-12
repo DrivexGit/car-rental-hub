@@ -19,22 +19,26 @@ export default function Vehicles() {
     const load = async () => {
       let q = supabase.from('vehicles').select('*').order('created_at', { ascending: false });
       if (statusFilter !== 'all') q = q.eq('status', statusFilter);
-      const { data } = await q;
+      const { data, error } = await q;
+      if (error) console.error("Error fetching vehicles:", error);
+      console.log("Fetched vehicles:", data?.length);
       setVehicles(data || []);
     };
     load();
   }, [statusFilter]);
 
-  const filtered = vehicles.filter(v =>
-    v.plate_number.toLowerCase().includes(search.toLowerCase()) ||
-    v.make.toLowerCase().includes(search.toLowerCase()) ||
-    v.model.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = vehicles.filter(v => {
+    const s = search.toLowerCase();
+    const plate = String(v.plate_number || '').toLowerCase();
+    const make = String(v.make || '').toLowerCase();
+    const model = String(v.model || '').toLowerCase();
+    return plate.includes(s) || make.includes(s) || model.includes(s);
+  });
 
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-semibold">Vehicles</h1>
+        <h1 className="text-2xl font-semibold">Vehicles (Total: {vehicles.length}, Filtered: {filtered.length})</h1>
         <Button onClick={() => navigate('/vehicles/import')}><Upload className="mr-2 h-4 w-4" />Import</Button>
       </div>
       <div className="flex gap-3 mb-4">
