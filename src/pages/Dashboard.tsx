@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Car, Users, Calendar, FileText } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Car, Users, Calendar, FileText, TrendingUp, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 export default function Dashboard() {
   const [stats, setStats] = useState({
@@ -35,27 +35,30 @@ export default function Dashboard() {
   }, []);
 
   const cards = [
-    { label: 'Total Vehicles', value: stats.totalVehicles, icon: Car },
-    { label: 'Available', value: stats.availableVehicles, icon: Car },
-    { label: 'Booked / Unavailable', value: stats.bookedVehicles, icon: Car },
-    { label: 'Total Leads', value: stats.totalLeads, icon: Users },
-    { label: 'In Progress', value: stats.inProgressLeads, icon: Users },
-    { label: 'Open Reservations', value: stats.openReservations, icon: Calendar },
-    { label: 'Pending Documents', value: stats.pendingDocs, icon: FileText },
+    { label: 'Total Fleet', value: stats.totalVehicles, icon: Car, color: 'from-blue-500/10 to-blue-600/5', iconColor: 'text-blue-600', borderColor: 'border-blue-200' },
+    { label: 'Available', value: stats.availableVehicles, icon: CheckCircle2, color: 'from-emerald-500/10 to-emerald-600/5', iconColor: 'text-emerald-600', borderColor: 'border-emerald-200' },
+    { label: 'Booked / Busy', value: stats.bookedVehicles, icon: AlertCircle, color: 'from-amber-500/10 to-amber-600/5', iconColor: 'text-amber-600', borderColor: 'border-amber-200' },
+    { label: 'Total Leads', value: stats.totalLeads, icon: Users, color: 'from-violet-500/10 to-violet-600/5', iconColor: 'text-violet-600', borderColor: 'border-violet-200' },
+    { label: 'In Progress', value: stats.inProgressLeads, icon: TrendingUp, color: 'from-cyan-500/10 to-cyan-600/5', iconColor: 'text-cyan-600', borderColor: 'border-cyan-200' },
+    { label: 'Open Reservations', value: stats.openReservations, icon: Calendar, color: 'from-indigo-500/10 to-indigo-600/5', iconColor: 'text-indigo-600', borderColor: 'border-indigo-200' },
+    { label: 'Pending Docs', value: stats.pendingDocs, icon: FileText, color: 'from-rose-500/10 to-rose-600/5', iconColor: 'text-rose-600', borderColor: 'border-rose-200' },
   ];
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold mb-6">Dashboard</h1>
+      <h1 className="text-2xl font-semibold mb-2">Dashboard</h1>
+      <p className="text-sm text-muted-foreground mb-6">Overview of your fleet and operations</p>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {cards.map(c => (
-          <Card key={c.label}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">{c.label}</CardTitle>
-              <c.icon className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{c.value}</div>
+          <Card key={c.label} className={`border ${c.borderColor} bg-gradient-to-br ${c.color} shadow-sm hover:shadow-md transition-shadow`}>
+            <CardContent className="pt-5 pb-4 px-5">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{c.label}</span>
+                <div className={`p-2 rounded-lg bg-background/60 ${c.iconColor}`}>
+                  <c.icon className="h-4 w-4" />
+                </div>
+              </div>
+              <div className="text-3xl font-bold tracking-tight">{c.value}</div>
             </CardContent>
           </Card>
         ))}

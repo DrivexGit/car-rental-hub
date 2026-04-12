@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useTenantId } from '@/hooks/useTenantId';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -16,6 +17,7 @@ export default function FAQ() {
   const [editing, setEditing] = useState<any>(null);
   const [form, setForm] = useState({ question: '', answer: '', category: '', is_active: true, sort_order: 0 });
   const { toast } = useToast();
+  const tenantId = useTenantId();
 
   const load = async () => {
     const { data } = await supabase.from('faq_entries').select('*').order('sort_order');
@@ -33,7 +35,8 @@ export default function FAQ() {
       await supabase.from('faq_entries').update(form).eq('id', editing.id);
       toast({ title: 'FAQ updated' });
     } else {
-      await supabase.from('faq_entries').insert(form);
+      if (!tenantId) { toast({ title: 'No tenant', variant: 'destructive' }); return; }
+      await supabase.from('faq_entries').insert({ ...form, tenant_id: tenantId });
       toast({ title: 'FAQ created' });
     }
     setDialogOpen(false);
@@ -47,12 +50,7 @@ export default function FAQ() {
         <Button onClick={openCreate}><Plus className="mr-2 h-4 w-4" />Add FAQ</Button>
       </div>
       <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Order</TableHead><TableHead>Category</TableHead><TableHead>Question</TableHead>
-            <TableHead>Active</TableHead><TableHead></TableHead>
-          </TableRow>
-        </TableHeader>
+        <TableHeader><TableRow><TableHead>Order</TableHead><TableHead>Category</TableHead><TableHead>Question</TableHead><TableHead>Active</TableHead><TableHead></TableHead></TableRow></TableHeader>
         <TableBody>
           {entries.map(e => (
             <TableRow key={e.id}>
@@ -65,7 +63,6 @@ export default function FAQ() {
           ))}
         </TableBody>
       </Table>
-
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader><DialogTitle>{editing ? 'Edit FAQ' : 'New FAQ'}</DialogTitle></DialogHeader>

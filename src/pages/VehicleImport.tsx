@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useTenantId } from '@/hooks/useTenantId';
 import * as XLSX from 'xlsx';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -50,6 +51,7 @@ export default function VehicleImport() {
   const fileRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const tenantId = useTenantId();
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -78,6 +80,7 @@ export default function VehicleImport() {
   };
 
   const doImport = async () => {
+    if (!tenantId) { toast({ title: 'No tenant assigned', variant: 'destructive' }); return; }
     setImporting(true);
     let inserted = 0, updated = 0, skipped = 0, failed = 0;
     for (const row of rows) {
@@ -87,7 +90,7 @@ export default function VehicleImport() {
           const { error } = await supabase.from('vehicles').update(row).eq('id', existing.id);
           if (error) failed++; else updated++;
         } else {
-          const { error } = await supabase.from('vehicles').insert(row);
+          const { error } = await supabase.from('vehicles').insert({ ...row, tenant_id: tenantId });
           if (error) failed++; else inserted++;
         }
       } catch { failed++; }
@@ -103,7 +106,6 @@ export default function VehicleImport() {
         <Button variant="ghost" size="icon" onClick={() => navigate('/vehicles')}><ArrowLeft className="h-4 w-4" /></Button>
         <h1 className="text-2xl font-semibold">Import Vehicles</h1>
       </div>
-
       <Card>
         <CardHeader><CardTitle className="text-sm">Upload Excel or CSV</CardTitle></CardHeader>
         <CardContent className="space-y-4">
@@ -111,7 +113,6 @@ export default function VehicleImport() {
           <p className="text-xs text-muted-foreground">Expected columns: #, Plate Number, Make, Model, Year, Color, Categories, Current Location, Status, Expected Return Date, Upcoming Reservations, Latest Return Date, Odometer, Chassis Number</p>
         </CardContent>
       </Card>
-
       {rows.length > 0 && (
         <>
           <Card>
@@ -121,27 +122,20 @@ export default function VehicleImport() {
             </CardHeader>
             <CardContent className="overflow-auto max-h-96">
               <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>#</TableHead><TableHead>Plate</TableHead><TableHead>Make</TableHead><TableHead>Model</TableHead><TableHead>Year</TableHead><TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
+                <TableHeader><TableRow><TableHead>#</TableHead><TableHead>Plate</TableHead><TableHead>Make</TableHead><TableHead>Model</TableHead><TableHead>Year</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
                 <TableBody>
                   {rows.slice(0, 50).map((r, i) => (
                     <TableRow key={i}>
                       <TableCell>{r.source_row_number || i + 1}</TableCell>
                       <TableCell className="font-mono">{r.plate_number}</TableCell>
-                      <TableCell>{r.make}</TableCell>
-                      <TableCell>{r.model}</TableCell>
-                      <TableCell>{r.year || '—'}</TableCell>
-                      <TableCell>{r.status}</TableCell>
+                      <TableCell>{r.make}</TableCell><TableCell>{r.model}</TableCell>
+                      <TableCell>{r.year || '—'}</TableCell><TableCell>{r.status}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
             </CardContent>
           </Card>
-
           {result && (
             <Card>
               <CardContent className="pt-6">

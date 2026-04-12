@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useTenantId } from '@/hooks/useTenantId';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,6 +15,7 @@ export default function VehicleDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const tenantId = useTenantId();
   const [vehicle, setVehicle] = useState<any>(null);
   const [images, setImages] = useState<any[]>([]);
   const [reservations, setReservations] = useState<any[]>([]);
@@ -41,14 +43,14 @@ export default function VehicleDetail() {
 
   const uploadImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !id) return;
+    if (!file || !id || !tenantId) return;
     setUploading(true);
     const path = `${id}/${Date.now()}-${file.name}`;
     const { error } = await supabase.storage.from('vehicle-images').upload(path, file);
     if (error) { toast({ title: 'Upload failed', description: error.message, variant: 'destructive' }); setUploading(false); return; }
     await supabase.from('vehicle_images').insert({
       vehicle_id: id, storage_path: path, file_name: file.name,
-      mime_type: file.type, file_size: file.size, sort_order: images.length,
+      mime_type: file.type, file_size: file.size, sort_order: images.length, tenant_id: tenantId,
     });
     toast({ title: 'Image uploaded' });
     setUploading(false);
@@ -75,7 +77,6 @@ export default function VehicleDetail() {
         <Button variant="ghost" size="icon" onClick={() => navigate('/vehicles')}><ArrowLeft className="h-4 w-4" /></Button>
         <h1 className="text-2xl font-semibold">{vehicle.make} {vehicle.model} — {vehicle.plate_number}</h1>
       </div>
-
       <div className="grid md:grid-cols-2 gap-4">
         <Card>
           <CardHeader><CardTitle className="text-sm">Vehicle Info</CardTitle></CardHeader>
@@ -96,7 +97,6 @@ export default function VehicleDetail() {
             {vehicle.notes && <p><strong>Notes:</strong> {vehicle.notes}</p>}
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-sm">Images ({images.length})</CardTitle>
@@ -120,7 +120,6 @@ export default function VehicleDetail() {
           </CardContent>
         </Card>
       </div>
-
       <Card>
         <CardHeader><CardTitle className="text-sm">Reservations ({reservations.length})</CardTitle></CardHeader>
         <CardContent>

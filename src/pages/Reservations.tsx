@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useTenantId } from '@/hooks/useTenantId';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -20,8 +20,8 @@ export default function Reservations() {
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [leads, setLeads] = useState<any[]>([]);
   const [form, setForm] = useState({ vehicle_id: '', lead_id: '', start_datetime: '', end_datetime: '', status: 'confirmed', reservation_type: 'booking', internal_note: '', pickup_location: '', return_location: '' });
-  const navigate = useNavigate();
   const { toast } = useToast();
+  const tenantId = useTenantId();
 
   const load = async () => {
     let q = supabase.from('reservations').select('*, vehicles(plate_number, make, model), leads(full_name, whatsapp_number)').order('start_datetime', { ascending: false });
@@ -45,7 +45,8 @@ export default function Reservations() {
 
   const createReservation = async () => {
     if (!form.vehicle_id || !form.start_datetime || !form.end_datetime) { toast({ title: 'Missing fields', variant: 'destructive' }); return; }
-    const insert: any = { ...form, source: 'manual_admin' };
+    if (!tenantId) { toast({ title: 'No tenant', variant: 'destructive' }); return; }
+    const insert: any = { ...form, source: 'manual_admin', tenant_id: tenantId };
     if (!insert.lead_id) delete insert.lead_id;
     const { error } = await supabase.from('reservations').insert(insert);
     if (error) { toast({ title: 'Error', description: error.message, variant: 'destructive' }); return; }
@@ -76,12 +77,7 @@ export default function Reservations() {
         </Select>
       </div>
       <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Vehicle</TableHead><TableHead>Customer</TableHead><TableHead>Type</TableHead>
-            <TableHead>Status</TableHead><TableHead>Start</TableHead><TableHead>End</TableHead><TableHead></TableHead>
-          </TableRow>
-        </TableHeader>
+        <TableHeader><TableRow><TableHead>Vehicle</TableHead><TableHead>Customer</TableHead><TableHead>Type</TableHead><TableHead>Status</TableHead><TableHead>Start</TableHead><TableHead>End</TableHead><TableHead></TableHead></TableRow></TableHeader>
         <TableBody>
           {reservations.map(r => (
             <TableRow key={r.id}>
