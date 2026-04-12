@@ -20,8 +20,7 @@ export default function Vehicles() {
       let q = supabase.from('vehicles').select('*').order('created_at', { ascending: false });
       if (statusFilter !== 'all') q = q.eq('status', statusFilter);
       const { data, error } = await q;
-      if (error) console.error("Error fetching vehicles:", error);
-      console.log("Fetched vehicles:", data?.length);
+      if (error) console.error('Error fetching vehicles:', error);
       setVehicles(data || []);
     };
     load();
@@ -38,7 +37,7 @@ export default function Vehicles() {
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-semibold">Vehicles (Total: {vehicles.length}, Filtered: {filtered.length})</h1>
+        <h1 className="text-2xl font-semibold">Vehicles</h1>
         <Button onClick={() => navigate('/vehicles/import')}><Upload className="mr-2 h-4 w-4" />Import</Button>
       </div>
       <div className="flex gap-3 mb-4">

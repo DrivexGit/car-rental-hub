@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -24,106 +24,103 @@ const AuthContext = createContext<AuthContextType>({
 
 export const useAuth = () => useContext(AuthContext);
 
+// Cache the profile in memory to avoid redundant fetches on navigation
+const profileCache = new Map<string, StaffProfile>();
+
+async function fetchProfile(userId: string): Promise<StaffProfile | null> {
+  if (profileCache.has(userId)) {
+    return profileCache.get(userId)!;
+  }
+  const { data, error } = await supabase
+    .from('staff_profiles')
+    .select('id, full_name, role, tenant_id')
+    .eq('id', userId)
+    .maybeSingle();
+  if (error) {
+    console.error('Error fetching staff profile:', error);
+    return null;
+  }
+  if (data) profileCache.set(userId, data);
+  return data;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [staffProfile, setStaffProfile] = useState<StaffProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [authStatus, setAuthStatus] = useState<string>('');
+  // Track initialized to skip redundant work on token refresh
+  const initialized = useRef(false);
 
   useEffect(() => {
     let mounted = true;
 
-    const initializeAuth = async () => {
-      setAuthStatus('Connecting...');
-      
-      // Safety timeout
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('TIMEOUT')), 15000)
-      );
-
-      try {
-        // Run getSession first as it's often faster for initial hit
-        const sessionPromise = supabase.auth.getSession();
-        
-        const result = await Promise.race([sessionPromise, timeoutPromise]) as any;
-        const initialSession = result.data?.session;
-
-        if (mounted) {
-          setSession(initialSession);
-          if (initialSession?.user) {
-            setAuthStatus('Syncing profile...');
-            const { data: profile, error: profileError } = await supabase
-              .from('staff_profiles')
-              .select('id, full_name, role, tenant_id')
-              .eq('id', initialSession.user.id)
-              .maybeSingle();
-            
-            if (profileError) throw profileError;
-            if (mounted) setStaffProfile(profile);
-          }
-        }
-      } catch (error: any) {
-        if (error.message === 'TIMEOUT') {
-          console.warn("Auth initialization timed out, proceeding with fallback...");
-        } else {
-          console.error("Auth initialization error:", error);
-        }
-      } finally {
-        if (mounted) {
-          setLoading(false);
-          setAuthStatus('');
-        }
-      }
-    };
-
-    initializeAuth();
-
+    // 1. Subscribe FIRST so we don't miss any events during async init
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
-      if (mounted) {
+      if (!mounted) return;
+
+      // TOKEN_REFRESHED: just update session silently; profile is already cached
+      if (event === 'TOKEN_REFRESHED') {
         setSession(currentSession);
-        
-        if (event === 'SIGNED_IN' && currentSession?.user) {
-          const { data: profile } = await supabase
-            .from('staff_profiles')
-            .select('id, full_name, role, tenant_id')
-            .eq('id', currentSession.user.id)
-            .maybeSingle();
-          setStaffProfile(profile);
-        } else if (event === 'SIGNED_OUT') {
-          setStaffProfile(null);
+        return;
+      }
+
+      if (event === 'SIGNED_OUT') {
+        profileCache.clear();
+        setSession(null);
+        setStaffProfile(null);
+        return;
+      }
+
+      if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && currentSession?.user) {
+        const profile = await fetchProfile(currentSession.user.id);
+        if (!mounted) return;
+        setSession(currentSession);
+        setStaffProfile(profile);
+        if (!initialized.current) {
+          initialized.current = true;
+          setLoading(false);
         }
+        return;
+      }
+
+      // Any other event: just sync session
+      setSession(currentSession);
+      if (!initialized.current) {
+        initialized.current = true;
+        setLoading(false);
       }
     });
 
+    // 2. Safety timeout - if onAuthStateChange never fires (network blocked)
+    const timeout = setTimeout(() => {
+      if (mounted && !initialized.current) {
+        console.warn('Auth timeout: proceeding unauthenticated');
+        initialized.current = true;
+        setLoading(false);
+      }
+    }, 10000);
+
     return () => {
       mounted = false;
+      clearTimeout(timeout);
       subscription.unsubscribe();
     };
   }, []);
 
   const signOut = async () => {
-    setLoading(true);
+    profileCache.clear();
     await supabase.auth.signOut();
-    setSession(null);
-    setStaffProfile(null);
-    setLoading(false);
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      session, 
-      user: session?.user ?? null, 
-      staffProfile, 
-      tenantId: staffProfile?.tenant_id ?? null, 
-      loading, 
-      signOut 
+    <AuthContext.Provider value={{
+      session,
+      user: session?.user ?? null,
+      staffProfile,
+      tenantId: staffProfile?.tenant_id ?? null,
+      loading,
+      signOut
     }}>
-      {loading && authStatus && (
-        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center text-center p-4">
-          <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4" />
-          <p className="text-xl font-semibold animate-pulse">{authStatus}</p>
-        </div>
-      )}
       {children}
     </AuthContext.Provider>
   );
