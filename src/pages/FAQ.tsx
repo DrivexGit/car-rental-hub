@@ -50,15 +50,31 @@ export default function FAQ() {
         <Button onClick={openCreate}><Plus className="mr-2 h-4 w-4" />Add FAQ</Button>
       </div>
       <Table>
-        <TableHeader><TableRow><TableHead>Order</TableHead><TableHead>Category</TableHead><TableHead>Question</TableHead><TableHead>Active</TableHead><TableHead></TableHead></TableRow></TableHeader>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-[80px]">Order</TableHead>
+            <TableHead>Category</TableHead>
+            <TableHead>Question</TableHead>
+            <TableHead>Answer</TableHead>
+            <TableHead className="w-[80px]">Active</TableHead>
+            <TableHead className="w-[50px]"></TableHead>
+          </TableRow>
+        </TableHeader>
         <TableBody>
           {entries.map(e => (
             <TableRow key={e.id}>
               <TableCell>{e.sort_order}</TableCell>
-              <TableCell className="text-sm">{e.category || '—'}</TableCell>
-              <TableCell className="text-sm max-w-md">{e.question}</TableCell>
+              <TableCell className="text-sm font-medium">{e.category || '—'}</TableCell>
+              <TableCell className="text-sm max-w-[250px]">{e.question}</TableCell>
+              <TableCell className="text-xs text-muted-foreground whitespace-pre-wrap max-w-[500px]">
+                {e.answer}
+              </TableCell>
               <TableCell>{e.is_active ? '✓' : '—'}</TableCell>
-              <TableCell><Button size="sm" variant="ghost" onClick={() => openEdit(e)}><Pencil className="h-3 w-3" /></Button></TableCell>
+              <TableCell>
+                <Button size="sm" variant="ghost" onClick={() => openEdit(e)}>
+                  <Pencil className="h-3 w-3" />
+                </Button>
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>
