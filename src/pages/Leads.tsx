@@ -13,27 +13,58 @@ import {
   Car, Clock, MapPin, User, Phone, Languages 
 } from 'lucide-react';
 
-const getStageProgress = (stage: string) => {
-  const stages: Record<string, { p: number; c: string }> = {
-    new_lead: { p: 5, c: 'bg-slate-400' },
-    faq_mode: { p: 15, c: 'bg-slate-500' },
-    collect_rental_date: { p: 25, c: 'bg-blue-400' },
-    collect_duration: { p: 35, c: 'bg-blue-500' },
-    collect_car_preference: { p: 45, c: 'bg-cyan-500' },
-    collect_budget_optional: { p: 50, c: 'bg-cyan-600' },
-    collect_delivery_location: { p: 55, c: 'bg-indigo-400' },
-    collect_return_location: { p: 60, c: 'bg-indigo-500' },
-    check_inventory: { p: 65, c: 'bg-violet-500' },
-    present_options: { p: 70, c: 'bg-purple-500' },
-    awaiting_car_selection: { p: 75, c: 'bg-fuchsia-500' },
-    collect_customer_full_name: { p: 80, c: 'bg-pink-500' },
-    collect_documents_info: { p: 85, c: 'bg-rose-500' },
-    reservation_draft_ready: { p: 90, c: 'bg-orange-500' },
-    reservation_confirmed: { p: 100, c: 'bg-green-500' },
-    human_handoff: { p: 100, c: 'bg-green-600' },
-    closed: { p: 100, c: 'bg-emerald-600' },
-  };
-  return stages[stage] || { p: 0, c: 'bg-primary' };
+const calculateDynamicProgress = (lead: any) => {
+  const state = lead.conversation_states;
+  const rawFields = Array.isArray(state) ? state[0]?.collected_fields : state?.collected_fields;
+  let fields: any = {};
+  
+  try {
+    fields = typeof rawFields === 'string' ? JSON.parse(rawFields) : (rawFields || {});
+  } catch (e) {
+    fields = {};
+  }
+
+  let p = 0;
+  
+  // 1. Car (18%)
+  if (fields.car) p += 18;
+  
+  // 2. Date (12%)
+  if (fields.date) p += 12;
+  
+  // 3. Duration (8%)
+  if (fields.duration) p += 8;
+  
+  // 4. Pickup Location (12%)
+  if (fields.pickup_location) p += 12;
+  
+  // 5. Dropoff Location (8%)
+  if (fields.dropoff_location) p += 8;
+  
+  // 6. Name (10%)
+  if (lead.full_name || fields.name) p += 10;
+  
+  // 7. Phone (10%)
+  if (lead.whatsapp_number || fields.phone) p += 10;
+  
+  // 8. License Upload (10%)
+  // Associated with stages after collect_documents_info
+  const licenseStages = ['reservation_draft_ready', 'reservation_confirmed', 'human_handoff', 'closed'];
+  if (licenseStages.includes(lead.current_stage)) p += 10;
+  
+  // 9. Confirmation (12%)
+  const confirmationStages = ['reservation_confirmed', 'human_handoff', 'closed'];
+  if (confirmationStages.includes(lead.current_stage)) p += 12;
+
+  // Determine color based on progress
+  let c = 'bg-slate-400';
+  if (p > 90) c = 'bg-emerald-500';
+  else if (p > 70) c = 'bg-green-500';
+  else if (p > 50) c = 'bg-blue-500';
+  else if (p > 30) c = 'bg-indigo-500';
+  else if (p > 10) c = 'bg-slate-500';
+
+  return { p: Math.min(p, 100), c };
 };
 
 export default function Leads() {
@@ -156,7 +187,7 @@ export default function Leads() {
           </TableHeader>
           <TableBody>
             {filtered.map(l => {
-              const { p, c } = getStageProgress(l.current_stage);
+              const { p, c } = calculateDynamicProgress(l);
               const messageCount = l.messages?.[0]?.count || 0;
               
               return (
