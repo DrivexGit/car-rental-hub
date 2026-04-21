@@ -8,7 +8,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { LEAD_STATUSES, CHATBOT_STAGES } from '@/lib/constants';
-import { MessageSquare, Calendar, Milestone, MessageCircle, Send } from 'lucide-react';
+import { 
+  MessageSquare, Calendar, Milestone, MessageCircle, Send, 
+  Car, Clock, MapPin, User, Phone, Languages 
+} from 'lucide-react';
 
 const getStageProgress = (stage: string) => {
   const stages: Record<string, { p: number; c: string }> = {
@@ -212,9 +215,24 @@ export default function Leads() {
                           
                           if (entries.length === 0) return <span className="text-[10px] text-muted-foreground italic">No data</span>;
                           
+                          const getIcon = (key: string) => {
+                            switch (key) {
+                              case 'car': return <Car className="h-3 w-3" />;
+                              case 'date': return <Calendar className="h-3 w-3" />;
+                              case 'duration': return <Clock className="h-3 w-3" />;
+                              case 'pickup_location':
+                              case 'dropoff_location': return <MapPin className="h-3 w-3" />;
+                              case 'name': return <User className="h-3 w-3" />;
+                              case 'phone': return <Phone className="h-3 w-3" />;
+                              case 'language': return <Languages className="h-3 w-3" />;
+                              default: return null;
+                            }
+                          };
+
                           return entries.map(([k, v]) => (
-                            <Badge key={k} variant="outline" className="text-[9px] px-1 py-0 bg-muted/30 border-muted-foreground/20 text-muted-foreground capitalize">
-                              {k.replace(/_/g, ' ')}: {String(v)}
+                            <Badge key={k} variant="outline" className="text-[11px] font-semibold px-2 py-0.5 bg-muted/30 border-muted-foreground/20 text-foreground flex items-center gap-1.5 h-6">
+                              {getIcon(k)}
+                              <span>{String(v)}</span>
                             </Badge>
                           ));
                         } catch (e) {
