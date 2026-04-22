@@ -16,6 +16,11 @@ export default function Documents() {
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
   const { toast } = useToast();
 
+  const sanitizePath = (path: string) => {
+    if (!path) return '';
+    return path.startsWith('/') ? path.substring(1) : path;
+  };
+
   const isImage = (doc: any) => {
     if (doc.mime_type?.startsWith('image/')) return true;
     const ext = doc.file_name?.split('.').pop()?.toLowerCase();
@@ -52,9 +57,7 @@ export default function Documents() {
           if (signedData) {
             signedData.forEach((sd: any) => {
               if (sd.signedUrl) {
-                allUrls[sd.path] = sd.signedUrl;
-                // Also store without leading slash if present, for easier lookup
-                const cleanPath = sd.path.startsWith('/') ? sd.path.substring(1) : sd.path;
+                const cleanPath = sanitizePath(sd.path);
                 allUrls[cleanPath] = sd.signedUrl;
               }
             });
@@ -77,12 +80,11 @@ export default function Documents() {
   };
 
   const getDocUrl = async (doc: any) => {
-    const path = doc.storage_path;
-    const cleanPath = path.startsWith('/') ? path.substring(1) : path;
+    const path = sanitizePath(doc.storage_path);
     
     // If we already have a signed URL from batch loading, use it
-    if (signedUrls[path] || signedUrls[cleanPath]) {
-      window.open(signedUrls[path] || signedUrls[cleanPath], '_blank');
+    if (signedUrls[path]) {
+      window.open(signedUrls[path], '_blank');
       return;
     }
     
@@ -149,7 +151,7 @@ export default function Documents() {
             </TableHeader>
             <TableBody>
               {docs.map(d => {
-                const docUrl = signedUrls[d.storage_path] || signedUrls[d.storage_path.startsWith('/') ? d.storage_path.substring(1) : d.storage_path];
+                const docUrl = signedUrls[sanitizePath(d.storage_path)];
                 
                 return (
                   <TableRow key={d.id} className="hover:bg-muted/10 transition-colors">
@@ -223,7 +225,7 @@ export default function Documents() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {docs.map(d => {
-            const docUrl = signedUrls[d.storage_path] || signedUrls[d.storage_path.startsWith('/') ? d.storage_path.substring(1) : d.storage_path];
+            const docUrl = signedUrls[sanitizePath(d.storage_path)];
             
             return (
               <Card key={d.id} className="group overflow-hidden border-muted-foreground/10 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 bg-card rounded-xl">
