@@ -13,12 +13,28 @@ export default function Documents() {
   const [docs, setDocs] = useState<any[]>([]);
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
   const [filter, setFilter] = useState('all');
-  const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
+  const [viewMode, setViewMode] = useState<'table' | 'grid'>('grid');
   const { toast } = useToast();
 
-  const sanitizePath = (path: string) => {
+  const sanitizePath = (path: string, bucketName?: string) => {
     if (!path) return '';
-    return path.startsWith('/') ? path.substring(1) : path;
+    let clean = path.startsWith('/') ? path.substring(1) : path;
+    
+    // Some chatbot integrations prefix the bucket name to the path
+    const prefixes = [
+      'customer-documents/', 'customer-documents\\',
+      'customer_documents/', 'customer_documents\\',
+      (bucketName || 'customer-documents') + '/',
+      (bucketName || 'customer_documents') + '\\'
+    ];
+    
+    for (const p of prefixes) {
+      if (clean.toLowerCase().startsWith(p.toLowerCase())) {
+        clean = clean.substring(p.length);
+      }
+    }
+    
+    return clean;
   };
 
   const isImage = (doc: any) => {
@@ -55,10 +71,13 @@ export default function Documents() {
           }
 
           if (signedData) {
+            console.log(`Successfully fetched ${signedData.length} URLs for bucket: ${bucket}`);
             signedData.forEach((sd: any) => {
               if (sd.signedUrl) {
-                const cleanPath = sanitizePath(sd.path);
+                const cleanPath = sanitizePath(sd.path, bucket);
                 allUrls[cleanPath] = sd.signedUrl;
+              } else if (sd.error) {
+                console.error(`Error for path ${sd.path}:`, sd.error);
               }
             });
           }
@@ -80,7 +99,10 @@ export default function Documents() {
   };
 
   const getDocUrl = async (doc: any) => {
-    const path = sanitizePath(doc.storage_path);
+    const bucket = doc.storage_bucket || 'customer-documents';
+    const path = sanitizePath(doc.storage_path, bucket);
+    
+    console.log(`Opening document. Bucket: ${bucket}, Path: ${path}`);
     
     // If we already have a signed URL from batch loading, use it
     if (signedUrls[path]) {
@@ -89,13 +111,15 @@ export default function Documents() {
     }
     
     try {
-      const bucket = doc.storage_bucket || 'customer-documents';
       const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, 3600);
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase Storage Error:', error);
+        throw error;
+      }
       if (data?.signedUrl) window.open(data.signedUrl, '_blank');
     } catch (err: any) {
-      console.error('Error opening document:', err.message);
-      toast({ title: 'Could not open document', variant: 'destructive' });
+      console.error('Error opening document:', err);
+      toast({ title: 'Could not open document', description: err.message, variant: 'destructive' });
     }
   };
 
@@ -151,7 +175,8 @@ export default function Documents() {
             </TableHeader>
             <TableBody>
               {docs.map(d => {
-                const docUrl = signedUrls[sanitizePath(d.storage_path)];
+                const bucket = d.storage_bucket || 'customer-documents';
+                const docUrl = signedUrls[sanitizePath(d.storage_path, bucket)];
                 
                 return (
                   <TableRow key={d.id} className="hover:bg-muted/10 transition-colors">
@@ -179,7 +204,7 @@ export default function Documents() {
                     </TableCell>
                     <TableCell className="py-4 px-6">
                       <Badge variant="outline" className="capitalize bg-primary/5 border-primary/10 text-primary px-2 py-0.5 text-[10px] font-bold tracking-tight">
-                        {d.document_type.replace(/_/g, ' ')}
+                        {(d.document_type || 'unknown').replace(/_/g, ' ')}
                       </Badge>
                     </TableCell>
                     <TableCell className="py-4 px-6">
@@ -225,7 +250,8 @@ export default function Documents() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {docs.map(d => {
-            const docUrl = signedUrls[sanitizePath(d.storage_path)];
+            const bucket = d.storage_bucket || 'customer-documents';
+            const docUrl = signedUrls[sanitizePath(d.storage_path, bucket)];
             
             return (
               <Card key={d.id} className="group overflow-hidden border-muted-foreground/10 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 bg-card rounded-xl">
@@ -251,7 +277,7 @@ export default function Documents() {
                 <CardHeader className="p-4 pb-0">
                   <div className="flex justify-between items-start gap-2">
                     <Badge variant="outline" className="text-[9px] font-black uppercase tracking-widest bg-primary/5 text-primary border-primary/20 shrink-0">
-                      {d.document_type.replace(/_/g, ' ')}
+                      {(d.document_type || 'unknown').replace(/_/g, ' ')}
                     </Badge>
                     <Select value={d.verification_status} onValueChange={v => updateStatus(d.id, v)}>
                       <SelectTrigger className="h-6 w-24 text-[9px] uppercase font-black tracking-widest border-muted shadow-none focus:ring-0">
