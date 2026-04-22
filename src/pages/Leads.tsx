@@ -11,7 +11,7 @@ import { LEAD_STATUSES, CHATBOT_STAGES } from '@/lib/constants';
 import { 
   MessageSquare, Calendar, Milestone, MessageCircle, Send, 
   Car, Clock, MapPin, User, Phone, Languages,
-  ArrowDownLeft, ArrowUpRight
+  ArrowDownLeft, ArrowUpRight, Paperclip
 } from 'lucide-react';
 
 const calculateDynamicProgress = (lead: any) => {
@@ -82,7 +82,8 @@ export default function Leads() {
         .select(`
           *,
           messages(message_text, created_at, direction),
-          conversation_states(collected_fields)
+          conversation_states(collected_fields),
+          customer_documents(id)
         `)
         .order('updated_at', { ascending: false });
       
@@ -104,6 +105,7 @@ export default function Leads() {
           ...l,
           latest_msg: sortedMsgs[0] || null,
           message_count: l.messages?.length || 0,
+          document_count: l.customer_documents?.length || 0,
           inbound_count: inboundCount,
           outbound_count: outboundCount
         };
@@ -211,9 +213,17 @@ export default function Leads() {
                         {l.primary_channel === 'telegram' ? <Send className="h-3.5 w-3.5" /> : <MessageCircle className="h-3.5 w-3.5" />}
                       </div>
                       <div className="flex flex-col space-y-0.5">
-                        <span className="font-bold text-base group-hover:text-primary transition-colors leading-tight">
-                          {l.full_name || 'Anonymous Lead'}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-base group-hover:text-primary transition-colors leading-tight">
+                            {l.full_name || 'Anonymous Lead'}
+                          </span>
+                          {l.document_count > 0 && (
+                            <Badge variant="secondary" className="h-5 px-1.5 flex items-center gap-1 bg-violet-50 text-violet-600 border-violet-100 hover:bg-violet-100 transition-colors shrink-0">
+                              <Paperclip className="h-3 w-3" />
+                              <span className="text-[10px] font-bold">{l.document_count}</span>
+                            </Badge>
+                          )}
+                        </div>
                         <span className="text-[10px] font-medium text-muted-foreground tracking-tight">
                           {l.whatsapp_number || 'No contact info'}
                         </span>
