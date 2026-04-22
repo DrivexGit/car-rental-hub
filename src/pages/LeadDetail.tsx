@@ -9,6 +9,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { LEAD_STATUSES, CHATBOT_STAGES } from '@/lib/constants';
 import { ArrowLeft } from 'lucide-react';
+import { calculateDynamicProgress } from '@/lib/leadProgress';
+import { cn } from '@/lib/utils';
 
 export default function LeadDetail() {
   const { id } = useParams();
@@ -46,6 +48,8 @@ export default function LeadDetail() {
 
   if (!lead) return <div className="p-8 text-muted-foreground">Loading…</div>;
 
+  const { p } = calculateDynamicProgress({ conversation_states: convState, ...lead });
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
@@ -69,10 +73,17 @@ export default function LeadDetail() {
             </div>
             <div className="flex items-center gap-2">
               <strong>Stage:</strong>
-              <Select value={lead.current_stage} onValueChange={v => updateLead({ current_stage: v })}>
-                <SelectTrigger className="w-48 h-8"><SelectValue /></SelectTrigger>
-                <SelectContent>{CHATBOT_STAGES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-              </Select>
+              <div className="flex items-center gap-3">
+                <Select value={lead.current_stage} onValueChange={v => updateLead({ current_stage: v })}>
+                  <SelectTrigger className="w-48 h-8"><SelectValue /></SelectTrigger>
+                  <SelectContent>{CHATBOT_STAGES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                </Select>
+                {p >= 100 && (
+                  <span className="text-emerald-600 font-extrabold text-xl animate-pulse tracking-tighter">
+                    WAITING FOR CALL
+                  </span>
+                )}
+              </div>
             </div>
             <Button size="sm" variant="destructive" onClick={() => updateLead({ status: 'handed_to_human', current_stage: 'human_handoff' })}>
               Mark Handoff

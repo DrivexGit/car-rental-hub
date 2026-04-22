@@ -13,60 +13,8 @@ import {
   Car, Clock, MapPin, User, Phone, Languages,
   ArrowDownLeft, ArrowUpRight, Paperclip
 } from 'lucide-react';
+import { calculateDynamicProgress } from '@/lib/leadProgress';
 
-const calculateDynamicProgress = (lead: any) => {
-  const state = lead.conversation_states;
-  const rawFields = Array.isArray(state) ? state[0]?.collected_fields : state?.collected_fields;
-  let fields: any = {};
-  
-  try {
-    fields = typeof rawFields === 'string' ? JSON.parse(rawFields) : (rawFields || {});
-  } catch (e) {
-    fields = {};
-  }
-
-  let p = 0;
-  
-  // 1. Car (18%)
-  if (fields.car) p += 18;
-  
-  // 2. Date (12%)
-  if (fields.date) p += 12;
-  
-  // 3. Duration (8%)
-  if (fields.duration) p += 8;
-  
-  // 4. Pickup Location (12%)
-  if (fields.pickup_location) p += 12;
-  
-  // 5. Dropoff Location (8%)
-  if (fields.dropoff_location) p += 8;
-  
-  // 6. Name (10%)
-  if (lead.full_name || fields.name) p += 10;
-  
-  // 7. Phone (10%)
-  if (lead.whatsapp_number || fields.phone) p += 10;
-  
-  // 8. License Upload (10%)
-  // Associated with stages after collect_documents_info
-  const licenseStages = ['reservation_draft_ready', 'reservation_confirmed', 'human_handoff', 'closed'];
-  if (licenseStages.includes(lead.current_stage)) p += 10;
-  
-  // 9. Confirmation (12%)
-  const confirmationStages = ['reservation_confirmed', 'human_handoff', 'closed'];
-  if (confirmationStages.includes(lead.current_stage)) p += 12;
-
-  // Determine color based on progress
-  let c = 'bg-slate-400';
-  if (p > 90) c = 'bg-emerald-500';
-  else if (p > 70) c = 'bg-green-500';
-  else if (p > 50) c = 'bg-blue-500';
-  else if (p > 30) c = 'bg-indigo-500';
-  else if (p > 10) c = 'bg-slate-500';
-
-  return { p: Math.min(p, 100), c };
-};
 
 export default function Leads() {
   const [leads, setLeads] = useState<any[]>([]);
@@ -251,8 +199,11 @@ export default function Leads() {
                   <TableCell className="py-4 px-6">
                     <div className="space-y-1.5">
                       <div className="flex justify-between items-end">
-                        <span className="text-[9px] font-bold uppercase text-muted-foreground leading-none truncate max-w-[120px]">
-                          {l.current_stage.replace(/_/g, ' ')}
+                        <span className={cn(
+                          "text-[9px] font-bold uppercase leading-none truncate max-w-[150px]",
+                          p >= 100 ? "text-emerald-600 font-black text-[11px] animate-pulse" : "text-muted-foreground"
+                        )}>
+                          {p >= 100 ? "WAITING FOR CALL" : l.current_stage.replace(/_/g, ' ')}
                         </span>
                         <span className="text-[9px] font-black leading-none">{p}%</span>
                       </div>
@@ -269,7 +220,16 @@ export default function Leads() {
                           if (!rawFields) return <span className="text-[10px] text-muted-foreground italic">No data</span>;
                           
                           const fields = typeof rawFields === 'string' ? JSON.parse(rawFields) : rawFields;
-                          const entries = Object.entries(fields).filter(([_, v]) => v !== null && v !== '');
+                          
+                          // Handle nested structure from user request
+                          const flattened: any = {};
+                          if (fields.user) Object.entries(fields.user).forEach(([k, v]) => { if (v) flattened[k] = v; });
+                          if (fields.booking) Object.entries(fields.booking).forEach(([k, v]) => { if (v) flattened[k] = v; });
+                          Object.entries(fields).forEach(([k, v]) => {
+                            if (k !== 'user' && k !== 'booking' && v && typeof v !== 'object') flattened[k] = v;
+                          });
+
+                          const entries = Object.entries(flattened).filter(([_, v]) => v !== null && v !== '' && v !== false);
                           
                           if (entries.length === 0) return <span className="text-[10px] text-muted-foreground italic">No data</span>;
                           
