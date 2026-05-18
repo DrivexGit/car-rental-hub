@@ -65,9 +65,10 @@ BEGIN
         v.plate_number,
         v.make,
         v.model,
-        ROUND(v.daily_price * v_multiplier, 2),
-        ROUND(v.weekly_price * v_multiplier, 2),
-        ROUND(v.monthly_price * v_multiplier, 2)
+        ROUND(v.daily_price * v_multiplier, 0),
+        ROUND(v.weekly_price * v_multiplier, 0),
+        ROUND(v.monthly_price * v_multiplier, 0)
+
     FROM public.vehicles v
     WHERE v.is_active = true
       AND (v_tenant_id IS NULL OR v.tenant_id = v_tenant_id);
