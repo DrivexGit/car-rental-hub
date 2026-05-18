@@ -17,7 +17,9 @@ import Reservations from "@/pages/Reservations";
 import CalendarPage from "@/pages/CalendarPage";
 import Documents from "@/pages/Documents";
 import FAQ from "@/pages/FAQ";
+import SiteMultipliers from "@/pages/SiteMultipliers";
 import NotFound from "@/pages/NotFound";
+
 
 const queryClient = new QueryClient();
 
@@ -40,7 +42,9 @@ function ProtectedRoutes() {
         <Route path="/calendar" element={<CalendarPage />} />
         <Route path="/documents" element={<Documents />} />
         <Route path="/faq" element={<FAQ />} />
+        <Route path="/site-multipliers" element={<SiteMultipliers />} />
         <Route path="*" element={<NotFound />} />
+
       </Routes>
     </AdminLayout>
   );

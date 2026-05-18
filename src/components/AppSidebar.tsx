@@ -1,6 +1,7 @@
 import {
-  LayoutDashboard, Users, MessageSquare, Car, Calendar, BookOpen, HelpCircle, LogOut, ClipboardList
+  LayoutDashboard, Users, MessageSquare, Car, Calendar, BookOpen, HelpCircle, LogOut, ClipboardList, Globe
 } from 'lucide-react';
+
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -18,7 +19,9 @@ const navItems = [
   { title: 'Calendar', url: '/calendar', icon: Calendar },
   { title: 'Documents', url: '/documents', icon: BookOpen },
   { title: 'FAQ', url: '/faq', icon: HelpCircle },
+  { title: 'Site Multipliers', url: '/site-multipliers', icon: Globe },
 ];
+
 
 export function AppSidebar() {
   const { state } = useSidebar();
