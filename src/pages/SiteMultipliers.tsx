@@ -18,9 +18,15 @@ export default function SiteMultipliers() {
   const tenantId = useTenantId();
 
   const load = async () => {
-    const { data } = await supabase.from('site_settings').select('*').order('created_at');
-    setSites(data || []);
+    try {
+      const { data, error } = await supabase.from('site_settings').select('*').order('created_at');
+      if (error) throw error;
+      setSites(data || []);
+    } catch (error: any) {
+      toast({ title: 'Error loading sites', description: error.message, variant: 'destructive' });
+    }
   };
+
 
   useEffect(() => { load(); }, []);
 
