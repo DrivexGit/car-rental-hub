@@ -1,47 +1,39 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useTenantId } from '@/hooks/useTenantId';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Pencil, Globe, Car, Zap, Trash2 } from 'lucide-react';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+import { Plus, Pencil, Globe, Car, Edit2, Save, X, Loader2 } from 'lucide-react';
+import { useTenantId } from '@/hooks/useTenantId';
 
-// ─── Site Multipliers ───────────────────────────────────────────────────────
+// ─── Types ──────────────────────────────────────────────────────────────────
+
+interface ModelGroup {
+  make: string;
+  model: string;
+  plate_count: number;
+  daily_price: number | null;
+  weekly_price: number | null;
+  monthly_price: number | null;
+}
+
+// ─── Component ──────────────────────────────────────────────────────────────
 
 export default function SiteMultipliers() {
+  // ── Site multipliers state ─────────────────────────────────────────────────
   const [sites, setSites] = useState<any[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [form, setForm] = useState({ site_name: '', site_slug: '', price_multiplier: 1.0 });
 
-  // Model prices state
-  const [modelPrices, setModelPrices] = useState<any[]>([]);
-  const [modelDialogOpen, setModelDialogOpen] = useState(false);
-  const [editingModel, setEditingModel] = useState<any>(null);
-  const [modelForm, setModelForm] = useState({
-    make: '',
-    model: '',
-    daily_price: '' as string | number,
-    weekly_price: '' as string | number,
-    monthly_price: '' as string | number,
-  });
-  const [applyingId, setApplyingId] = useState<string | null>(null);
-  const [confirmApplyOpen, setConfirmApplyOpen] = useState(false);
-  const [pendingApplyId, setPendingApplyId] = useState<string | null>(null);
-  const [pendingApplyLabel, setPendingApplyLabel] = useState('');
+  // ── Model prices state ─────────────────────────────────────────────────────
+  const [modelGroups, setModelGroups] = useState<ModelGroup[]>([]);
+  const [isEditingPrices, setIsEditingPrices] = useState(false);
+  const [editedModelPrices, setEditedModelPrices] = useState<Record<string, Partial<ModelGroup>>>({});
+  const [isSaving, setIsSaving] = useState(false);
 
   const { toast } = useToast();
   const tenantId = useTenantId();
@@ -58,23 +50,65 @@ export default function SiteMultipliers() {
     }
   };
 
-  const loadModelPrices = async () => {
+  /**
+   * Read distinct make+model from the vehicles table.
+   * For the price columns we take MIN — if all plates of a model share
+   * the same price the value will equal that price; if they differ the
+   * admin will overwrite them when they save.
+   */
+  const loadModelGroups = async () => {
     try {
       const { data, error } = await supabase
-        .from('vehicle_model_prices')
-        .select('*')
+        .from('vehicles')
+        .select('make, model, daily_price, weekly_price, monthly_price')
         .order('make')
         .order('model');
+
       if (error) throw error;
-      setModelPrices(data || []);
+
+      // Group client-side by make+model
+      const map: Record<string, ModelGroup> = {};
+      for (const row of data || []) {
+        const key = `${row.make}__${row.model}`;
+        if (!map[key]) {
+          map[key] = {
+            make: row.make,
+            model: row.model,
+            plate_count: 0,
+            daily_price: row.daily_price,
+            weekly_price: row.weekly_price,
+            monthly_price: row.monthly_price,
+          };
+        } else {
+          map[key].plate_count += 1;
+          // If prices differ across plates, show null (mixed)
+          if (map[key].daily_price !== row.daily_price) map[key].daily_price = null;
+          if (map[key].weekly_price !== row.weekly_price) map[key].weekly_price = null;
+          if (map[key].monthly_price !== row.monthly_price) map[key].monthly_price = null;
+        }
+        map[key].plate_count = (map[key].plate_count || 0);
+      }
+
+      // Count plates properly
+      const countMap: Record<string, number> = {};
+      for (const row of data || []) {
+        const key = `${row.make}__${row.model}`;
+        countMap[key] = (countMap[key] || 0) + 1;
+      }
+      const groups = Object.values(map).map(g => ({
+        ...g,
+        plate_count: countMap[`${g.make}__${g.model}`] || 1,
+      }));
+
+      setModelGroups(groups);
     } catch (error: any) {
-      toast({ title: 'Error loading model prices', description: error.message, variant: 'destructive' });
+      toast({ title: 'Error loading vehicles', description: error.message, variant: 'destructive' });
     }
   };
 
   useEffect(() => {
     loadSites();
-    loadModelPrices();
+    loadModelGroups();
   }, []);
 
   // ── Site CRUD ──────────────────────────────────────────────────────────────
@@ -108,102 +142,66 @@ export default function SiteMultipliers() {
     loadSites();
   };
 
-  // ── Model Price CRUD ───────────────────────────────────────────────────────
+  // ── Model price inline editing ─────────────────────────────────────────────
 
-  const openModelCreate = () => {
-    setEditingModel(null);
-    setModelForm({ make: '', model: '', daily_price: '', weekly_price: '', monthly_price: '' });
-    setModelDialogOpen(true);
+  const handleModelPriceChange = (make: string, model: string, field: string, value: string) => {
+    const key = `${make}__${model}`;
+    const numValue = value === '' ? null : parseFloat(value);
+    setEditedModelPrices(prev => ({
+      ...prev,
+      [key]: { ...(prev[key] || {}), [field]: numValue },
+    }));
   };
 
-  const openModelEdit = (mp: any) => {
-    setEditingModel(mp);
-    setModelForm({
-      make: mp.make,
-      model: mp.model,
-      daily_price: mp.daily_price ?? '',
-      weekly_price: mp.weekly_price ?? '',
-      monthly_price: mp.monthly_price ?? '',
-    });
-    setModelDialogOpen(true);
-  };
-
-  const saveModelPrice = async () => {
-    if (!modelForm.make || !modelForm.model) {
-      toast({ title: 'Make and Model are required', variant: 'destructive' });
+  const handleSaveModelPrices = async () => {
+    const entries = Object.entries(editedModelPrices);
+    if (entries.length === 0) {
+      setIsEditingPrices(false);
       return;
     }
 
-    const dataToSave = {
-      make: modelForm.make.trim(),
-      model: modelForm.model.trim(),
-      daily_price: modelForm.daily_price !== '' ? Number(modelForm.daily_price) : null,
-      weekly_price: modelForm.weekly_price !== '' ? Number(modelForm.weekly_price) : null,
-      monthly_price: modelForm.monthly_price !== '' ? Number(modelForm.monthly_price) : null,
-    };
+    setIsSaving(true);
+    let totalUpdated = 0;
 
-    if (editingModel) {
-      const { error } = await supabase
-        .from('vehicle_model_prices')
-        .update(dataToSave)
-        .eq('id', editingModel.id);
-      if (error) {
-        toast({ title: 'Error updating', description: error.message, variant: 'destructive' });
-        return;
-      }
-      toast({ title: 'Model price updated' });
-    } else {
-      const { error } = await supabase
-        .from('vehicle_model_prices')
-        .insert({ ...dataToSave, tenant_id: tenantId });
-      if (error) {
-        toast({ title: 'Error creating', description: error.message, variant: 'destructive' });
-        return;
-      }
-      toast({ title: 'Model price created' });
-    }
-    setModelDialogOpen(false);
-    loadModelPrices();
-  };
-
-  const deleteModelPrice = async (id: string) => {
-    const { error } = await supabase.from('vehicle_model_prices').delete().eq('id', id);
-    if (error) {
-      toast({ title: 'Error deleting', description: error.message, variant: 'destructive' });
-      return;
-    }
-    toast({ title: 'Model price deleted' });
-    loadModelPrices();
-  };
-
-  // ── Apply model prices to all matching vehicles ────────────────────────────
-
-  const requestApply = (mp: any) => {
-    setPendingApplyId(mp.id);
-    setPendingApplyLabel(`${mp.make} ${mp.model}`);
-    setConfirmApplyOpen(true);
-  };
-
-  const confirmApply = async () => {
-    if (!pendingApplyId) return;
-    setConfirmApplyOpen(false);
-    setApplyingId(pendingApplyId);
     try {
-      const { data, error } = await supabase.rpc('apply_model_prices_to_vehicles', {
-        p_model_price_id: pendingApplyId,
-      });
-      if (error) throw error;
-      const count = data as number;
+      for (const [key, prices] of entries) {
+        const [make, model] = key.split('__');
+        // Only send fields that were actually changed
+        const updateData: Record<string, any> = {};
+        if (prices.daily_price !== undefined) updateData.daily_price = prices.daily_price;
+        if (prices.weekly_price !== undefined) updateData.weekly_price = prices.weekly_price;
+        if (prices.monthly_price !== undefined) updateData.monthly_price = prices.monthly_price;
+
+        if (Object.keys(updateData).length === 0) continue;
+
+        const { count, error } = await supabase
+          .from('vehicles')
+          .update(updateData)
+          .ilike('make', make)
+          .ilike('model', model)
+          .select('id', { count: 'exact', head: true });
+
+        if (error) throw error;
+        totalUpdated += count || 0;
+      }
+
       toast({
-        title: 'Prices applied',
-        description: `Updated ${count} vehicle${count !== 1 ? 's' : ''} matching ${pendingApplyLabel}.`,
+        title: 'Prices updated',
+        description: `Applied to vehicles matching ${entries.length} model(s).`,
       });
-    } catch (error: any) {
-      toast({ title: 'Error applying prices', description: error.message, variant: 'destructive' });
+      setEditedModelPrices({});
+      setIsEditingPrices(false);
+      await loadModelGroups();
+    } catch (err: any) {
+      toast({ title: 'Error saving prices', description: err.message, variant: 'destructive' });
     } finally {
-      setApplyingId(null);
-      setPendingApplyId(null);
+      setIsSaving(false);
     }
+  };
+
+  const cancelEditPrices = () => {
+    setEditedModelPrices({});
+    setIsEditingPrices(false);
   };
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -240,9 +238,11 @@ export default function SiteMultipliers() {
             {sites.map(s => (
               <TableRow key={s.id}>
                 <TableCell className="font-medium">{s.site_name}</TableCell>
-                <TableCell className="text-sm text-muted-foreground flex items-center gap-1">
-                  <Globe className="h-3 w-3" />
-                  {s.site_slug}
+                <TableCell className="text-sm text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <Globe className="h-3 w-3" />
+                    {s.site_slug}
+                  </span>
                 </TableCell>
                 <TableCell>×{s.price_multiplier}</TableCell>
                 <TableCell>
@@ -254,30 +254,52 @@ export default function SiteMultipliers() {
             ))}
             {sites.length === 0 && (
               <TableRow>
-                <TableCell colSpan={4} className="text-center text-muted-foreground">
-                  No sites configured
-                </TableCell>
+                <TableCell colSpan={4} className="text-center text-muted-foreground">No sites configured</TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
       </section>
 
-      {/* ── Section 2: Vehicle Model Base Prices ── */}
+      {/* ── Section 2: Model Base Prices (from vehicles table) ── */}
       <section>
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center gap-2">
             <Car className="h-5 w-5 text-muted-foreground" />
-            <h2 className="text-2xl font-semibold">Vehicle Model Base Prices</h2>
+            <h2 className="text-2xl font-semibold">Model Base Prices</h2>
           </div>
-          <Button onClick={openModelCreate}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Model Price
-          </Button>
+
+          {!isEditingPrices ? (
+            <Button variant="outline" onClick={() => setIsEditingPrices(true)}>
+              <Edit2 className="mr-2 h-4 w-4" />
+              Edit Prices
+            </Button>
+          ) : (
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={cancelEditPrices} disabled={isSaving}>
+                <X className="mr-2 h-4 w-4" />
+                Cancel
+              </Button>
+              <Button onClick={handleSaveModelPrices} disabled={isSaving}>
+                {isSaving ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="mr-2 h-4 w-4" />
+                )}
+                Save Changes
+              </Button>
+            </div>
+          )}
         </div>
+
         <p className="text-sm text-muted-foreground mb-4">
-          Set base prices (Daily / Weekly / Monthly) per vehicle make &amp; model.
-          Click <strong>Apply to All Plates</strong> to push the prices to every vehicle of that model in the database.
+          Set daily / weekly / monthly prices by vehicle model. Saving will apply the price to{' '}
+          <strong>all license plates</strong> of that model in the database.
+          {isEditingPrices && (
+            <span className="text-yellow-600 dark:text-yellow-400 ml-1">
+              — Edit mode active. Changes will overwrite prices for all plates of each model.
+            </span>
+          )}
         </p>
 
         <Table>
@@ -285,51 +307,84 @@ export default function SiteMultipliers() {
             <TableRow>
               <TableHead>Make</TableHead>
               <TableHead>Model</TableHead>
+              <TableHead className="text-center">Plates</TableHead>
               <TableHead>Daily (AED)</TableHead>
               <TableHead>Weekly (AED)</TableHead>
               <TableHead>Monthly (AED)</TableHead>
-              <TableHead className="w-[180px]" />
             </TableRow>
           </TableHeader>
           <TableBody>
-            {modelPrices.map(mp => (
-              <TableRow key={mp.id}>
-                <TableCell className="font-medium">{mp.make}</TableCell>
-                <TableCell>{mp.model}</TableCell>
-                <TableCell>{mp.daily_price != null ? mp.daily_price.toLocaleString() : '—'}</TableCell>
-                <TableCell>{mp.weekly_price != null ? mp.weekly_price.toLocaleString() : '—'}</TableCell>
-                <TableCell>{mp.monthly_price != null ? mp.monthly_price.toLocaleString() : '—'}</TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      size="sm"
-                      variant="default"
-                      onClick={() => requestApply(mp)}
-                      disabled={applyingId === mp.id}
-                      title="Apply these prices to all vehicles with this make & model"
-                    >
-                      <Zap className="mr-1 h-3 w-3" />
-                      {applyingId === mp.id ? 'Applying…' : 'Apply to All Plates'}
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => openModelEdit(mp)}>
-                      <Pencil className="h-3 w-3" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="text-destructive hover:text-destructive"
-                      onClick={() => deleteModelPrice(mp.id)}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-            {modelPrices.length === 0 && (
+            {modelGroups.map(mg => {
+              const key = `${mg.make}__${mg.model}`;
+              const overrides = editedModelPrices[key] || {};
+
+              const currentDaily   = overrides.daily_price   !== undefined ? overrides.daily_price   : mg.daily_price;
+              const currentWeekly  = overrides.weekly_price  !== undefined ? overrides.weekly_price  : mg.weekly_price;
+              const currentMonthly = overrides.monthly_price !== undefined ? overrides.monthly_price : mg.monthly_price;
+
+              return (
+                <TableRow key={key}>
+                  <TableCell className="font-medium">{mg.make}</TableCell>
+                  <TableCell>{mg.model}</TableCell>
+                  <TableCell className="text-center text-muted-foreground text-sm">{mg.plate_count}</TableCell>
+
+                  {/* Daily */}
+                  <TableCell>
+                    {isEditingPrices ? (
+                      <Input
+                        type="number"
+                        className="w-24 h-8"
+                        defaultValue={mg.daily_price ?? ''}
+                        placeholder={mg.daily_price === null ? 'Mixed' : ''}
+                        onChange={e => handleModelPriceChange(mg.make, mg.model, 'daily_price', e.target.value)}
+                      />
+                    ) : (
+                      <span className="font-medium">
+                        {mg.daily_price != null ? `${mg.daily_price.toLocaleString()} AED` : <span className="text-muted-foreground text-xs">Mixed</span>}
+                      </span>
+                    )}
+                  </TableCell>
+
+                  {/* Weekly */}
+                  <TableCell>
+                    {isEditingPrices ? (
+                      <Input
+                        type="number"
+                        className="w-24 h-8"
+                        defaultValue={mg.weekly_price ?? ''}
+                        placeholder={mg.weekly_price === null ? 'Mixed' : ''}
+                        onChange={e => handleModelPriceChange(mg.make, mg.model, 'weekly_price', e.target.value)}
+                      />
+                    ) : (
+                      <span className="font-medium">
+                        {mg.weekly_price != null ? `${mg.weekly_price.toLocaleString()} AED` : <span className="text-muted-foreground text-xs">Mixed</span>}
+                      </span>
+                    )}
+                  </TableCell>
+
+                  {/* Monthly */}
+                  <TableCell>
+                    {isEditingPrices ? (
+                      <Input
+                        type="number"
+                        className="w-24 h-8"
+                        defaultValue={mg.monthly_price ?? ''}
+                        placeholder={mg.monthly_price === null ? 'Mixed' : ''}
+                        onChange={e => handleModelPriceChange(mg.make, mg.model, 'monthly_price', e.target.value)}
+                      />
+                    ) : (
+                      <span className="font-medium">
+                        {mg.monthly_price != null ? `${mg.monthly_price.toLocaleString()} AED` : <span className="text-muted-foreground text-xs">Mixed</span>}
+                      </span>
+                    )}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+            {modelGroups.length === 0 && (
               <TableRow>
                 <TableCell colSpan={6} className="text-center text-muted-foreground">
-                  No model prices configured yet
+                  No vehicles found
                 </TableCell>
               </TableRow>
             )}
@@ -382,96 +437,6 @@ export default function SiteMultipliers() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* ── Model Price Dialog ── */}
-      <Dialog open={modelDialogOpen} onOpenChange={setModelDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{editingModel ? 'Edit Model Price' : 'New Model Price'}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Make</Label>
-                <Input
-                  value={modelForm.make}
-                  onChange={e => setModelForm({ ...modelForm, make: e.target.value })}
-                  placeholder="e.g. Toyota"
-                  disabled={!!editingModel}
-                />
-              </div>
-              <div>
-                <Label>Model</Label>
-                <Input
-                  value={modelForm.model}
-                  onChange={e => setModelForm({ ...modelForm, model: e.target.value })}
-                  placeholder="e.g. Camry"
-                  disabled={!!editingModel}
-                />
-              </div>
-            </div>
-            {editingModel && (
-              <p className="text-xs text-muted-foreground -mt-1">Make / Model cannot be changed after creation.</p>
-            )}
-            <div className="grid grid-cols-3 gap-3">
-              <div>
-                <Label>Daily (AED)</Label>
-                <Input
-                  type="number"
-                  step="1"
-                  value={modelForm.daily_price}
-                  onChange={e => setModelForm({ ...modelForm, daily_price: e.target.value })}
-                  placeholder="—"
-                />
-              </div>
-              <div>
-                <Label>Weekly (AED)</Label>
-                <Input
-                  type="number"
-                  step="1"
-                  value={modelForm.weekly_price}
-                  onChange={e => setModelForm({ ...modelForm, weekly_price: e.target.value })}
-                  placeholder="—"
-                />
-              </div>
-              <div>
-                <Label>Monthly (AED)</Label>
-                <Input
-                  type="number"
-                  step="1"
-                  value={modelForm.monthly_price}
-                  onChange={e => setModelForm({ ...modelForm, monthly_price: e.target.value })}
-                  placeholder="—"
-                />
-              </div>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Leave a field empty to keep existing vehicle prices unchanged when applying.
-            </p>
-          </div>
-          <DialogFooter>
-            <Button onClick={saveModelPrice}>{editingModel ? 'Save' : 'Create'}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* ── Confirm Apply Dialog ── */}
-      <AlertDialog open={confirmApplyOpen} onOpenChange={setConfirmApplyOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Apply prices to all plates?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will overwrite the daily / weekly / monthly prices for <strong>every vehicle</strong> with
-              make &amp; model matching <strong>{pendingApplyLabel}</strong> in the database. This action cannot
-              be undone automatically.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmApply}>Yes, Apply</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }
