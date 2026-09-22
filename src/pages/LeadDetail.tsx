@@ -15,6 +15,7 @@ import {
   MoreVertical, Send, Info, History, FileText
 } from 'lucide-react';
 import { calculateDynamicProgress } from '@/lib/leadProgress';
+import { channelMeta, leadContact, leadChatLink } from '@/lib/channels';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -36,7 +37,7 @@ export default function LeadDetail() {
   const load = async () => {
     if (!id) return;
     const [l, m, c, r, d] = await Promise.all([
-      supabase.from('leads').select('*').eq('id', id).single(),
+      supabase.from('leads').select('*, lead_channels(channel, username, phone_number, is_primary)').eq('id', id).single(),
       supabase.from('messages').select('*').eq('lead_id', id).order('created_at', { ascending: true }),
       supabase.from('conversation_states').select('*').eq('lead_id', id).maybeSingle(),
       supabase.from('reservations').select('*, vehicles(plate_number, make, model, image_url)').eq('lead_id', id),
@@ -141,11 +142,18 @@ export default function LeadDetail() {
             </Badge>
           </div>
           <div className="flex flex-wrap justify-center md:justify-start items-center gap-4 text-sm text-muted-foreground font-medium">
-            <a href={`https://wa.me/${lead.whatsapp_number}`} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 hover:text-emerald-600 transition-colors">
-              <MessageCircle className="h-4 w-4" />
-              {lead.whatsapp_number}
-              <ExternalLink className="h-3 w-3" />
-            </a>
+            {leadChatLink(lead) ? (
+              <a href={leadChatLink(lead)!} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 hover:text-emerald-600 transition-colors">
+                <MessageCircle className="h-4 w-4" />
+                {lead.whatsapp_number}
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            ) : (
+              <span className="flex items-center gap-1.5">
+                {(() => { const Icon = channelMeta(lead.primary_channel).icon; return <Icon className="h-4 w-4" />; })()}
+                {leadContact(lead) || channelMeta(lead.primary_channel).label}
+              </span>
+            )}
             <span className="flex items-center gap-1.5 border-l pl-4">
               <History className="h-4 w-4" />
               First seen {new Date(lead.first_seen_at).toLocaleDateString()}

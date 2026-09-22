@@ -4,22 +4,25 @@ import { supabase } from '@/integrations/supabase/client';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { channelMeta } from '@/lib/channels';
 
 export default function Messages() {
   const [messages, setMessages] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [dirFilter, setDirFilter] = useState('all');
+  const [channelFilter, setChannelFilter] = useState('all');
   const navigate = useNavigate();
 
   useEffect(() => {
     const load = async () => {
       let q = supabase.from('messages').select('*, leads(whatsapp_number, full_name)').order('created_at', { ascending: false }).limit(100);
       if (dirFilter !== 'all') q = q.eq('direction', dirFilter);
+      if (channelFilter !== 'all') q = q.eq('channel', channelFilter);
       const { data } = await q;
       setMessages(data || []);
     };
     load();
-  }, [dirFilter]);
+  }, [dirFilter, channelFilter]);
 
   const filtered = messages.filter(m =>
     m.message_text.toLowerCase().includes(search.toLowerCase()) ||
@@ -40,11 +43,20 @@ export default function Messages() {
             <SelectItem value="outbound">Outbound</SelectItem>
           </SelectContent>
         </Select>
+        <Select value={channelFilter} onValueChange={setChannelFilter}>
+          <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All channels</SelectItem>
+            <SelectItem value="whatsapp">WhatsApp</SelectItem>
+            <SelectItem value="telegram">Telegram</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead>Lead</TableHead>
+            <TableHead>Channel</TableHead>
             <TableHead>Direction</TableHead>
             <TableHead>Message</TableHead>
             <TableHead>Intent</TableHead>
@@ -55,6 +67,7 @@ export default function Messages() {
           {filtered.map(m => (
             <TableRow key={m.id} className="cursor-pointer" onClick={() => navigate(`/leads/${m.lead_id}`)}>
               <TableCell className="text-sm">{(m.leads as any)?.full_name || (m.leads as any)?.whatsapp_number}</TableCell>
+              <TableCell className="text-xs">{channelMeta(m.channel).label}</TableCell>
               <TableCell className="text-xs">{m.direction}</TableCell>
               <TableCell className="max-w-md truncate text-sm">{m.message_text}</TableCell>
               <TableCell className="text-xs">{m.detected_intent || '—'}</TableCell>

@@ -14,6 +14,7 @@ import {
   ArrowDownLeft, ArrowUpRight, Paperclip
 } from 'lucide-react';
 import { calculateDynamicProgress } from '@/lib/leadProgress';
+import { channelMeta, leadContact } from '@/lib/channels';
 
 
 export default function Leads() {
@@ -31,7 +32,8 @@ export default function Leads() {
           *,
           messages(message_text, created_at, direction),
           conversation_states(collected_fields),
-          customer_documents(id)
+          customer_documents(id),
+          lead_channels(channel, username, phone_number, is_primary)
         `)
         .order('updated_at', { ascending: false });
       
@@ -154,11 +156,11 @@ export default function Leads() {
                 >
                   <TableCell className="py-4 px-6">
                     <div className="flex items-start gap-3">
-                      <div className={cn(
-                        "mt-1 p-1.5 rounded-full",
-                        l.primary_channel === 'telegram' ? "bg-sky-50 text-sky-500" : "bg-emerald-50 text-emerald-500"
-                      )}>
-                        {l.primary_channel === 'telegram' ? <Send className="h-3.5 w-3.5" /> : <MessageCircle className="h-3.5 w-3.5" />}
+                      <div
+                        title={channelMeta(l.primary_channel).label}
+                        className={cn("mt-1 p-1.5 rounded-full", channelMeta(l.primary_channel).className)}
+                      >
+                        {(() => { const Icon = channelMeta(l.primary_channel).icon; return <Icon className="h-3.5 w-3.5" />; })()}
                       </div>
                       <div className="flex flex-col space-y-0.5">
                         <div className="flex items-center gap-2">
@@ -173,7 +175,7 @@ export default function Leads() {
                           )}
                         </div>
                         <span className="text-[10px] font-medium text-muted-foreground tracking-tight">
-                          {l.whatsapp_number || 'No contact info'}
+                          {leadContact(l) || 'No contact info'}
                         </span>
                       </div>
                     </div>
