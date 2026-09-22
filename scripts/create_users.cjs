@@ -1,8 +1,8 @@
 const { createClient } = require('@supabase/supabase-js');
 
-const supabaseUrl = 'https://ampdpgwcjgoqbamfttlw.supabase.co';
-const supabaseServiceKey = 'sb_secret_8uREf_ZA-QLiFDKcFj4dFQ_5E4aVNr-';
-const tenantId = '22c42919-4f33-4463-ae13-39cc26993c64';
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const tenantId = process.env.TENANT_ID;
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey, {
   auth: {
@@ -14,12 +14,12 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey, {
 const users = [
   {
     email: 'info@drivex.ae',
-    password: 'DriveX_Info_2026!#',
+    password: process.env.INFO_PASSWORD,
     full_name: 'DriveX Info'
   },
   {
     email: 'K.neshastehchi@gmail.com',
-    password: 'KN_Admin_2026_Secure',
+    password: process.env.KN_PASSWORD,
     full_name: 'Kamyar Neshastehchi'
   }
 ];
