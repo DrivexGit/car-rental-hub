@@ -3,7 +3,7 @@ import faq from "./faq.js";
 // Drivex AI support. OpenAI-compatible chat endpoint (AI_BASE_URL / AI_API_KEY / AI_MODEL).
 // Urgent cases are flagged by keywords OR by the model, and posted to STAFF_WEBHOOK_URL (e.g. an n8n webhook).
 
-const URGENT = /\b(accident|crash|collision|hit|broke ?down|breakdown|won'?t start|flat tyre|flat tire|tow|police|stolen|theft|fire|smoke|injur|hurt|ambulance|locked out|lost (the )?key|emergency|stuck|urgent)\b/i;
+const URGENT = /\b(accident|crash|collision|hit|broke ?down|breakdown|won'?t start|flat tyre|flat tire|tow|police|stolen|theft|fire|smoke|injur|hurt|ambulance|locked out|lost (the )?key|emergency|stuck|urgent)\b|تصادف|خراب|پلیس|دزد|آتش|زخمی|اورژانس|فوری|گیر کرد|حادث|شرطة|عطل|سرقة|طوارئ|حريق/i;
 
 const SYSTEM = (ctx: unknown) => `You are Drivex AI, the support assistant of Drivex Car Rental in Dubai.
 Rules:
@@ -49,6 +49,6 @@ export async function POST(req: Request) {
 async function notifyStaff(payload: Record<string, unknown>) {
   const url = process.env.STAFF_WEBHOOK_URL;
   if (!url) { console.warn("[urgent] STAFF_WEBHOOK_URL not set", payload); return; }
-  try { await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: "urgent_support", ...payload }) }); }
+  try { await fetch(url, { method: "POST", headers: { "Content-Type": "application/json", "x-drivex-key": process.env.STAFF_WEBHOOK_SECRET || "" }, body: JSON.stringify({ type: "urgent_support", ...payload }) }); }
   catch (e) { console.error("[urgent] notify failed", e); }
 }
