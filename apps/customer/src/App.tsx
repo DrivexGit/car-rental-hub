@@ -1,6 +1,8 @@
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useEffect } from "react";
+import { Loader2 } from "lucide-react";
 import { useStore } from "@/lib/store";
+import { api } from "@/lib/supabase";
 import { TabBar } from "@/components/ui";
 import Login from "@/screens/Login";
 import Home from "@/screens/Home";
@@ -17,10 +19,17 @@ import { Payments, Documents, Notifications, Language, Legal, EditProfile, Secur
 const TAB_ROUTES = ["/", "/book", "/support", "/bookings", "/profile"];
 
 export default function App() {
-  const { user } = useStore();
-  const { pathname } = useLocation();
+  const { user, ready, refresh } = useStore();
+  const { pathname, search } = useLocation();
   useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
 
+  // Back from Ziina checkout: confirm the payment with the provider, then reload data.
+  useEffect(() => {
+    const id = new URLSearchParams(search).get("payment");
+    if (id && user) api("pay", { action: "confirm", paymentId: id }).catch(() => {}).finally(refresh);
+  }, [search, user, refresh]);
+
+  if (!ready) return <div className="grid h-full place-items-center"><Loader2 className="h-8 w-8 animate-spin text-brand" /></div>;
   if (!user) return <Routes><Route path="*" element={<Login />} /></Routes>;
 
   return (

@@ -2,13 +2,15 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, ChevronRight, FileText } from "lucide-react";
 import { useStore } from "@/lib/store";
-import { BANNERS, DINING, OFFERS, carById, carName } from "@/data/catalog";
+import { BANNERS, carName } from "@/data/catalog";
 import { day, greeting } from "@/lib/format";
 import { Badge, Button, Card, Dirham, PageTitle, Price, Screen, SectionHead, TopBar } from "@/components/ui";
 import { PayInvoiceSheet } from "@/screens/PaySheet";
 
 export default function Home() {
-  const { user, invoices } = useStore();
+  const { user, invoices, offers } = useStore();
+  const carOffers = offers.filter((o) => o.kind === "car");
+  const partners = offers.filter((o) => o.kind === "partner");
   const nav = useNavigate();
   const pending = invoices.find((i) => i.status === "pending");
   const [paying, setPaying] = useState(false);
@@ -32,13 +34,13 @@ export default function Home() {
         </div>
       )}
 
-      <SectionHead title="Your Offers" to="/book" />
+      {!!carOffers.length && <SectionHead title="Your Offers" to="/book" />}
       <div className="no-scrollbar -mx-5 flex gap-3 overflow-x-auto px-5 pb-1">
-        {OFFERS.map(({ carId, off }) => {
-          const c = carById(carId);
+        {carOffers.map(({ id, car, off }) => {
+          const c = car!;
           const now = Math.round(c.daily * (1 - off / 100));
           return (
-            <Card key={carId} className="w-[170px] shrink-0 overflow-hidden" onClick={() => nav(`/book/${carId}?period=daily&off=${off}`)}>
+            <Card key={id} className="w-[170px] shrink-0 overflow-hidden" onClick={() => nav(`/book/${c.id}?period=daily&off=${off}`)}>
               <div className="relative h-[100px] bg-gradient-to-b from-[#eef0ee] to-white">
                 <Badge className="absolute left-2 top-2 bg-brand text-white">{off}% off</Badge>
                 <img src={c.image} alt="" className="h-full w-full object-contain p-2" loading="lazy" />
@@ -58,13 +60,13 @@ export default function Home() {
         })}
       </div>
 
-      <SectionHead title="Dining benefits" />
+      {!!partners.length && <SectionHead title="Dining benefits" />}
       <div className="no-scrollbar -mx-5 flex gap-3 overflow-x-auto px-5 pb-1">
-        {DINING.map((d) => (
-          <Card key={d.name} className="w-[170px] shrink-0 overflow-hidden">
-            <img src={d.image} alt={d.name} className="h-[100px] w-full object-cover" loading="lazy" />
+        {partners.map((d) => (
+          <Card key={d.id} className="w-[170px] shrink-0 overflow-hidden">
+            {d.image && <img src={d.image} alt={d.title} className="h-[100px] w-full object-cover" loading="lazy" />}
             <div className="flex items-center justify-between p-3">
-              <div><p className="text-sm font-semibold">{d.name}</p><p className="text-xs text-ink-muted">{d.kind}</p></div>
+              <div><p className="text-sm font-semibold">{d.title}</p><p className="text-xs text-ink-muted">{d.subtitle}</p></div>
               <Badge>{d.off}% off</Badge>
             </div>
           </Card>

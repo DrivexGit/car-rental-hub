@@ -1,14 +1,15 @@
 import { useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Check, Fuel, Minus, Plus, ShieldCheck, Users } from "lucide-react";
-import { EXTRAS, PERIOD_DAYS, PERIOD_UNIT, carById, carName, priceFor, type Period } from "@/data/catalog";
+import { EXTRAS, PERIOD_DAYS, PERIOD_UNIT, carName, priceFor, type Car, type Period } from "@/data/catalog";
+import { useStore } from "@/lib/store";
 import { addDays, daysBetween, isoDate, money, shortDay } from "@/lib/format";
 import { BackBar, Button, Card, Dirham, Price, Screen, Segmented } from "@/components/ui";
 
 export type Quote = { carId: string; period: Period; qty: number; pickup: string; dropoff: string; extras: string[]; discount: number; total: number };
 
-export function quote(carId: string, period: Period, qty: number, pickup: string, extras: string[], off = 0): Quote {
-  const car = carById(carId);
+export function quote(car: Car, period: Period, qty: number, pickup: string, extras: string[], off = 0): Quote {
+  const carId = car.id;
   const days = PERIOD_DAYS[period] * qty;
   const base = Math.round(priceFor(car, period) * qty * (1 - off / 100));
   const extrasTotal = EXTRAS.filter((e) => extras.includes(e.id)).reduce((s, e) => s + e.daily * days, 0);
@@ -20,8 +21,9 @@ export default function Reserve() {
   const { carId = "" } = useParams();
   const [params] = useSearchParams();
   const nav = useNavigate();
+  const { carById, offers } = useStore();
   const car = carById(carId);
-  const off = Number(params.get("off") || 0);
+  const off = offers.find((o) => o.kind === "car" && o.car?.id === carId)?.off ?? 0;
   const [period, setPeriod] = useState<Period>((params.get("period") as Period) || "daily");
   const from = params.get("from"), to = params.get("to");
   const [pickup, setPickup] = useState(from || isoDate(addDays(new Date(), 1)));
@@ -29,7 +31,7 @@ export default function Reserve() {
   const [extras, setExtras] = useState<string[]>(["full_cover"]);
 
   if (!car) return null;
-  const q = quote(carId, period, qty, pickup, extras, off);
+  const q = quote(car, period, qty, pickup, extras, off);
   const unit = PERIOD_UNIT[period];
   const toggle = (id: string) => setExtras((x) => (x.includes(id) ? x.filter((i) => i !== id) : [...x, id]));
 

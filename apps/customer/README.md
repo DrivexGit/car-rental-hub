@@ -14,22 +14,24 @@ Login (phone → code → name on first visit) · Home · Book · Reserve (3 ste
 · Bookings → Booking details (time left, invoices, Salik & fines, extend, Mulkiya, insurance, change car)
 · Support (AI chat + Urgent call + WhatsApp) · Profile (+ Payments, Security, Documents, Notifications, Language, Legal).
 
-## Data
-- `src/data/fleet.json` — snapshot of the live `vehicles` table (28 models, real daily/weekly/monthly prices).
-- `src/lib/store.tsx` — **demo data in localStorage** (bookings, invoices, fines, session). Swap for Supabase
-  once the customer tables + RLS exist (`docs/customer-app/TASKS.md` §2).
-- `api/faq.ts` — snapshot of `faq_entries`, used by the AI.
+## Data — live Supabase (project `ampdpgwcjgoqbamfttlw`)
+Everything is read from / written to the real database (see `docs/DATABASE.md` → Customer app tables):
+fleet + prices (`vehicles`), offers, bookings (`reservations`), invoices, payments, fines, documents, urgent requests.
+Car photos are static assets keyed by make-model (`public/cars/<make-model>.webp`).
 
 ## Server functions (`api/`, Vercel Functions)
-| File | Does | Env |
-|---|---|---|
-| `chat.ts` | AI support, urgent detection, staff alert | `AI_BASE_URL`, `AI_API_KEY`, `AI_MODEL`, `STAFF_WEBHOOK_URL` |
-| `pay.ts` | Ziina payment intent → hosted checkout | `ZIINA_API_KEY`, `ZIINA_TEST_MODE` |
+| File | Does |
+|---|---|
+| `auth.ts` | phone sign-in → Supabase session (creates `customers` + `leads` row on first visit) |
+| `book.ts` | prices on the server, picks a free car, creates pending reservation + invoice |
+| `pay.ts` | Ziina payment (or test payment without `ZIINA_API_KEY`), confirms reservation |
+| `extend.ts` | extends a confirmed rental if the car is free, adds an invoice |
+| `chat.ts` | AI support with live FAQ + the customer's data; urgent → `urgent_requests` + n8n webhook |
 
-Without `ZIINA_API_KEY` payments are simulated. Without `STAFF_WEBHOOK_URL` urgent alerts are only logged.
-Client env: `VITE_SUPPORT_PHONE`, `VITE_WHATSAPP_NUMBER`. See `.env.example`.
+Env: see `.env.example`. Deploy: `./deploy.sh` (Kamyar's Vercel, project `drivex-customer`).
 
-## Not real yet
-- OTP is simulated (any 6 digits) — needs an SMS provider for Supabase phone auth.
-- Bookings/invoices/fines are demo data per device.
-- Arabic UI.
+## Still in test mode
+- **SMS:** no provider yet → the code is `OTP_TEST_CODE` (shown on screen). Anyone who knows a phone number can sign in as it — fine for testing, must be replaced before real customers.
+- **Payments:** no `ZIINA_API_KEY` → payments are marked paid without charging.
+- **AI:** needs credit on the OpenAI account; urgent detection works without it.
+- Fines/Salik and partner offers are entered by staff (no admin screen yet — insert in Supabase for now).

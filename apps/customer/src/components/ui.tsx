@@ -109,6 +109,8 @@ const STATUS = {
   ongoing: ["bg-brand", "text-brand", "Ongoing"],
   upcoming: ["bg-amber-500", "text-amber-600", "Upcoming"],
   completed: ["bg-ink-faint", "text-ink-faint", "Completed"],
+  pending: ["bg-amber-500", "text-amber-600", "Awaiting payment"],
+  cancelled: ["bg-ink-faint", "text-ink-faint", "Cancelled"],
 } as const;
 export const StatusDot = ({ status }: { status: keyof typeof STATUS }) => (
   <span className={cx("inline-flex items-center gap-1.5 text-[13px] font-medium", STATUS[status][1])}>

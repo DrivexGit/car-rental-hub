@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { Phone, SendHorizontal, Sparkles, TriangleAlert } from "lucide-react";
 import { useStore } from "@/lib/store";
-import { carById, carName } from "@/data/catalog";
+import { api } from "@/lib/supabase";
 import { SUPPORT_PHONE, whatsappLink } from "@/config";
 import { Avatar, Chip, Logo, Screen } from "@/components/ui";
 
@@ -15,7 +15,7 @@ const WhatsAppIcon = () => (
 );
 
 export default function Support() {
-  const { user, bookings, invoices, fines } = useStore();
+  const { user } = useStore();
   const first = user!.name.split(" ")[0];
   const ask = (useLocation().state as { ask?: string } | null)?.ask;
   const [msgs, setMsgs] = useState<Msg[]>(() => {
@@ -27,26 +27,13 @@ export default function Support() {
 
   useEffect(() => { try { sessionStorage.setItem(KEY, JSON.stringify(msgs)); } catch { /* ignore */ } end.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs]);
 
-  // Everything the assistant may know about this customer.
-  const context = {
-    name: user!.name,
-    phone: user!.phone,
-    bookings: bookings.map((b) => ({ car: carName(carById(b.carId)), plate: b.plate, status: b.status, pickup: b.pickup, return: b.dropoff, plan: b.period })),
-    invoices: invoices.map((i) => ({ id: i.id, amount: i.amount, status: i.status })),
-    fines: fines.filter((f) => !f.paid).map((f) => ({ type: f.type, amount: f.amount, place: f.place, date: f.date })),
-  };
 
   const send = async (content: string, urgentCall = false) => {
     if (!content.trim() || busy) return;
     const next = [...msgs, { role: "user" as const, content: content.trim() }];
     setMsgs(next); setText(""); setBusy(true);
     try {
-      const r = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ messages: next.slice(-12).map(({ role, content }) => ({ role, content })), context, urgentCall }),
-      });
-      const data = await r.json();
+      const data = await api<{ reply: string; urgent: boolean }>("chat", { messages: next.slice(-12).map(({ role, content }) => ({ role, content })), urgentCall });
       setMsgs([...next, { role: "assistant", content: data.reply || "Sorry, something went wrong.", urgent: data.urgent }]);
     } catch {
       setMsgs([...next, { role: "assistant", content: "I can't connect right now. Please message us on WhatsApp or call us." }]);

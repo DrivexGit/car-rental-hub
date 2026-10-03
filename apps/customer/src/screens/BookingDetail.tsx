@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { Car, CheckCircle2, FileBadge, FileText, Headphones, RefreshCw, ShieldCheck, TimerReset, TriangleAlert } from "lucide-react";
 import { useStore, type Invoice } from "@/lib/store";
-import { EXTRAS, PERIOD_DAYS, carById, carName, priceFor } from "@/data/catalog";
+import { EXTRAS, PERIOD_DAYS, carName, priceFor } from "@/data/catalog";
 import { day, money, shortDay } from "@/lib/format";
 import { BackBar, Badge, Button, Card, Dirham, ListGroup, ListRow, Screen, Sheet, StatusDot } from "@/components/ui";
 import { PayInvoiceSheet } from "@/screens/PaySheet";
@@ -14,13 +14,15 @@ export default function BookingDetail() {
   const nav = useNavigate();
   const { bookings, invoices, fines, extend } = useStore();
   const [paying, setPaying] = useState<Invoice | null>(null);
+  const [extending, setExtending] = useState(false);
+  const [extendError, setExtendError] = useState("");
   const [sheet, setSheet] = useState<null | "extend" | "mulkiya" | "insurance">(null);
   const b = bookings.find((x) => x.id === id);
 
   useEffect(() => { if (hash) document.querySelector(hash)?.scrollIntoView({ behavior: "smooth" }); }, [hash]);
   if (!b) return null;
 
-  const car = carById(b.carId);
+  const car = b.car;
   const myInvoices = invoices.filter((i) => i.bookingId === b.id);
   const myFines = fines.filter((f) => f.bookingId === b.id);
   const total = (new Date(b.dropoff).getTime() - new Date(b.pickup).getTime()) / 86400000;
@@ -71,7 +73,7 @@ export default function BookingDetail() {
         {myInvoices.map((i) => (
           <div key={i.id} className="flex min-h-[64px] items-center gap-3 px-4 py-3">
             <FileText className="h-5 w-5 text-ink-muted" />
-            <div className="flex-1"><p className="font-medium">{i.id}</p><p className="text-xs text-ink-muted">{day(i.issued)}</p></div>
+            <div className="flex-1"><p className="font-medium">{i.number}</p><p className="text-xs text-ink-muted">{day(i.issued)}</p></div>
             <div className="text-right">
               <p className="font-bold"><Dirham /> {money(i.amount)}</p>
               {i.status === "paid" ? <span className="inline-flex items-center gap-1 text-xs text-brand"><CheckCircle2 className="h-3.5 w-3.5" /> Paid</span>
@@ -110,12 +112,13 @@ export default function BookingDetail() {
         <p className="mb-4 text-sm text-ink-muted">Current return: <b className="text-ink">{day(b.dropoff)}</b></p>
         <div className="space-y-2">
           {[1, 3, 7, 30].map((d) => (
-            <button key={d} onClick={() => { extend(b.id, d); setSheet(null); }} className="flex h-14 w-full items-center justify-between rounded-xl border border-line px-4 active:bg-bg">
+            <button key={d} disabled={extending} onClick={async () => { setExtending(true); setExtendError(""); try { await extend(b.id, d); setSheet(null); } catch (e) { setExtendError((e as Error).message); } finally { setExtending(false); } }} className="flex h-14 w-full items-center justify-between rounded-xl border border-line px-4 active:bg-bg disabled:opacity-50">
               <span className="font-medium">+ {d} day{d > 1 ? "s" : ""}</span>
               <span className="font-semibold"><Dirham /> {money(perDay * d)}</span>
             </button>
           ))}
         </div>
+        {extendError && <p className="mt-3 text-sm font-medium text-danger">{extendError}</p>}
         <p className="mt-4 text-xs text-ink-muted">An invoice is added to this booking. You can pay it right away.</p>
       </Sheet>
 

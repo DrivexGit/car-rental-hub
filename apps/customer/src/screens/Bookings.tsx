@@ -2,12 +2,12 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowUpDown, ChevronDown, ChevronRight, ClipboardList, FileText, SlidersHorizontal } from "lucide-react";
 import { useStore, type Booking } from "@/lib/store";
-import { PERIOD_DAYS, PERIOD_UNIT, carById, carName, priceFor } from "@/data/catalog";
+import { PERIOD_DAYS, PERIOD_UNIT, carName, priceFor } from "@/data/catalog";
 import { day } from "@/lib/format";
 import { Button, Card, Chip, Empty, PageTitle, Price, Screen, Sheet, StatusDot, TopBar } from "@/components/ui";
 
-const PRIORITY = { overdue: 0, ongoing: 1, upcoming: 2, completed: 3 };
-const FILTERS = ["all", "overdue", "ongoing", "upcoming", "completed"] as const;
+const PRIORITY = { overdue: 0, pending: 1, ongoing: 2, upcoming: 3, completed: 4, cancelled: 5 };
+const FILTERS = ["all", "pending", "overdue", "ongoing", "upcoming", "completed", "cancelled"] as const;
 
 export default function Bookings() {
   const { bookings } = useStore();
@@ -42,7 +42,7 @@ export default function Bookings() {
 
       <Sheet open={sheet} onClose={() => setSheet(false)} title="Show bookings">
         <div className="flex flex-wrap gap-2">
-          {FILTERS.map((f) => <Chip key={f} active={filter === f} onClick={() => { setFilter(f); setSheet(false); }}>{f[0].toUpperCase() + f.slice(1)}</Chip>)}
+          {FILTERS.map((f) => <Chip key={f} active={filter === f} onClick={() => { setFilter(f); setSheet(false); }}>{f === "pending" ? "Awaiting payment" : f[0].toUpperCase() + f.slice(1)}</Chip>)}
         </div>
       </Sheet>
     </Screen>
@@ -51,7 +51,7 @@ export default function Bookings() {
 
 function BookingCard({ b }: { b: Booking }) {
   const nav = useNavigate();
-  const car = carById(b.carId);
+  const car = b.car;
   const perDay = Math.round(priceFor(car, b.period) / PERIOD_DAYS[b.period]);
   return (
     <Card className="p-4">

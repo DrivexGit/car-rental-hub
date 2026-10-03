@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CheckCircle2, ChevronRight, FileText, IdCard, Smartphone, Upload } from "lucide-react";
+import { CheckCircle2, ChevronRight, FileText, IdCard, Loader2, Smartphone, Upload } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 import { useStore } from "@/lib/store";
 import { day, money } from "@/lib/format";
 import { BackBar, Button, Card, Dirham, Empty, ListGroup, ListRow, Screen } from "@/components/ui";
@@ -13,13 +14,19 @@ export function EditProfile() {
   const nav = useNavigate();
   const [name, setName] = useState(user!.name);
   const [email, setEmail] = useState(user!.email || "");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
   return (
     <Screen tabs={false}>
       <BackBar title="Edit profile" />
       <Field label="Full name" value={name} onChange={setName} />
       <Field label="Email (optional)" value={email} onChange={setEmail} type="email" />
       <Field label="Mobile number" value={user!.phone} disabled />
-      <Button size="lg" className="mt-4" disabled={name.trim().length < 2} onClick={() => { updateUser({ name: name.trim(), email: email.trim() || undefined }); nav(-1); }}>Save</Button>
+      {error && <p className="mb-2 text-sm font-medium text-danger">{error}</p>}
+      <Button size="lg" className="mt-4" disabled={name.trim().length < 2 || busy || (!!email.trim() && !/^\S+@\S+\.\S+$/.test(email.trim()))}
+        onClick={async () => { setBusy(true); setError(""); try { await updateUser({ name: name.trim(), email: email.trim() }); nav(-1); } catch (e) { setError((e as Error).message); setBusy(false); } }}>
+        {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : "Save"}
+      </Button>
     </Screen>
   );
 }
@@ -43,7 +50,7 @@ export function Payments() {
           {invoices.map((i) => (
             <div key={i.id} className="flex min-h-[64px] items-center gap-3 px-4 py-3">
               <FileText className="h-5 w-5 text-ink-muted" />
-              <div className="flex-1"><p className="font-medium">{i.id}</p><p className="text-xs text-ink-muted">{day(i.paidAt || i.issued)}</p></div>
+              <div className="flex-1"><p className="font-medium">{i.number}</p><p className="text-xs text-ink-muted">{day(i.paidAt || i.issued)}</p></div>
               <div className="text-right">
                 <p className="font-bold"><Dirham /> {money(i.amount)}</p>
                 {i.status === "paid" ? <span className="inline-flex items-center gap-1 text-xs text-brand"><CheckCircle2 className="h-3.5 w-3.5" /> Paid</span>
@@ -58,24 +65,46 @@ export function Payments() {
   );
 }
 
-// ponytail: upload is UI-only until a customer documents bucket + table exist (TASKS §2).
+const DOC_TYPES = [["id_card", "Emirates ID or passport"], ["driving_license", "Driving licence"], ["visa", "Visa page (tourists)"]] as const;
+
+/** Uploads to the private customer-documents bucket ("<uid>/...") and registers the file for staff review. */
 export function Documents() {
-  const [done, setDone] = useState<Record<string, string>>({});
-  const docs = [["emirates_id", "Emirates ID or passport"], ["licence", "Driving licence"], ["visa", "Visa page (tourists)"]];
+  const { user, documents, refresh } = useStore();
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState("");
+  const upload = async (type: string, file: File) => {
+    if (file.size > 10 * 1024 * 1024) { setError("File is too large (max 10 MB)."); return; }
+    setBusy(type); setError("");
+    const path = `${user!.id}/${type}-${Date.now()}.${file.name.split(".").pop()?.toLowerCase() || "jpg"}`;
+    const up = await supabase.storage.from("customer-documents").upload(path, file, { contentType: file.type });
+    if (up.error) { setError(up.error.message); setBusy(null); return; }
+    const { data: me } = await supabase.from("customers").select("lead_id, tenant_id").eq("id", user!.id).single();
+    const { error: e } = await supabase.from("customer_documents").insert({
+      lead_id: me!.lead_id, tenant_id: me!.tenant_id, document_type: type, storage_bucket: "customer-documents", storage_path: path,
+      file_name: file.name, mime_type: file.type, file_size: file.size, uploaded_by: "customer", verification_status: "pending",
+    });
+    if (e) setError(e.message);
+    await refresh(); setBusy(null);
+  };
   return (
     <Screen tabs={false}>
       <BackBar title="Documents" />
       <p className="mb-4 text-ink-muted">Upload once. We need these before your first pickup.</p>
       <Card className="divide-y divide-line">
-        {docs.map(([id, label]) => (
-          <label key={id} className="flex min-h-[64px] cursor-pointer items-center gap-3 px-4 py-3">
-            <IdCard className="h-5 w-5" />
-            <span className="flex-1"><span className="block font-medium">{label}</span><span className="text-xs text-ink-muted">{done[id] || "Photo or PDF"}</span></span>
-            {done[id] ? <CheckCircle2 className="h-6 w-6 text-brand" /> : <Upload className="h-5 w-5 text-brand" />}
-            <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => e.target.files?.[0] && setDone({ ...done, [id]: e.target.files[0].name })} />
-          </label>
-        ))}
+        {DOC_TYPES.map(([id, label]) => {
+          const doc = documents.find((d) => d.type === id);
+          return (
+            <label key={id} className="flex min-h-[64px] cursor-pointer items-center gap-3 px-4 py-3">
+              <IdCard className="h-5 w-5" />
+              <span className="flex-1"><span className="block font-medium">{label}</span>
+                <span className="text-xs text-ink-muted">{doc ? `${doc.fileName} · ${doc.status === "approved" ? "Approved" : doc.status === "rejected" ? "Rejected — upload again" : "In review"}` : "Photo or PDF"}</span></span>
+              {busy === id ? <Loader2 className="h-5 w-5 animate-spin text-brand" /> : doc && doc.status !== "rejected" ? <CheckCircle2 className="h-6 w-6 text-brand" /> : <Upload className="h-5 w-5 text-brand" />}
+              <input type="file" accept="image/*,application/pdf" className="hidden" disabled={!!busy} onChange={(e) => e.target.files?.[0] && upload(id, e.target.files[0])} />
+            </label>
+          );
+        })}
       </Card>
+      {error && <p className="mt-3 text-sm font-medium text-danger">{error}</p>}
     </Screen>
   );
 }
@@ -94,7 +123,9 @@ export function Security() {
 }
 
 export function Notifications() {
-  const [on, setOn] = useState({ bookings: true, invoices: true, offers: false });
+  const { user, updateUser } = useStore();
+  const [on, setOnState] = useState(user!.notify);
+  const setOn = (n: typeof on) => { setOnState(n); updateUser({ notify: n }).catch(() => setOnState(user!.notify)); };
   const rows: [keyof typeof on, string][] = [["bookings", "Booking reminders"], ["invoices", "Invoices & payments"], ["offers", "Offers & benefits"]];
   return (
     <Screen tabs={false}>

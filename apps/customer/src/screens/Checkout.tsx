@@ -1,29 +1,34 @@
 import { useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { CreditCard, Info, Loader2 } from "lucide-react";
-import { EXTRAS, PERIOD_UNIT, carById, carName } from "@/data/catalog";
+import { EXTRAS, PERIOD_UNIT, carName } from "@/data/catalog";
 import { day, money } from "@/lib/format";
 import { useStore } from "@/lib/store";
+import { api } from "@/lib/supabase";
 import { BackBar, Button, Card, Dirham, Screen } from "@/components/ui";
-import { startZiinaPayment } from "@/screens/PaySheet";
 import type { Quote } from "@/screens/Reserve";
 
-/** Reservation step 2 of 3: summary + payment. */
+/** Reservation step 2 of 3: summary + payment. The server re-prices and picks a free car. */
 export default function Checkout() {
-  const q = useLocation().state as Quote | null;
+  const q = useLocation().state as (Quote & { qty: number }) | null;
   const nav = useNavigate();
-  const { book } = useStore();
+  const { carById, payInvoice, refresh } = useStore();
   const [busy, setBusy] = useState(false);
-  if (!q) return <Navigate to="/book" replace />;
-  const car = carById(q.carId);
+  const [error, setError] = useState("");
+  const car = q && carById(q.carId);
+  if (!q || !car) return <Navigate to="/book" replace />;
 
   const pay = async () => {
-    setBusy(true);
-    const b = book({ carId: q.carId, period: q.period, pickup: q.pickup, dropoff: q.dropoff, total: q.total, extras: q.extras });
-    if (await startZiinaPayment(q.total, `booking ${b.id}`, `/confirmed/${b.id}`)) return;
-    // ponytail: simulated payment until ZIINA_API_KEY is set.
-    await new Promise((r) => setTimeout(r, 1000));
-    nav(`/confirmed/${b.id}`, { replace: true });
+    setBusy(true); setError("");
+    try {
+      const b = await api<{ reservationId: string; invoiceId: string }>("book", { modelId: q.carId, period: q.period, qty: q.qty, pickup: q.pickup, extras: q.extras });
+      await refresh();
+      try {
+        const { redirected } = await payInvoice(b.invoiceId, `/confirmed/${b.reservationId}`);
+        if (redirected) return;
+      } catch { /* booking exists; payment can be retried from the booking */ }
+      nav(`/confirmed/${b.reservationId}`, { replace: true });
+    } catch (e) { setError((e as Error).message); setBusy(false); }
   };
 
   return (
@@ -62,6 +67,7 @@ export default function Checkout() {
         <div className="flex-1"><p className="font-medium">Card or Apple Pay</p><p className="text-xs text-ink-muted">Secure payment by Ziina</p></div>
         <span className="h-5 w-5 rounded-full border-[6px] border-brand" />
       </Card>
+      {error && <p className="mt-4 rounded-card bg-danger-soft p-3 text-sm font-medium text-danger">{error}</p>}
 
       <div className="pb-safe fixed inset-x-0 bottom-0 z-30 mx-auto max-w-[480px] border-t border-line bg-white px-5 pt-3">
         <Button size="lg" className="mb-3" disabled={busy} onClick={pay}>

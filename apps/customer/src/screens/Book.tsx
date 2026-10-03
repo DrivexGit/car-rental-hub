@@ -1,16 +1,19 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowUpDown, CalendarDays, ChevronRight, Search, SlidersHorizontal, Users } from "lucide-react";
-import { FLEET, PERIOD_UNIT, carName, priceFor, type Period } from "@/data/catalog";
+import { PERIOD_UNIT, carName, priceFor, type Period } from "@/data/catalog";
+import { useStore } from "@/lib/store";
+import { supabase } from "@/lib/supabase";
 import { addDays, isoDate, shortDay } from "@/lib/format";
 import { Button, Card, Chip, Empty, PageTitle, Price, Screen, Segmented, Sheet, TopBar } from "@/components/ui";
 
 const SORTS = { low: "Price: low to high", high: "Price: high to low", name: "Name A–Z" } as const;
 type Sort = keyof typeof SORTS;
-const CATEGORIES = ["All", ...Array.from(new Set(FLEET.map((c) => c.category)))];
 
 export default function Book() {
   const nav = useNavigate();
+  const { fleet } = useStore();
+  const CATEGORIES = ["All", ...Array.from(new Set(fleet.map((c) => c.category)))];
   const [params, setParams] = useSearchParams();
   const period = (params.get("period") as Period) || "daily";
   const [q, setQ] = useState("");
@@ -20,10 +23,18 @@ export default function Book() {
   const [from, setFrom] = useState(params.get("from") || "");
   const [to, setTo] = useState(params.get("to") || "");
 
+  // With dates: hide models whose every unit is already booked in that range.
+  const [busy, setBusy] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    if (!from || !to) { setBusy(new Set()); return; }
+    supabase.rpc("busy_vehicle_ids", { p_from: `${from}T00:00:00+04:00`, p_to: `${to}T23:59:59+04:00` })
+      .then(({ data }) => setBusy(new Set((data ?? []) as string[])));
+  }, [from, to]);
+
   const cars = useMemo(() => {
-    const list = FLEET.filter((c) => (cat === "All" || c.category === cat) && carName(c).toLowerCase().includes(q.trim().toLowerCase()));
+    const list = fleet.filter((c) => c.vehicleIds.some((v) => !busy.has(v)) && (cat === "All" || c.category === cat) && carName(c).toLowerCase().includes(q.trim().toLowerCase()));
     return list.sort((a, b) => (sort === "name" ? carName(a).localeCompare(carName(b)) : (priceFor(a, period) - priceFor(b, period)) * (sort === "low" ? 1 : -1)));
-  }, [q, sort, cat, period]);
+  }, [fleet, busy, q, sort, cat, period]);
 
   const setPeriod = (p: Period) => setParams((s) => { s.set("period", p); return s; }, { replace: true });
   const dateQuery = from && to ? `&from=${from}&to=${to}` : "";

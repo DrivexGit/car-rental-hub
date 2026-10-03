@@ -1,0 +1,54 @@
+import { createHmac } from "node:crypto";
+import { admin, anonClient, fail, json, TENANT_ID } from "./_lib.js";
+
+// Phone sign-in. Each customer is a Supabase auth user with a hidden email + server-derived password,
+// so the app gets a normal Supabase session and RLS works.
+// ponytail: OTP is checked against OTP_TEST_CODE until an SMS provider is configured; then send/verify a real code here.
+
+const normalize = (p: string) => {
+  const d = String(p || "").replace(/\D/g, "").replace(/^00/, "").replace(/^0/, "");
+  const full = d.startsWith("971") ? d : `971${d}`;
+  return /^9715\d{8}$/.test(full) ? `+${full}` : null;
+};
+const emailFor = (phone: string) => `c${phone.slice(1)}@customers.drivex.app`;
+const passwordFor = (phone: string) => createHmac("sha256", process.env.AUTH_SECRET!).update(phone).digest("hex");
+
+export async function POST(req: Request) {
+  const { action, phone: raw, code, name } = await req.json().catch(() => ({}));
+  const phone = normalize(raw);
+  if (!phone) return fail("Enter a valid UAE mobile number.");
+
+  if (action === "send") return json({ ok: true, testMode: !process.env.SMS_PROVIDER });
+
+  if (action !== "verify") return fail("Unknown action");
+  if (String(code) !== (process.env.OTP_TEST_CODE || "")) return fail("Wrong code. Please try again.", 401);
+
+  const db = admin();
+  const { data: existing } = await db.from("customers").select("id").eq("tenant_id", TENANT_ID).eq("phone", phone).maybeSingle();
+
+  if (!existing) {
+    const fullName = String(name || "").trim();
+    if (fullName.length < 2) return json({ needName: true });
+
+    let userId: string | undefined;
+    const created = await db.auth.admin.createUser({ email: emailFor(phone), password: passwordFor(phone), email_confirm: true, user_metadata: { phone, full_name: fullName, kind: "customer" } });
+    userId = created.data.user?.id;
+    if (!userId) {
+      // Auth user exists from an earlier half-finished sign-up: reuse it.
+      const s = await anonClient().auth.signInWithPassword({ email: emailFor(phone), password: passwordFor(phone) });
+      userId = s.data.user?.id;
+    }
+    if (!userId) return fail("Could not create your account.", 500);
+
+    const { data: lead } = await db.from("leads").insert({
+      tenant_id: TENANT_ID, full_name: fullName, whatsapp_number: phone.slice(1), source: "website",
+      primary_channel: "app", status: "new", current_stage: "new_lead",
+    }).select("id").single();
+    const { error } = await db.from("customers").insert({ id: userId, tenant_id: TENANT_ID, lead_id: lead?.id ?? null, phone, full_name: fullName });
+    if (error) return fail(error.message, 500);
+  }
+
+  const { data, error } = await anonClient().auth.signInWithPassword({ email: emailFor(phone), password: passwordFor(phone) });
+  if (error || !data.session) return fail("Sign-in failed.", 500);
+  return json({ access_token: data.session.access_token, refresh_token: data.session.refresh_token });
+}

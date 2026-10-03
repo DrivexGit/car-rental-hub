@@ -266,3 +266,25 @@ Key indexes for performance:
 - `reservations`: tenant_id, vehicle_id, start_datetime, end_datetime, lead_id
 - `customer_documents`: tenant_id, lead_id
 - `vehicle_images`: tenant_id, vehicle_id
+
+---
+
+## Customer app tables (migration `20261003190000_customer_app.sql`)
+
+Used by the customer PWA (`apps/customer`). Customers are Supabase auth users with a `customers` row; they read only
+their own rows (RLS `customer_id = auth.uid()`); staff keep full access via `get_user_tenant_id()`.
+Writes that involve money (booking, payment, extension) go through server functions with the service role.
+
+| Table | Purpose |
+|---|---|
+| `customers` | id = auth user; phone (unique per tenant), full_name, email, notification prefs, link to `leads` |
+| `invoices` | per customer, optional `reservation_id`; `number`, `amount`, `status` pending/paid/void |
+| `payments` | attempts per invoice; `provider` ziina/test, `provider_ref`, `status` |
+| `fines` | Salik / traffic fines per customer (+ optional reservation) — entered by staff |
+| `offers` | `kind` car (title = "Make Model") or partner; `discount_pct`; shown on app Home and applied to bookings |
+| `urgent_requests` | raised by the AI support / "Urgent call"; also posted to the n8n webhook |
+
+`reservations` gained `customer_id`, `rental_period`, `extras`, `total_amount`. App bookings are created `pending`
+(hold the car 30 min) and become `confirmed` when the invoice is paid. `busy_vehicle_ids(from, to)` returns busy
+vehicle ids for availability without exposing other bookings.
+Customer document uploads: storage `customer-documents/<auth uid>/…` + a `customer_documents` row (`uploaded_by = 'customer'`).
