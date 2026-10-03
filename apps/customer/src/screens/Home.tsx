@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, ChevronRight, FileText } from "lucide-react";
-import { useStore } from "@/lib/store";
+import { motion } from "framer-motion";
+import { useStore, type Offer } from "@/lib/store";
+import { InstallBanner } from "@/components/InstallBanner";
+import { PushPrompt } from "@/components/PushPrompt";
 import { BANNERS, carName } from "@/data/catalog";
 import { day, greeting } from "@/lib/format";
-import { Badge, Button, Card, Dirham, PageTitle, Price, Screen, SectionHead, TopBar } from "@/components/ui";
+import { Badge, Button, Card, Dirham, PageTitle, Price, Screen, SectionHead, Sheet, TopBar } from "@/components/ui";
 import { PayInvoiceSheet } from "@/screens/PaySheet";
 
 export default function Home() {
@@ -14,12 +17,15 @@ export default function Home() {
   const nav = useNavigate();
   const pending = invoices.find((i) => i.status === "pending");
   const [paying, setPaying] = useState(false);
+  const [benefit, setBenefit] = useState<Offer | null>(null);
   const first = user!.name.split(" ")[0];
 
   return (
     <Screen>
       <TopBar />
-      <PageTitle title={`${greeting()}, ${first}`} sub="Your next journey, beautifully taken care of." />
+      <InstallBanner />
+      <PushPrompt />
+      <PageTitle title={<motion.span initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>{greeting()}, {first}</motion.span>} sub="Your next journey, beautifully taken care of." />
 
       <Carousel />
 
@@ -63,7 +69,7 @@ export default function Home() {
       {!!partners.length && <SectionHead title="Dining benefits" />}
       <div className="no-scrollbar -mx-5 flex gap-3 overflow-x-auto px-5 pb-1">
         {partners.map((d) => (
-          <Card key={d.id} className="w-[170px] shrink-0 overflow-hidden">
+          <Card key={d.id} className="w-[170px] shrink-0 overflow-hidden" onClick={() => setBenefit(d)}>
             {d.image && <img src={d.image} alt={d.title} className="h-[100px] w-full object-cover" loading="lazy" />}
             <div className="flex items-center justify-between p-3">
               <div><p className="text-sm font-semibold">{d.title}</p><p className="text-xs text-ink-muted">{d.subtitle}</p></div>
@@ -72,6 +78,27 @@ export default function Home() {
           </Card>
         ))}
       </div>
+
+      <Sheet open={!!benefit} onClose={() => setBenefit(null)} title={benefit?.title ?? ""}>
+        {benefit && (
+          <div>
+            {benefit.image && <img src={benefit.image} alt="" className="h-44 w-full rounded-card object-cover" />}
+            <div className="mt-4 flex items-center justify-between">
+              <p className="text-ink-muted">{benefit.subtitle}{benefit.location ? ` · ${benefit.location}` : ""}</p>
+              <Badge className="bg-brand text-white">{benefit.off}% off</Badge>
+            </div>
+            {benefit.description && <p className="mt-2 text-[15px]">{benefit.description}</p>}
+            {benefit.code && (
+              <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.15, type: "spring" }}
+                className="mt-5 rounded-card border-2 border-dashed border-brand bg-brand-soft p-4 text-center">
+                <p className="text-xs uppercase tracking-widest text-brand">Show this code</p>
+                <p className="mt-1 font-mono text-3xl font-bold tracking-[.2em] text-brand">{benefit.code}</p>
+              </motion.div>
+            )}
+            {benefit.terms && <p className="mt-4 text-xs text-ink-muted">{benefit.terms}</p>}
+          </div>
+        )}
+      </Sheet>
 
       {pending && <PayInvoiceSheet invoice={pending} open={paying} onClose={() => setPaying(false)} />}
     </Screen>
@@ -85,18 +112,19 @@ function Carousel() {
   useEffect(() => {
     const t = setInterval(() => {
       const el = ref.current; if (!el) return;
-      const next = (Math.round(el.scrollLeft / el.clientWidth) + 1) % BANNERS.length;
-      el.scrollTo({ left: next * el.clientWidth, behavior: "smooth" });
+      const w = (el.firstElementChild as HTMLElement).offsetWidth + 12;
+      const next = (Math.round(el.scrollLeft / w) + 1) % BANNERS.length;
+      el.scrollTo({ left: next * w, behavior: "smooth" });
     }, 5000);
     return () => clearInterval(t);
   }, []);
   return (
     <div>
-      <div ref={ref} onScroll={(e) => setI(Math.round(e.currentTarget.scrollLeft / e.currentTarget.clientWidth))}
-        className="no-scrollbar flex snap-x snap-mandatory overflow-x-auto rounded-card">
+      <div ref={ref} onScroll={(e) => setI(Math.round(e.currentTarget.scrollLeft / (((e.currentTarget.firstElementChild as HTMLElement).offsetWidth) + 12)))}
+        className="no-scrollbar -mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-5 px-5">
         {BANNERS.map((b) => (
-          <div key={b.title} className="relative h-[190px] w-full shrink-0 snap-center overflow-hidden rounded-card bg-[#0b1a11] p-4 text-white">
-            <img src={b.image} alt="" className="absolute inset-0 h-full w-full object-cover" />
+          <div key={b.title} className="relative h-[190px] w-[calc(100%-12px)] shrink-0 snap-start overflow-hidden rounded-card bg-[#0b1a11] p-4 text-white">
+            <motion.img src={b.image} alt="" className="absolute inset-0 h-full w-full object-cover" initial={{ scale: 1.15 }} animate={{ scale: 1 }} transition={{ duration: 6, ease: "easeOut" }} />
             <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/35 to-transparent" />
             <p className="relative text-[10px] font-semibold uppercase tracking-[.15em] text-white/70">{b.kicker}</p>
             <p className="relative mt-1 w-[60%] text-[26px] font-bold leading-[1.05]">{b.title}</p>

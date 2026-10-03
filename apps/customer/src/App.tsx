@@ -4,6 +4,8 @@ import { Loader2 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { api } from "@/lib/supabase";
 import { TabBar } from "@/components/ui";
+import { Splash } from "@/components/Splash";
+import Inbox from "@/screens/Inbox";
 import Login from "@/screens/Login";
 import Home from "@/screens/Home";
 import Book from "@/screens/Book";
@@ -29,6 +31,12 @@ export default function App() {
     if (id && user) api("pay", { action: "confirm", paymentId: id }).catch(() => {}).finally(refresh);
   }, [search, user, refresh]);
 
+  return <><Splash ready={ready} /><Body /></>;
+}
+
+function Body() {
+  const { user, ready } = useStore();
+  const { pathname } = useLocation();
   if (!ready) return <div className="grid h-full place-items-center"><Loader2 className="h-8 w-8 animate-spin text-brand" /></div>;
   if (!user) return <Routes><Route path="*" element={<Login />} /></Routes>;
 
@@ -52,6 +60,7 @@ export default function App() {
         <Route path="/profile/language" element={<Language />} />
         <Route path="/profile/legal" element={<Legal />} />
         <Route path="/profile/other" element={<Other />} />
+        <Route path="/notifications" element={<Inbox />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       {TAB_ROUTES.includes(pathname) && <TabBar />}

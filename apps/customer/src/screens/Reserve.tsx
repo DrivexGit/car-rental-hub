@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { Check, Fuel, Minus, Plus, ShieldCheck, Users } from "lucide-react";
+import { Briefcase, CalendarDays, Check, DoorOpen, Fuel, Gauge, Minus, Plus, Settings2, ShieldCheck, Sparkles, Users } from "lucide-react";
+import { DateSheet } from "@/components/DatePicker";
 import { EXTRAS, PERIOD_DAYS, PERIOD_UNIT, carName, priceFor, type Car, type Period } from "@/data/catalog";
 import { useStore } from "@/lib/store";
-import { addDays, daysBetween, isoDate, money, shortDay } from "@/lib/format";
+import { addDays, day, daysBetween, isoDate, money, shortDay } from "@/lib/format";
 import { BackBar, Button, Card, Dirham, Price, Screen, Segmented } from "@/components/ui";
 
 export type Quote = { carId: string; period: Period; qty: number; pickup: string; dropoff: string; extras: string[]; discount: number; total: number };
@@ -21,7 +22,8 @@ export default function Reserve() {
   const { carId = "" } = useParams();
   const [params] = useSearchParams();
   const nav = useNavigate();
-  const { carById, offers } = useStore();
+  const { carById, offers, specs: allSpecs } = useStore();
+  const [picking, setPicking] = useState(false);
   const car = carById(carId);
   const off = offers.find((o) => o.kind === "car" && o.car?.id === carId)?.off ?? 0;
   const [period, setPeriod] = useState<Period>((params.get("period") as Period) || "daily");
@@ -31,6 +33,7 @@ export default function Reserve() {
   const [extras, setExtras] = useState<string[]>(["full_cover"]);
 
   if (!car) return null;
+  const specs = allSpecs[car.id];
   const q = quote(car, period, qty, pickup, extras, off);
   const unit = PERIOD_UNIT[period];
   const toggle = (id: string) => setExtras((x) => (x.includes(id) ? x.filter((i) => i !== id) : [...x, id]));
@@ -48,20 +51,42 @@ export default function Reserve() {
           <div className="mt-2 flex flex-wrap gap-4 text-sm text-ink-muted">
             <span>{car.year} · {car.category}</span>
             <span className="inline-flex items-center gap-1"><Users className="h-4 w-4" /> {car.seats} seats</span>
+            <span>{car.vehicleIds.length} in fleet</span>
             <span className="inline-flex items-center gap-1"><Fuel className="h-4 w-4" /> Full to full</span>
           </div>
           <div className="mt-3"><Price value={Math.round(priceFor(car, period) * (1 - off / 100))} unit={unit} old={off ? priceFor(car, period) : undefined} /></div>
         </div>
       </Card>
 
+      {specs && (
+        <>
+          <h2 className="mb-2 mt-6 font-semibold">About this car</h2>
+          <div className="grid grid-cols-3 gap-2">
+            {([[Gauge, specs.engine ?? "—", "Engine"], [Settings2, specs.transmission, "Gearbox"], [Fuel, specs.fuel, "Fuel"],
+               [Users, `${specs.seats} seats`, "Seats"], [DoorOpen, `${specs.doors} doors`, "Doors"], [Briefcase, `${specs.bags} bags`, "Luggage"]] as const).map(([Icon, v, l], i) => (
+              <Card key={l} delay={0.05 * i} className="flex flex-col items-center gap-1 p-3 text-center">
+                <Icon className="h-5 w-5 text-brand" />
+                <span className="text-[13px] font-semibold leading-tight">{v}</span>
+                <span className="text-[11px] text-ink-faint">{l}</span>
+              </Card>
+            ))}
+          </div>
+          {!!specs.features.length && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {specs.features.map((f) => <span key={f} className="inline-flex items-center gap-1 rounded-full bg-brand-soft px-3 py-1.5 text-[13px] font-medium text-brand"><Sparkles className="h-3.5 w-3.5" />{f}</span>)}
+            </div>
+          )}
+        </>
+      )}
+
       <h2 className="mb-2 mt-6 font-semibold">Rental plan</h2>
       <Segmented value={period} onChange={(p) => { setPeriod(p); setQty(p === "daily" ? 3 : 1); }} options={[{ value: "daily", label: "Daily" }, { value: "weekly", label: "Weekly" }, { value: "monthly", label: "Monthly" }]} />
 
       <Card className="mt-3 divide-y divide-line">
-        <label className="flex h-16 items-center justify-between px-4">
+        <button onClick={() => setPicking(true)} className="flex h-16 w-full items-center justify-between px-4 text-left active:bg-bg">
           <span className="font-medium">Pickup date</span>
-          <input type="date" min={isoDate(new Date())} value={pickup} onChange={(e) => e.target.value && setPickup(e.target.value)} className="bg-transparent text-right font-semibold text-brand outline-none" />
-        </label>
+          <span className="inline-flex items-center gap-2 font-semibold text-brand"><CalendarDays className="h-4 w-4" />{day(pickup)}</span>
+        </button>
         <div className="flex h-16 items-center justify-between px-4">
           <span className="font-medium">Number of {unit}s</span>
           <div className="flex items-center gap-4">
@@ -89,6 +114,8 @@ export default function Reserve() {
           );
         })}
       </Card>
+
+      <DateSheet open={picking} onClose={() => setPicking(false)} value={pickup} onPick={setPickup} />
 
       <div className="pb-safe fixed inset-x-0 bottom-0 z-30 mx-auto max-w-[480px] border-t border-line bg-white px-5 pt-3">
         <div className="mb-3 flex items-baseline justify-between">

@@ -11,3 +11,17 @@ body { @apply bg-bg text-ink antialiased; -webkit-tap-highlight-color: transpare
 @keyframes slideUp { from { transform: translateY(100%); } to { transform: none; } }
 /* Car renders sit on white; multiply blends them into tinted cards. */
 img[src^="/cars/"] { mix-blend-mode: multiply; }
+
+/* react-day-picker themed to Drivex */
+.drivex-cal {
+  --rdp-accent-color: #1f4d2f;
+  --rdp-accent-background-color: #e8f0ea;
+  --rdp-day-height: 44px; --rdp-day-width: 44px;
+  --rdp-day_button-height: 42px; --rdp-day_button-width: 42px; --rdp-day_button-border-radius: 12px;
+  --rdp-range_start-date-background-color: #1f4d2f; --rdp-range_end-date-background-color: #1f4d2f;
+  --rdp-range_middle-background-color: #e8f0ea; --rdp-today-color: #1f4d2f;
+  font-size: 15px;
+}
+.drivex-cal .rdp-month_caption { font-weight: 700; font-size: 17px; }
+.drivex-cal .rdp-day_button { transition: transform .12s ease; }
+.drivex-cal .rdp-day_button:active { transform: scale(.9); }

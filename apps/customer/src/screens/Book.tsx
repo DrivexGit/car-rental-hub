@@ -4,7 +4,8 @@ import { ArrowUpDown, CalendarDays, ChevronRight, Search, SlidersHorizontal, Use
 import { PERIOD_UNIT, carName, priceFor, type Period } from "@/data/catalog";
 import { useStore } from "@/lib/store";
 import { supabase } from "@/lib/supabase";
-import { addDays, isoDate, shortDay } from "@/lib/format";
+import { shortDay } from "@/lib/format";
+import { DateRangeSheet } from "@/components/DatePicker";
 import { Button, Card, Chip, Empty, PageTitle, Price, Screen, Segmented, Sheet, TopBar } from "@/components/ui";
 
 const SORTS = { low: "Price: low to high", high: "Price: high to low", name: "Name A–Z" } as const;
@@ -66,8 +67,8 @@ export default function Book() {
       </div>
 
       <div className="mt-4 space-y-3">
-        {cars.map((c) => (
-          <Card key={c.id} className="p-4">
+        {cars.map((c, i) => (
+          <Card key={c.id} className="p-4" delay={Math.min(i, 6) * 0.05}>
             <p className="text-lg font-bold leading-tight">{carName(c)}</p>
             <p className="flex items-center gap-1.5 text-sm text-ink-muted">{c.year} · {c.category} · <Users className="h-3.5 w-3.5" /> {c.seats} seats</p>
             <img src={c.image} alt={carName(c)} className="mx-auto my-2 h-[130px] w-full object-contain" loading="lazy" />
@@ -97,13 +98,8 @@ export default function Book() {
         <Button size="lg" className="mt-6" onClick={() => setSheet(null)}>Show {cars.length} cars</Button>
       </Sheet>
 
-      <Sheet open={sheet === "dates"} onClose={() => setSheet(null)} title="Rental dates">
-        <DateFields from={from} to={to} onChange={(f, t) => { setFrom(f); setTo(t); }} />
-        <div className="mt-6 flex gap-2">
-          <Button variant="ghost" className="flex-1" onClick={() => { setFrom(""); setTo(""); setSheet(null); }}>Clear</Button>
-          <Button className="flex-1" disabled={!from || !to} onClick={() => setSheet(null)}>Apply</Button>
-        </div>
-      </Sheet>
+      <DateRangeSheet open={sheet === "dates"} onClose={() => setSheet(null)} from={from} to={to}
+        onApply={(f, t) => { setFrom(f); setTo(t); }} onClear={() => { setFrom(""); setTo(""); }} />
     </Screen>
   );
 }
@@ -115,20 +111,3 @@ const IconBtn = ({ children, label, onClick, dot }: { children: React.ReactNode;
   </button>
 );
 
-export function DateFields({ from, to, onChange }: { from: string; to: string; onChange: (from: string, to: string) => void }) {
-  const today = isoDate(new Date());
-  return (
-    <div className="grid grid-cols-2 gap-3">
-      <label className="block">
-        <span className="mb-1.5 block text-sm text-ink-muted">Pickup</span>
-        <input type="date" min={today} value={from} onChange={(e) => onChange(e.target.value, to && to > e.target.value ? to : isoDate(addDays(new Date(e.target.value), 1)))}
-          className="h-12 w-full rounded-xl border border-line bg-white px-3 text-[15px] outline-none focus:border-brand" />
-      </label>
-      <label className="block">
-        <span className="mb-1.5 block text-sm text-ink-muted">Return</span>
-        <input type="date" min={from || today} value={to} onChange={(e) => onChange(from, e.target.value)}
-          className="h-12 w-full rounded-xl border border-line bg-white px-3 text-[15px] outline-none focus:border-brand" />
-      </label>
-    </div>
-  );
-}

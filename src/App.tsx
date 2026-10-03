@@ -19,6 +19,11 @@ import Documents from "@/pages/Documents";
 import FAQ from "@/pages/FAQ";
 import SiteMultipliers from "@/pages/SiteMultipliers";
 import NotFound from "@/pages/NotFound";
+import Notifications from "@/pages/Notifications";
+import Customers from "@/pages/Customers";
+import Invoices from "@/pages/Invoices";
+import Fines from "@/pages/Fines";
+import Offers from "@/pages/Offers";
 
 
 const queryClient = new QueryClient();
@@ -43,6 +48,11 @@ function ProtectedRoutes() {
         <Route path="/documents" element={<Documents />} />
         <Route path="/faq" element={<FAQ />} />
         <Route path="/site-multipliers" element={<SiteMultipliers />} />
+        <Route path="/notifications" element={<Notifications />} />
+        <Route path="/customers" element={<Customers />} />
+        <Route path="/invoices" element={<Invoices />} />
+        <Route path="/fines" element={<Fines />} />
+        <Route path="/offers" element={<Offers />} />
         <Route path="*" element={<NotFound />} />
 
       </Routes>

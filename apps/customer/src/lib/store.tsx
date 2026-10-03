@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { api, supabase } from "@/lib/supabase";
-import { carImage, toFleet, type Car, type Period } from "@/data/catalog";
+import { carImage, slug, toFleet, type Car, type Period } from "@/data/catalog";
 
 export type User = { id: string; phone: string; name: string; email?: string; notify: { bookings: boolean; invoices: boolean; offers: boolean } };
 export type BookingStatus = "pending" | "upcoming" | "ongoing" | "overdue" | "completed" | "cancelled";
@@ -10,10 +10,12 @@ export type Booking = {
 };
 export type Invoice = { id: string; number: string; bookingId: string | null; amount: number; issued: string; status: "pending" | "paid" | "void"; paidAt?: string; description?: string };
 export type Fine = { id: string; bookingId: string | null; type: "salik" | "traffic"; amount: number; date: string; place: string };
-export type Offer = { id: string; kind: "car" | "partner"; title: string; subtitle?: string; off: number; image?: string; car?: Car };
+export type Offer = { id: string; kind: "car" | "partner"; title: string; subtitle?: string; off: number; image?: string; car?: Car; description?: string; terms?: string; location?: string; code?: string };
+export type Specs = { engine?: string; transmission: string; fuel: string; seats: number; doors: number; bags: number; features: string[] };
+export type Note = { id: string; type: string; title: string; body?: string; link?: string; read: boolean; created: string };
 export type Doc = { id: string; type: string; fileName: string; status: string; created: string };
 
-type Data = { fleet: Car[]; bookings: Booking[]; invoices: Invoice[]; fines: Fine[]; offers: Offer[]; documents: Doc[] };
+type Data = { fleet: Car[]; bookings: Booking[]; invoices: Invoice[]; fines: Fine[]; offers: Offer[]; documents: Doc[]; specs: Record<string, Specs>; notes: Note[] };
 type Store = Data & {
   ready: boolean;
   user: User | null;
@@ -23,9 +25,10 @@ type Store = Data & {
   payInvoice: (id: string, returnPath: string) => Promise<{ redirected: boolean }>;
   extend: (bookingId: string, days: number) => Promise<void>;
   carById: (id: string) => Car | undefined;
+  markNotesRead: () => Promise<void>;
 };
 
-const empty: Data = { fleet: [], bookings: [], invoices: [], fines: [], offers: [], documents: [] };
+const empty: Data = { fleet: [], bookings: [], invoices: [], fines: [], offers: [], documents: [], specs: {}, notes: [] };
 
 function statusOf(raw: string, start: string, end: string): BookingStatus {
   if (raw === "pending" || raw === "draft") return "pending";
@@ -40,7 +43,7 @@ async function loadAll(): Promise<{ user: User; data: Data } | null> {
   const { data: s } = await supabase.auth.getSession();
   if (!s.session) return null;
   const uid = s.session.user.id;
-  const [c, v, r, i, f, o, d] = await Promise.all([
+  const [c, v, r, i, f, o, d, sp, nt] = await Promise.all([
     supabase.from("customers").select("*").eq("id", uid).maybeSingle(),
     supabase.from("vehicles").select("id,make,model,year,categories,daily_price,weekly_price,monthly_price").neq("status", "unavailable"),
     supabase.from("reservations").select("id,status,start_datetime,end_datetime,rental_period,extras,total_amount,vehicles(id,make,model,year,categories,plate_number,daily_price,weekly_price,monthly_price)").eq("customer_id", uid).order("start_datetime", { ascending: false }),
@@ -48,10 +51,13 @@ async function loadAll(): Promise<{ user: User; data: Data } | null> {
     supabase.from("fines").select("*").order("occurred_at", { ascending: false }),
     supabase.from("offers").select("*").order("sort_order"),
     supabase.from("customer_documents").select("id,document_type,file_name,verification_status,created_at").order("created_at", { ascending: false }),
+    supabase.from("vehicle_model_specs").select("*"),
+    supabase.from("notifications").select("*").eq("audience", "customer").order("created_at", { ascending: false }).limit(50),
   ]);
   if (!c.data) return null; // a staff account or a half-created customer
 
-  const fleet = toFleet(v.data ?? []);
+  const specs: Record<string, Specs> = Object.fromEntries((sp.data ?? []).map((x: any) => [slug(x.make, x.model), { engine: x.engine ?? undefined, transmission: x.transmission, fuel: x.fuel, seats: x.seats, doors: x.doors, bags: x.bags, features: x.features ?? [] }]));
+  const fleet = toFleet(v.data ?? []).map((c) => (specs[c.id] ? { ...c, seats: specs[c.id].seats } : c));
   const bookings: Booking[] = (r.data ?? []).map((x: any) => {
     const veh = x.vehicles;
     const car = fleet.find((k) => k.vehicleIds.includes(veh.id)) ?? toFleet([veh])[0] ?? {
@@ -75,8 +81,10 @@ async function loadAll(): Promise<{ user: User; data: Data } | null> {
       fleet, bookings,
       invoices: (i.data ?? []).map((x: any) => ({ id: x.id, number: x.number, bookingId: x.reservation_id, amount: Number(x.amount), issued: x.issued_at, status: x.status, paidAt: x.paid_at ?? undefined, description: x.description ?? undefined })),
       fines: (f.data ?? []).map((x: any) => ({ id: x.id, bookingId: x.reservation_id, type: x.type, amount: Number(x.amount), date: x.occurred_at, place: x.location ?? "" })),
-      offers: (o.data ?? []).map((x: any) => ({ id: x.id, kind: x.kind, title: x.title, subtitle: x.subtitle ?? undefined, off: x.discount_pct, image: x.image_url ?? undefined, car: x.kind === "car" ? byTitle(x.title) : undefined }))
+      offers: (o.data ?? []).map((x: any) => ({ id: x.id, kind: x.kind, title: x.title, subtitle: x.subtitle ?? undefined, off: x.discount_pct, image: x.image_url ?? undefined, car: x.kind === "car" ? byTitle(x.title) : undefined, description: x.description ?? undefined, terms: x.terms ?? undefined, location: x.location ?? undefined, code: x.redeem_code ?? undefined }))
         .filter((x: Offer) => x.kind === "partner" || x.car),
+      specs,
+      notes: (nt.data ?? []).map((x: any) => ({ id: x.id, type: x.type, title: x.title, body: x.body ?? undefined, link: x.link ?? undefined, read: !!x.read_at, created: x.created_at })),
       documents: (d.data ?? []).map((x: any) => ({ id: x.id, type: x.document_type, fileName: x.file_name, status: x.verification_status, created: x.created_at })),
     },
   };
@@ -103,9 +111,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return () => sub.subscription.unsubscribe();
   }, [refresh]);
 
+  // Live updates: new invoice/fine/booking notification → reload data.
+  useEffect(() => {
+    if (!user) return;
+    const ch = supabase.channel("me").on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `customer_id=eq.${user.id}` }, () => refresh()).subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [user?.id, refresh]);
+
   const store: Store = {
     ...data, ready, user, refresh,
     carById: (id) => data.fleet.find((c) => c.id === id),
+    markNotesRead: async () => {
+      if (!data.notes.some((n) => !n.read)) return;
+      await supabase.from("notifications").update({ read_at: new Date().toISOString() }).eq("audience", "customer").is("read_at", null);
+      setData((d) => ({ ...d, notes: d.notes.map((n) => ({ ...n, read: true })) }));
+    },
     signOut: async () => { await supabase.auth.signOut(); },
     updateUser: async (u) => {
       const patch: Record<string, unknown> = {};

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CheckCircle2, ChevronRight, FileText, IdCard, Loader2, Smartphone, Upload } from "lucide-react";
+import { BellRing, CheckCircle2, ChevronRight, FileText, IdCard, Loader2, Smartphone, Upload } from "lucide-react";
+import { enablePush, pushSupported } from "@/lib/push";
 import { supabase } from "@/lib/supabase";
 import { useStore } from "@/lib/store";
 import { day, money } from "@/lib/format";
@@ -125,11 +126,20 @@ export function Security() {
 export function Notifications() {
   const { user, updateUser } = useStore();
   const [on, setOnState] = useState(user!.notify);
+  const [perm, setPerm] = useState<string>(() => (pushSupported() ? Notification.permission : "unsupported"));
   const setOn = (n: typeof on) => { setOnState(n); updateUser({ notify: n }).catch(() => setOnState(user!.notify)); };
-  const rows: [keyof typeof on, string][] = [["bookings", "Booking reminders"], ["invoices", "Invoices & payments"], ["offers", "Offers & benefits"]];
+  const rows: [keyof typeof on, string][] = [["bookings", "Booking reminders"], ["invoices", "Invoices, Salik & fines"], ["offers", "Offers & benefits"]];
   return (
     <Screen tabs={false}>
       <BackBar title="Notifications" />
+      <Card className="mb-5 flex items-center gap-3 p-4">
+        <BellRing className="h-6 w-6 text-brand" />
+        <div className="flex-1">
+          <p className="font-semibold">Alerts on this phone</p>
+          <p className="text-xs text-ink-muted">{perm === "granted" ? "On" : perm === "denied" ? "Blocked — allow notifications for Drivex in your phone settings" : perm === "unsupported" ? "Install the app to get alerts (iPhone: Add to Home Screen)" : "Off"}</p>
+        </div>
+        {perm === "default" && <Button size="sm" onClick={async () => setPerm(await enablePush())}>Turn on</Button>}
+      </Card>
       <Card className="divide-y divide-line">
         {rows.map(([k, label]) => (
           <button key={k} onClick={() => setOn({ ...on, [k]: !on[k] })} className="flex h-16 w-full items-center justify-between px-4 text-left">
@@ -174,7 +184,7 @@ export function Other() {
     <Screen tabs={false}>
       <BackBar title="Other" />
       <ListGroup>
-        <ListRow label="App version" value="0.1.0" />
+        <ListRow label="App version" value="1.0.0" />
         <ListRow label="Install app" value={<ChevronRight className="hidden" />} onClick={() => alert("Tap Share → Add to Home Screen (iPhone) or the browser menu → Install app (Android).")} />
       </ListGroup>
     </Screen>

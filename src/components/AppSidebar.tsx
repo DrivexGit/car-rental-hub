@@ -1,5 +1,6 @@
 import {
-  LayoutDashboard, Users, MessageSquare, Car, Calendar, BookOpen, HelpCircle, LogOut, ClipboardList, Globe
+  LayoutDashboard, Users, MessageSquare, Car, Calendar, BookOpen, HelpCircle, LogOut, ClipboardList, Globe,
+  Bell, UserRound, Receipt, TriangleAlert, Gift
 } from 'lucide-react';
 
 import { NavLink } from '@/components/NavLink';
@@ -15,7 +16,12 @@ const navItems = [
   { title: 'Leads / CRM', url: '/leads', icon: Users },
   { title: 'Messages', url: '/messages', icon: MessageSquare },
   { title: 'Vehicles', url: '/vehicles', icon: Car },
+  { title: 'Notifications', url: '/notifications', icon: Bell },
   { title: 'Reservations', url: '/reservations', icon: ClipboardList },
+  { title: 'App customers', url: '/customers', icon: UserRound },
+  { title: 'Invoices', url: '/invoices', icon: Receipt },
+  { title: 'Fines & Salik', url: '/fines', icon: TriangleAlert },
+  { title: 'Offers', url: '/offers', icon: Gift },
   { title: 'Calendar', url: '/calendar', icon: Calendar },
   { title: 'Documents', url: '/documents', icon: BookOpen },
   { title: 'FAQ', url: '/faq', icon: HelpCircle },

@@ -12,6 +12,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { RESERVATION_STATUSES, RESERVATION_TYPES } from '@/lib/constants';
 import { Plus } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
+import { ReservationDetail } from '@/components/ReservationDetail';
+import { aed } from '@/lib/format';
 
 export default function Reservations() {
   const [reservations, setReservations] = useState<any[]>([]);
@@ -22,6 +26,8 @@ export default function Reservations() {
   const [form, setForm] = useState({ vehicle_id: '', lead_id: '', start_datetime: '', end_datetime: '', status: 'confirmed', reservation_type: 'booking', internal_note: '', pickup_location: '', return_location: '' });
   const { toast } = useToast();
   const tenantId = useTenantId();
+  const [params, setParams] = useSearchParams();
+  const openId = params.get('id');
 
   const load = async () => {
     let q = supabase.from('reservations').select('*, vehicles(plate_number, make, model), leads(full_name, whatsapp_number)').order('start_datetime', { ascending: false });
@@ -77,17 +83,18 @@ export default function Reservations() {
         </Select>
       </div>
       <Table>
-        <TableHeader><TableRow><TableHead>Vehicle</TableHead><TableHead>Customer</TableHead><TableHead>Type</TableHead><TableHead>Status</TableHead><TableHead>Start</TableHead><TableHead>End</TableHead><TableHead></TableHead></TableRow></TableHeader>
+        <TableHeader><TableRow><TableHead>Vehicle</TableHead><TableHead>Customer</TableHead><TableHead>Source</TableHead><TableHead>Status</TableHead><TableHead>Start</TableHead><TableHead>End</TableHead><TableHead className="text-right">Total</TableHead><TableHead></TableHead></TableRow></TableHeader>
         <TableBody>
           {reservations.map(r => (
-            <TableRow key={r.id}>
+            <TableRow key={r.id} className="cursor-pointer" onClick={() => setParams({ id: r.id })}>
               <TableCell className="font-mono text-sm">{(r.vehicles as any)?.plate_number} {(r.vehicles as any)?.make}</TableCell>
-              <TableCell className="text-sm">{(r.leads as any)?.full_name || r.customer_name_snapshot || '—'}</TableCell>
-              <TableCell><Badge variant="outline">{r.reservation_type}</Badge></TableCell>
+              <TableCell className="text-sm">{(r.leads as any)?.full_name || r.customer_name_snapshot || '—'}<div className="text-xs text-muted-foreground">{r.customer_phone_snapshot}</div></TableCell>
+              <TableCell><Badge variant="outline">{r.source === 'app' ? 'App' : r.reservation_type}</Badge></TableCell>
               <TableCell><Badge variant={r.status === 'confirmed' ? 'default' : 'secondary'}>{r.status}</Badge></TableCell>
               <TableCell className="text-xs">{new Date(r.start_datetime).toLocaleDateString()}</TableCell>
               <TableCell className="text-xs">{new Date(r.end_datetime).toLocaleDateString()}</TableCell>
-              <TableCell>
+              <TableCell className="text-right text-sm">{aed(r.total_amount)}</TableCell>
+              <TableCell onClick={(e) => e.stopPropagation()}>
                 {!['cancelled', 'completed'].includes(r.status) && (
                   <Button size="sm" variant="ghost" onClick={() => cancelReservation(r.id)}>Cancel</Button>
                 )}
@@ -96,6 +103,10 @@ export default function Reservations() {
           ))}
         </TableBody>
       </Table>
+
+      <Sheet open={!!openId} onOpenChange={(o) => !o && setParams({})}>
+        <SheetContent className="w-full overflow-y-auto sm:max-w-xl">{openId && <ReservationDetail id={openId} onChanged={load} />}</SheetContent>
+      </Sheet>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-md">

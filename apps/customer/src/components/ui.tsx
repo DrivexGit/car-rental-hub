@@ -1,6 +1,7 @@
 import { type ReactNode, type ButtonHTMLAttributes } from "react";
+import { AnimatePresence, motion, type HTMLMotionProps } from "framer-motion";
 import { Link, NavLink, useNavigate } from "react-router-dom";
-import { ArrowLeft, ArrowRight, CarFront, ChevronRight, Headphones, Home, ClipboardList, User, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Bell as BellIcon, CarFront, ChevronRight, Headphones, Home, ClipboardList, User, X } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { money } from "@/lib/format";
 
@@ -38,9 +39,22 @@ export function Avatar({ size = 40 }: { size?: number }) {
 export const TopBar = ({ right }: { right?: ReactNode }) => (
   <div className="flex items-center justify-between pt-3 pb-4">
     <Logo />
-    {right ?? <Avatar />}
+    {right ?? <div className="flex items-center gap-2.5"><Bell /><Avatar /></div>}
   </div>
 );
+
+function Bell() {
+  const { notes } = useStore();
+  const unread = notes.filter((n) => !n.read).length;
+  return (
+    <Link to="/notifications" onClick={tap} aria-label="Notifications" className="relative grid h-10 w-10 place-items-center rounded-full border border-line bg-white">
+      <motion.span animate={unread ? { rotate: [0, -14, 12, -8, 0] } : {}} transition={{ duration: 0.8, repeat: unread ? Infinity : 0, repeatDelay: 4 }}>
+        <BellIcon className="h-5 w-5" />
+      </motion.span>
+      {!!unread && <span className="absolute -right-0.5 -top-0.5 grid h-5 min-w-5 place-items-center rounded-full bg-danger px-1 text-[11px] font-bold text-white">{unread}</span>}
+    </Link>
+  );
+}
 
 export const PageTitle = ({ title, sub }: { title: ReactNode; sub?: ReactNode }) => (
   <div className="mb-5">
@@ -63,19 +77,29 @@ export function BackBar({ title, right }: { title?: string; right?: ReactNode })
   );
 }
 
-export const Card = ({ children, className, onClick }: { children: ReactNode; className?: string; onClick?: () => void }) => (
-  <div onClick={onClick} className={cx("rounded-card border border-line bg-white shadow-card", onClick && "cursor-pointer active:scale-[.99] transition", className)}>
+export const Card = ({ children, className, onClick, delay = 0 }: { children: ReactNode; className?: string; onClick?: () => void; delay?: number }) => (
+  <motion.div
+    onClick={onClick ? () => { tap(); onClick(); } : undefined}
+    initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay, ease: [0.2, 0.8, 0.2, 1] }}
+    whileTap={onClick ? { scale: 0.975 } : undefined}
+    className={cx("rounded-card border border-line bg-white shadow-card", onClick && "cursor-pointer", className)}>
     {children}
-  </div>
+  </motion.div>
 );
 
-type BtnProps = ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "soft" | "ghost" | "danger"; size?: "sm" | "md" | "lg"; arrow?: boolean };
-export function Button({ variant = "primary", size = "md", arrow, className, children, ...p }: BtnProps) {
+/** Light haptic tick on supported phones. */
+export const tap = () => { try { navigator.vibrate?.(8); } catch { /* ignore */ } };
+
+type BtnProps = Omit<HTMLMotionProps<"button">, "children"> & { children?: ReactNode } & { variant?: "primary" | "soft" | "ghost" | "danger"; size?: "sm" | "md" | "lg"; arrow?: boolean };
+export function Button({ variant = "primary", size = "md", arrow, className, children, onClick, ...p }: BtnProps) {
   return (
-    <button
+    <motion.button
       {...p}
+      onClick={(e) => { tap(); onClick?.(e); }}
+      whileTap={p.disabled ? undefined : { scale: 0.95 }}
+      transition={{ type: "spring", stiffness: 500, damping: 25 }}
       className={cx(
-        "inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-xl font-semibold transition active:scale-[.98] disabled:opacity-40 disabled:active:scale-100",
+        "group relative inline-flex items-center justify-center gap-1.5 overflow-hidden whitespace-nowrap rounded-xl font-semibold transition-colors disabled:opacity-40",
         size === "sm" && "h-9 px-3.5 text-sm",
         size === "md" && "h-11 px-5 text-[15px]",
         size === "lg" && "h-14 w-full px-6 text-base",
@@ -87,21 +111,22 @@ export function Button({ variant = "primary", size = "md", arrow, className, chi
       )}
     >
       {children}
-      {arrow && <ArrowRight className="h-4 w-4" />}
-    </button>
+      {arrow && <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-active:translate-x-1" />}
+    </motion.button>
   );
 }
 
 export const Chip = ({ children, onClick, tone = "default", active }: { children: ReactNode; onClick?: () => void; tone?: "default" | "danger"; active?: boolean }) => (
-  <button
-    onClick={onClick}
+  <motion.button
+    whileTap={{ scale: 0.92 }}
+    onClick={() => { tap(); onClick?.(); }}
     className={cx(
       "inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl border px-3.5 text-sm font-medium transition active:scale-[.97]",
       tone === "danger" ? "border-danger/30 bg-white text-danger" : active ? "border-brand bg-brand text-white" : "border-line bg-white text-ink",
     )}
   >
     {children}
-  </button>
+  </motion.button>
 );
 
 const STATUS = {
@@ -165,17 +190,26 @@ export function Segmented<T extends string>({ value, options, onChange }: { valu
 
 /** Bottom sheet used for pickers and confirmations. */
 export function Sheet({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: ReactNode }) {
-  if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40" onClick={onClose}>
-      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-[480px] rounded-t-3xl bg-white p-5 pb-[max(env(safe-area-inset-bottom),24px)] animate-[slideUp_.2s_ease-out]">
+    <AnimatePresence>
+      {open && (
+    <motion.div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40" onClick={onClose}
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+      <motion.div onClick={(e) => e.stopPropagation()}
+        initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", stiffness: 380, damping: 36 }}
+        drag="y" dragConstraints={{ top: 0, bottom: 0 }} dragElastic={{ top: 0, bottom: 0.6 }}
+        onDragEnd={(_, i) => { if (i.offset.y > 120 || i.velocity.y > 600) onClose(); }}
+        className="max-h-[92vh] w-full max-w-[480px] overflow-y-auto rounded-t-3xl bg-white p-5 pb-[max(env(safe-area-inset-bottom),24px)]">
+        <div className="mx-auto -mt-2 mb-3 h-1.5 w-10 rounded-full bg-line" />
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-lg font-bold">{title}</h3>
           <button onClick={onClose} className="grid h-9 w-9 place-items-center rounded-full bg-bg" aria-label="Close"><X className="h-5 w-5" /></button>
         </div>
         {children}
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 
@@ -201,8 +235,14 @@ export function TabBar() {
     <nav className="pb-safe fixed inset-x-0 bottom-0 z-30 mx-auto max-w-[480px] border-t border-line bg-white/95 backdrop-blur">
       <div className="grid grid-cols-5">
         {TABS.map(({ to, label, icon: Icon }) => (
-          <NavLink key={to} to={to} end={to === "/"} className={({ isActive }) => cx("flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-medium", isActive ? "text-brand" : "text-ink-faint")}>
-            {({ isActive }) => (<><Icon className="h-6 w-6" strokeWidth={isActive ? 2.4 : 1.8} />{label}</>)}
+          <NavLink key={to} to={to} end={to === "/"} onClick={tap} className={({ isActive }) => cx("relative flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-medium", isActive ? "text-brand" : "text-ink-faint")}>
+            {({ isActive }) => (
+              <>
+                {isActive && <motion.span layoutId="tab-pill" className="absolute top-1.5 h-8 w-12 rounded-full bg-brand-soft" transition={{ type: "spring", stiffness: 500, damping: 35 }} />}
+                <motion.span className="relative" animate={{ y: isActive ? -1 : 0, scale: isActive ? 1.08 : 1 }}><Icon className="h-6 w-6" strokeWidth={isActive ? 2.4 : 1.8} /></motion.span>
+                <span className="relative">{label}</span>
+              </>
+            )}
           </NavLink>
         ))}
       </div>
@@ -212,5 +252,10 @@ export function TabBar() {
 
 /** Page wrapper for tab screens. */
 export const Screen = ({ children, tabs = true, className }: { children: ReactNode; tabs?: boolean; className?: string }) => (
-  <main className={cx("pt-safe mx-auto min-h-full max-w-[480px] px-5", tabs ? "pb-28" : "pb-10", className)}>{children}</main>
+  <motion.main
+    initial={{ opacity: 0, x: tabs ? 0 : 24, y: tabs ? 8 : 0 }} animate={{ opacity: 1, x: 0, y: 0 }}
+    transition={{ duration: 0.32, ease: [0.2, 0.8, 0.2, 1] }}
+    className={cx("pt-safe mx-auto min-h-full max-w-[480px] px-5", tabs ? "pb-28" : "pb-10", className)}>
+    {children}
+  </motion.main>
 );
