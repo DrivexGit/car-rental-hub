@@ -1,4 +1,5 @@
-import { type ReactNode, type ButtonHTMLAttributes } from "react";
+import { type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion, type HTMLMotionProps } from "framer-motion";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { ArrowLeft, ArrowRight, Bell as BellIcon, CarFront, ChevronRight, Headphones, Home, ClipboardList, User, X } from "lucide-react";
@@ -190,7 +191,8 @@ export function Segmented<T extends string>({ value, options, onChange }: { valu
 
 /** Bottom sheet used for pickers and confirmations. */
 export function Sheet({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: ReactNode }) {
-  return (
+  // Portal: animated pages (transforms) would otherwise trap the fixed overlay below the bottom bars.
+  return createPortal(
     <AnimatePresence>
       {open && (
     <motion.div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40" onClick={onClose}
@@ -209,7 +211,8 @@ export function Sheet({ open, onClose, title, children }: { open: boolean; onClo
       </motion.div>
     </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }
 
