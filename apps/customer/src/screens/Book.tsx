@@ -1,0 +1,123 @@
+import { useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { ArrowUpDown, CalendarDays, ChevronRight, Search, SlidersHorizontal, Users } from "lucide-react";
+import { FLEET, PERIOD_UNIT, carName, priceFor, type Period } from "@/data/catalog";
+import { addDays, isoDate, shortDay } from "@/lib/format";
+import { Button, Card, Chip, Empty, PageTitle, Price, Screen, Segmented, Sheet, TopBar } from "@/components/ui";
+
+const SORTS = { low: "Price: low to high", high: "Price: high to low", name: "Name A–Z" } as const;
+type Sort = keyof typeof SORTS;
+const CATEGORIES = ["All", ...Array.from(new Set(FLEET.map((c) => c.category)))];
+
+export default function Book() {
+  const nav = useNavigate();
+  const [params, setParams] = useSearchParams();
+  const period = (params.get("period") as Period) || "daily";
+  const [q, setQ] = useState("");
+  const [sort, setSort] = useState<Sort>("high");
+  const [cat, setCat] = useState("All");
+  const [sheet, setSheet] = useState<null | "dates" | "sort" | "filter">(null);
+  const [from, setFrom] = useState(params.get("from") || "");
+  const [to, setTo] = useState(params.get("to") || "");
+
+  const cars = useMemo(() => {
+    const list = FLEET.filter((c) => (cat === "All" || c.category === cat) && carName(c).toLowerCase().includes(q.trim().toLowerCase()));
+    return list.sort((a, b) => (sort === "name" ? carName(a).localeCompare(carName(b)) : (priceFor(a, period) - priceFor(b, period)) * (sort === "low" ? 1 : -1)));
+  }, [q, sort, cat, period]);
+
+  const setPeriod = (p: Period) => setParams((s) => { s.set("period", p); return s; }, { replace: true });
+  const dateQuery = from && to ? `&from=${from}&to=${to}` : "";
+
+  return (
+    <Screen>
+      <TopBar />
+      <PageTitle title="Find your drive" />
+
+      <Segmented value={period} onChange={setPeriod} options={[{ value: "daily", label: "Daily" }, { value: "weekly", label: "Weekly" }, { value: "monthly", label: "Monthly" }]} />
+
+      <Card className="mt-3" onClick={() => setSheet("dates")}>
+        <div className="flex h-14 items-center gap-3 px-4">
+          <CalendarDays className="h-5 w-5" />
+          <span className="flex-1 text-[15px] font-medium">
+            {from && to ? `${shortDay(from)} – ${shortDay(to)}` : <>Add rental dates <span className="font-normal text-ink-faint">(optional)</span></>}
+          </span>
+          <ChevronRight className="h-5 w-5 text-ink-faint" />
+        </div>
+      </Card>
+
+      <div className="mt-3 flex gap-2">
+        <label className="flex h-12 flex-1 items-center gap-2.5 rounded-xl border border-line bg-white px-3.5">
+          <Search className="h-5 w-5 text-ink-muted" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search cars" className="w-full bg-transparent text-[15px] outline-none placeholder:text-ink-faint" />
+        </label>
+        <IconBtn label="Sort" onClick={() => setSheet("sort")}><ArrowUpDown className="h-5 w-5" /></IconBtn>
+        <IconBtn label="Filter" onClick={() => setSheet("filter")} dot={cat !== "All"}><SlidersHorizontal className="h-5 w-5" /></IconBtn>
+      </div>
+
+      <div className="mt-4 space-y-3">
+        {cars.map((c) => (
+          <Card key={c.id} className="p-4">
+            <p className="text-lg font-bold leading-tight">{carName(c)}</p>
+            <p className="flex items-center gap-1.5 text-sm text-ink-muted">{c.year} · {c.category} · <Users className="h-3.5 w-3.5" /> {c.seats} seats</p>
+            <img src={c.image} alt={carName(c)} className="mx-auto my-2 h-[130px] w-full object-contain" loading="lazy" />
+            <div className="flex items-center justify-between">
+              <Price value={priceFor(c, period)} unit={PERIOD_UNIT[period]} />
+              <Button size="sm" arrow onClick={() => nav(`/book/${c.id}?period=${period}${dateQuery}`)}>View &amp; book</Button>
+            </div>
+          </Card>
+        ))}
+        {!cars.length && <Empty icon={<Search />} title="No cars found" text="Try another name or clear the filter." action={<Button variant="ghost" onClick={() => { setQ(""); setCat("All"); }}>Clear</Button>} />}
+      </div>
+
+      <Sheet open={sheet === "sort"} onClose={() => setSheet(null)} title="Sort by">
+        <div className="space-y-2">
+          {(Object.keys(SORTS) as Sort[]).map((k) => (
+            <button key={k} onClick={() => { setSort(k); setSheet(null); }} className={`flex h-14 w-full items-center justify-between rounded-xl border px-4 text-left font-medium ${sort === k ? "border-brand bg-brand-soft text-brand" : "border-line"}`}>
+              {SORTS[k]}
+            </button>
+          ))}
+        </div>
+      </Sheet>
+
+      <Sheet open={sheet === "filter"} onClose={() => setSheet(null)} title="Car type">
+        <div className="flex flex-wrap gap-2">
+          {CATEGORIES.map((k) => <Chip key={k} active={cat === k} onClick={() => setCat(k)}>{k}</Chip>)}
+        </div>
+        <Button size="lg" className="mt-6" onClick={() => setSheet(null)}>Show {cars.length} cars</Button>
+      </Sheet>
+
+      <Sheet open={sheet === "dates"} onClose={() => setSheet(null)} title="Rental dates">
+        <DateFields from={from} to={to} onChange={(f, t) => { setFrom(f); setTo(t); }} />
+        <div className="mt-6 flex gap-2">
+          <Button variant="ghost" className="flex-1" onClick={() => { setFrom(""); setTo(""); setSheet(null); }}>Clear</Button>
+          <Button className="flex-1" disabled={!from || !to} onClick={() => setSheet(null)}>Apply</Button>
+        </div>
+      </Sheet>
+    </Screen>
+  );
+}
+
+const IconBtn = ({ children, label, onClick, dot }: { children: React.ReactNode; label: string; onClick: () => void; dot?: boolean }) => (
+  <button onClick={onClick} aria-label={label} className="relative grid h-12 w-12 place-items-center rounded-xl border border-line bg-white">
+    {children}
+    {dot && <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-brand" />}
+  </button>
+);
+
+export function DateFields({ from, to, onChange }: { from: string; to: string; onChange: (from: string, to: string) => void }) {
+  const today = isoDate(new Date());
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      <label className="block">
+        <span className="mb-1.5 block text-sm text-ink-muted">Pickup</span>
+        <input type="date" min={today} value={from} onChange={(e) => onChange(e.target.value, to && to > e.target.value ? to : isoDate(addDays(new Date(e.target.value), 1)))}
+          className="h-12 w-full rounded-xl border border-line bg-white px-3 text-[15px] outline-none focus:border-brand" />
+      </label>
+      <label className="block">
+        <span className="mb-1.5 block text-sm text-ink-muted">Return</span>
+        <input type="date" min={from || today} value={to} onChange={(e) => onChange(from, e.target.value)}
+          className="h-12 w-full rounded-xl border border-line bg-white px-3 text-[15px] outline-none focus:border-brand" />
+      </label>
+    </div>
+  );
+}

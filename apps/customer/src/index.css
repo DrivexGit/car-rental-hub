@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root { height: 100%; }
+body { @apply bg-bg text-ink antialiased; -webkit-tap-highlight-color: transparent; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }
+.pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+.pt-safe { padding-top: env(safe-area-inset-top); }
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: none; } }
+/* Car renders sit on white; multiply blends them into tinted cards. */
+img[src^="/cars/"] { mix-blend-mode: multiply; }
