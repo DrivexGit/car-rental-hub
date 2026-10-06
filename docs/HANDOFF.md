@@ -26,7 +26,7 @@ Vite + React + TS + Tailwind + framer-motion + react-day-picker. Built from Zake
 - Dev: `npm --prefix apps/customer run dev` (port 9191, also serves `/api/*`). Deploy: `apps/customer/deploy.sh`.
 - Screens: phone login (name on first visit) → Home (banners, pending invoice + Pay now, car offers, partner benefits, install prompt, push prompt, bell/inbox) → Book (daily/weekly/monthly, date-range calendar, search/sort/filter, availability) → Reserve (specs, plan, pickup calendar, extras) → Checkout → Confirmed → Bookings → Booking detail (time left, invoices + pay, Salik/fines, extend, Mulkiya, insurance, change car) → Support (AI chat, Urgent call, WhatsApp) → Profile (edit, payments, security, documents upload, notification prefs + push, language, legal).
 - Server functions `api/`: `auth` (phone sign-in → Supabase session; creates `customers` + `leads`), `book` (server pricing, offer discount, picks a free car, 30-min hold), `pay` (Ziina or test), `extend`, `chat` (AI + live FAQ + customer data; urgent → `urgent_requests` + n8n webhook), `push-hook` (called by DB, sends web push).
-- Car images: `public/cars/<make-model>.webp` (generated with gpt-image-2). New model → add an image with the same slug.
+- Car images: managed in the panel → **Car photos** (`vehicle_model_specs.image_url` + `gallery`, files in bucket `vehicle-images/models/<slug>/`; real photos from drivex.ae). Fallback: `public/cars/<make-model>.webp` (gpt-image-2) for models without a photo (Citroen C3, GAC M8).
 - AI: client's OpenAI key (`AI_BASE_URL=api.openai.com`, `gpt-4.1-mini`). **Never use 9Router for DriveX.**
 
 ## Admin panel (repo root, `src/`)
@@ -46,7 +46,7 @@ Real data left in DB: Hossein's own test account + one Mercedes booking.
 ## Not finished / test mode
 1. **SMS OTP** — code is always `OTP_TEST_CODE` (shown on screen). Anyone knowing a number can sign in as it. Must add an SMS provider before real customers (`api/auth.ts`).
 2. **Ziina** — no `ZIINA_API_KEY` → payments are marked paid without charging. Code path for real Ziina + confirm is ready.
-3. **OpenAI credit** — account has no credit; AI replies fall back. Urgent detection works without AI.
+3. ~~OpenAI credit~~ — topped up 2026-10-06; AI support answers from FAQ + customer data (verified).
 4. **Urgent → staff WhatsApp** — n8n workflow "DriveX App – Urgent alerts" (id `3BOLz3kHvch7tUcf`) ends in a placeholder node; add a WhatsApp send when Cloud API credentials exist.
 5. **WhatsApp bot** — n8n "DriveX Bot" (id `hvkXTbNfbf1UDkmV`) cleaned to 80 nodes, inactive; needs Supabase/OpenAI/channel credentials. Telegram dropped by Hossein; WhatsApp waits for Facebook Business access (Phone Number ID, WABA ID, System User token).
 6. **Content to replace** — partner offer texts/codes (ZUMA, Nusr-Et, Al Noor) and `vehicle_model_specs` are typical values, not confirmed by DriveX.
