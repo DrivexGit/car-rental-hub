@@ -67,7 +67,7 @@ export default function LeadDetail() {
     window.open(`${link}?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer'); // synchronous, or popup blockers eat it
     setSending(true);
     const { error } = await supabase.from('messages').insert({
-      lead_id: id, direction: 'outbound', channel: 'whatsapp', message_text: text, message_type: 'staff',
+      tenant_id: lead.tenant_id, lead_id: id, direction: 'outbound', channel: 'whatsapp', message_text: text, message_type: 'staff',
       stage_at_time: lead.current_stage ?? null,
     });
     setSending(false);
