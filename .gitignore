@@ -30,3 +30,6 @@ car-rental-hub.git/
 
 # Large design reference screenshots (kept locally)
 docs/customer-app/ui/
+
+# Supabase CLI cache
+supabase/.temp/
