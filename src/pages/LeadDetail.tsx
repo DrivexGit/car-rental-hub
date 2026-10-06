@@ -52,6 +52,30 @@ export default function LeadDetail() {
 
   useEffect(() => { load(); }, [id]);
 
+  const [draft, setDraft] = useState('');
+  const [sending, setSending] = useState(false);
+
+  // Until WhatsApp Cloud API is connected, sending = open WhatsApp with the text prefilled + log it in the history.
+  const sendMessage = async () => {
+    const text = draft.trim();
+    const link = lead && leadChatLink(lead);
+    if (!text || !link || sending) return;
+    window.open(`${link}?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer'); // synchronous, or popup blockers eat it
+    setSending(true);
+    const { error } = await supabase.from('messages').insert({
+      lead_id: id, direction: 'outbound', channel: 'whatsapp', message_text: text, message_type: 'staff',
+      stage_at_time: lead.current_stage ?? null,
+    });
+    setSending(false);
+    if (error) {
+      toast({ title: 'WhatsApp opened, but the message was not saved to the history', description: error.message, variant: 'destructive' });
+      return;
+    }
+    setDraft('');
+    toast({ title: 'Opened in WhatsApp', description: 'Press send there to deliver it. Saved to the history.' });
+    load();
+  };
+
   const updateLead = async (updates: any) => {
     const { error } = await supabase.from('leads').update(updates).eq('id', id);
     if (error) {
@@ -294,7 +318,7 @@ export default function LeadDetail() {
                 <CardHeader className="bg-muted/30 border-b flex flex-row items-center justify-between">
                   <div>
                     <CardTitle className="text-sm font-black">Conversation History</CardTitle>
-                    <CardDescription className="text-[10px] font-bold uppercase">AI Chatbot log</CardDescription>
+                    <CardDescription className="text-[10px] font-bold uppercase">AI chatbot and staff messages</CardDescription>
                   </div>
                   <Badge variant="outline" className="font-mono text-[10px] border-muted-foreground/20">{messages.length}</Badge>
                 </CardHeader>
@@ -319,7 +343,7 @@ export default function LeadDetail() {
                                 m.direction === 'inbound' ? "" : "flex-row-reverse"
                               )}>
                                 <span className="text-[10px] font-black uppercase text-muted-foreground/80">
-                                  {m.direction === 'inbound' ? (lead.full_name || 'Lead') : 'Robot'}
+                                  {m.direction === 'inbound' ? (lead.full_name || 'Lead') : m.message_type === 'staff' ? 'Staff' : 'Robot'}
                                 </span>
                                 <span className="text-[9px] font-bold text-muted-foreground/40">
                                   {isToday ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : date.toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
@@ -347,8 +371,17 @@ export default function LeadDetail() {
                   </ScrollArea>
                   
                   <div className="p-4 bg-muted/20 border-t flex gap-2">
-                    <Textarea placeholder="Automation active. Type here to take over..." className="min-h-[44px] h-11 resize-none bg-card border-none shadow-inner text-xs py-3" disabled />
-                    <Button size="icon" className="h-11 w-11 rounded-xl bg-indigo-600 hover:bg-indigo-700 shadow-md" disabled>
+                    <Textarea
+                      value={draft}
+                      onChange={(e) => setDraft(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+                      placeholder={leadChatLink(lead) ? 'Write a message to send via WhatsApp…' : 'This lead has no WhatsApp number.'}
+                      aria-label="Message to the lead"
+                      className="min-h-[44px] h-11 resize-none bg-card border-none shadow-inner text-xs py-3"
+                      disabled={!leadChatLink(lead)} />
+                    <Button size="icon" aria-label="Send via WhatsApp" onClick={sendMessage}
+                      className="h-11 w-11 rounded-xl bg-indigo-600 hover:bg-indigo-700 shadow-md"
+                      disabled={!draft.trim() || !leadChatLink(lead) || sending}>
                       <Send className="h-4 w-4" />
                     </Button>
                   </div>
