@@ -11,7 +11,7 @@ export type Booking = {
 export type Invoice = { id: string; number: string; bookingId: string | null; amount: number; issued: string; status: "pending" | "paid" | "void"; paidAt?: string; description?: string };
 export type Fine = { id: string; bookingId: string | null; type: "salik" | "traffic"; amount: number; date: string; place: string };
 export type Offer = { id: string; kind: "car" | "partner"; title: string; subtitle?: string; off: number; image?: string; car?: Car; description?: string; terms?: string; location?: string; code?: string };
-export type Specs = { engine?: string; transmission: string; fuel: string; seats: number; doors: number; bags: number; features: string[] };
+export type Specs = { engine?: string; transmission: string; fuel: string; seats: number; doors: number; bags: number; features: string[]; image?: string; gallery: string[] };
 export type Note = { id: string; type: string; title: string; body?: string; link?: string; read: boolean; created: string };
 export type Doc = { id: string; type: string; fileName: string; status: string; created: string };
 
@@ -56,8 +56,9 @@ async function loadAll(): Promise<{ user: User; data: Data } | null> {
   ]);
   if (!c.data) return null; // a staff account or a half-created customer
 
-  const specs: Record<string, Specs> = Object.fromEntries((sp.data ?? []).map((x: any) => [slug(x.make, x.model), { engine: x.engine ?? undefined, transmission: x.transmission, fuel: x.fuel, seats: x.seats, doors: x.doors, bags: x.bags, features: x.features ?? [] }]));
-  const fleet = toFleet(v.data ?? []).map((c) => (specs[c.id] ? { ...c, seats: specs[c.id].seats } : c));
+  const specs: Record<string, Specs> = Object.fromEntries((sp.data ?? []).map((x: any) => [slug(x.make, x.model), { engine: x.engine ?? undefined, transmission: x.transmission, fuel: x.fuel, seats: x.seats, doors: x.doors, bags: x.bags, features: x.features ?? [], image: x.image_url ?? undefined, gallery: x.gallery ?? [] }]));
+  // Photos managed in the panel ("Car photos") win over the bundled /cars/ images.
+  const fleet = toFleet(v.data ?? []).map((c) => (specs[c.id] ? { ...c, seats: specs[c.id].seats, image: specs[c.id].image ?? c.image } : c));
   const bookings: Booking[] = (r.data ?? []).map((x: any) => {
     const veh = x.vehicles;
     const car = fleet.find((k) => k.vehicleIds.includes(veh.id)) ?? toFleet([veh])[0] ?? {

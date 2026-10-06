@@ -24,6 +24,7 @@ import Customers from "@/pages/Customers";
 import Invoices from "@/pages/Invoices";
 import Fines from "@/pages/Fines";
 import Offers from "@/pages/Offers";
+import CarPhotos from "@/pages/CarPhotos";
 
 
 const queryClient = new QueryClient();
@@ -53,6 +54,7 @@ function ProtectedRoutes() {
         <Route path="/invoices" element={<Invoices />} />
         <Route path="/fines" element={<Fines />} />
         <Route path="/offers" element={<Offers />} />
+        <Route path="/car-photos" element={<CarPhotos />} />
         <Route path="*" element={<NotFound />} />
 
       </Routes>

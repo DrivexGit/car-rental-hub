@@ -46,6 +46,7 @@ export default function Reserve() {
         <div className="bg-gradient-to-b from-[#eef0ee] to-white px-4 pt-4">
           <img src={car.image} alt={carName(car)} className="mx-auto h-[170px] w-full object-contain" />
         </div>
+        {!!specs?.gallery.length && <Gallery photos={specs.gallery} name={carName(car)} />}
         <div className="p-4">
           <p className="text-2xl font-bold">{carName(car)}</p>
           <div className="mt-2 flex flex-wrap gap-4 text-sm text-ink-muted">
@@ -131,3 +132,24 @@ export default function Reserve() {
 const RoundBtn = ({ children, onClick, label }: { children: React.ReactNode; onClick: () => void; label: string }) => (
   <button onClick={onClick} aria-label={label} className="grid h-9 w-9 place-items-center rounded-full border border-line bg-white active:bg-bg">{children}</button>
 );
+
+/** Swipeable real photos of the model; tap one to see it full screen. */
+function Gallery({ photos, name }: { photos: string[]; name: string }) {
+  const [open, setOpen] = useState<string | null>(null);
+  return (
+    <>
+      <div className="no-scrollbar flex snap-x gap-2 overflow-x-auto px-4 pt-3">
+        {photos.map((src, i) => (
+          <button key={src} onClick={() => setOpen(src)} className="h-20 w-28 shrink-0 snap-start overflow-hidden rounded-xl bg-line" aria-label={`${name} photo ${i + 1}`}>
+            <img src={src} alt="" loading="lazy" className="h-full w-full object-cover" />
+          </button>
+        ))}
+      </div>
+      {open && (
+        <button onClick={() => setOpen(null)} className="fixed inset-0 z-50 grid place-items-center bg-black/90 p-4" aria-label="Close photo">
+          <img src={open} alt={name} className="max-h-full max-w-full rounded-xl object-contain" />
+        </button>
+      )}
+    </>
+  );
+}
