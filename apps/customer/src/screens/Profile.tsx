@@ -25,7 +25,7 @@ export default function Profile() {
         <Face size={64} />
         <div className="min-w-0 flex-1">
           <p className="truncate text-lg font-bold">{user!.name}</p>
-          <p className="truncate text-sm text-ink-muted">{user!.email || user!.phone}</p>
+          <p className="truncate text-sm text-ink-muted"><span dir="ltr" className="inline-block max-w-full truncate align-bottom">{user!.email || user!.phone}</span></p>
         </div>
         <button onClick={() => nav("/profile/edit")} className="grid h-11 w-11 place-items-center rounded-full border border-line" aria-label={t("Edit profile")}><Pencil className="h-5 w-5" /></button>
       </Card>

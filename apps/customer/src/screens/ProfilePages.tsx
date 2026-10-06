@@ -25,8 +25,8 @@ export function EditProfile() {
       <BackBar title={t("Edit profile")} />
       <PhotoPicker />
       <Field label={t("Full name")} value={name} onChange={setName} />
-      <Field label={t("Email (optional)")} value={email} onChange={setEmail} type="email" />
-      <Field label={t("Mobile number")} value={user!.phone} disabled />
+      <Field label={t("Email (optional)")} value={email} onChange={setEmail} type="email" ltr />
+      <Field label={t("Mobile number")} value={user!.phone} disabled ltr />
       {error && <p className="mb-2 text-sm font-medium text-danger">{error}</p>}
       <Button size="lg" className="mt-4" disabled={name.trim().length < 2 || busy || (!!email.trim() && !/^\S+@\S+\.\S+$/.test(email.trim()))}
         onClick={async () => { setBusy(true); setError(""); try { await updateUser({ name: name.trim(), email: email.trim() }); nav(-1); } catch (e) { setError((e as Error).message); setBusy(false); } }}>
@@ -60,10 +60,10 @@ function PhotoPicker() {
   );
 }
 
-const Field = ({ label, value, onChange, type = "text", disabled }: { label: string; value: string; onChange?: (v: string) => void; type?: string; disabled?: boolean }) => (
+const Field = ({ label, value, onChange, type = "text", disabled, ltr }: { label: string; value: string; onChange?: (v: string) => void; type?: string; disabled?: boolean; ltr?: boolean }) => (
   <label className="mb-4 block">
     <span className="mb-1.5 block text-sm text-ink-muted">{label}</span>
-    <input type={type} value={value} disabled={disabled} onChange={(e) => onChange?.(e.target.value)}
+    <input type={type} value={value} disabled={disabled} dir={ltr ? "ltr" : undefined} onChange={(e) => onChange?.(e.target.value)}
       className="h-14 w-full rounded-xl border border-line bg-white px-4 text-[16px] outline-none focus:border-brand disabled:bg-bg disabled:text-ink-muted" />
   </label>
 );
@@ -147,7 +147,7 @@ export function Security() {
     <Screen tabs={false}>
       <BackBar title={t("Security")} />
       <ListGroup>
-        <ListRow icon={<Smartphone className="h-5 w-5" />} label={t("Sign-in number")} value={user!.phone} />
+        <ListRow icon={<Smartphone className="h-5 w-5" />} label={t("Sign-in number")} value={<span dir="ltr">{user!.phone}</span>} />
       </ListGroup>
       <p className="px-1 text-sm text-ink-muted">{t("You sign in with a one-time code sent to this number. To change it, contact support.")}</p>
     </Screen>

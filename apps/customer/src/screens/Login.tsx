@@ -49,9 +49,10 @@ export default function Login() {
 
   return (
     <main className="relative min-h-full overflow-hidden bg-night text-white">
-      <img src="/img/login-bg.webp" alt="" className="absolute inset-x-0 top-0 h-[70vh] w-full object-cover object-top" />
-      <div className="absolute inset-x-0 top-0 h-[70vh] bg-gradient-to-b from-black/30 via-transparent to-night" />
-      <div className="pt-safe pb-safe relative mx-auto flex min-h-[100dvh] max-w-[480px] flex-col px-6">
+      {/* Desktop: the photo fills one half of the screen and the form sits in the other. */}
+      <img src="/img/login-bg.webp" alt="" className="absolute inset-x-0 top-0 h-[70vh] w-full object-cover object-top lg:inset-y-0 lg:end-auto lg:start-0 lg:h-full lg:w-1/2 lg:object-center" />
+      <div className="absolute inset-x-0 top-0 h-[70vh] bg-gradient-to-b from-black/30 via-transparent to-night lg:inset-y-0 lg:end-auto lg:start-0 lg:h-full lg:w-1/2 lg:bg-gradient-to-r lg:from-black/10 lg:to-night rtl:lg:bg-gradient-to-l" />
+      <div className="pt-safe pb-safe relative mx-auto flex min-h-[100dvh] max-w-[480px] flex-col px-6 lg:ms-auto lg:me-0 lg:w-1/2 lg:max-w-none lg:px-24">
       <div className="flex h-16 items-center">
         {step !== "phone" ? (
           <button onClick={() => { setError(""); setStep(step === "name" ? "code" : "phone"); }} className="grid h-10 w-10 place-items-center rounded-full border border-white/20 bg-white/10 backdrop-blur" aria-label={t("Back")}>
@@ -59,13 +60,13 @@ export default function Login() {
           </button>
         ) : <img src="/logo.png" alt="Drivex" className="h-8" />}
       </div>
-      <div className="flex-1" />
+      <div className="flex-1 lg:h-[10vh] lg:flex-none" />
 
       {step === "phone" && (
         <Panel title={t("Welcome to Drivex")} sub={t("Enter your mobile number to sign in or create your account.")}>
           <label className="mb-2 block text-sm font-medium text-white/70">{t("Mobile number")}</label>
           <div dir="ltr" className="flex h-14 items-center rounded-xl border border-line bg-white px-4 text-ink focus-within:border-brand">
-            <span className="me-3 border-e border-line pe-3 font-semibold">🇦🇪 +971</span>
+            <span className="me-3 shrink-0 whitespace-nowrap border-e border-line pe-3 font-semibold">🇦🇪 +971</span>
             <input dir="ltr" autoFocus inputMode="tel" placeholder="50 123 4567" value={phone} onChange={(e) => setPhone(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && phoneOk && sendCode()}
               className="h-full flex-1 bg-transparent text-lg tracking-wide outline-none placeholder:text-ink-faint" />

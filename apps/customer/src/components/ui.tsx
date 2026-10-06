@@ -287,7 +287,7 @@ export function SideNav() {
       </nav>
       <Link to="/profile" className="flex items-center gap-3 rounded-xl p-2 hover:bg-bg">
         <Face size={40} />
-        <span className="min-w-0"><span className="block truncate text-sm font-semibold">{user?.name}</span><span className="block truncate text-xs text-ink-muted">{user?.phone}</span></span>
+        <span className="min-w-0"><span className="block truncate text-sm font-semibold">{user?.name}</span><span dir="ltr" className="block truncate text-xs text-ink-muted rtl:text-end">{user?.phone}</span></span>
       </Link>
     </aside>
   );
