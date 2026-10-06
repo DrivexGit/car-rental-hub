@@ -1,19 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowUpDown, CalendarDays, ChevronRight, Search, SlidersHorizontal, Users } from "lucide-react";
+import { ArrowUpDown, CalendarDays, ChevronRight, Search, SlidersHorizontal, Tag, Users } from "lucide-react";
 import { PERIOD_UNIT, carName, priceFor, type Period } from "@/data/catalog";
 import { useStore } from "@/lib/store";
 import { supabase } from "@/lib/supabase";
 import { shortDay } from "@/lib/format";
 import { DateRangeSheet } from "@/components/DatePicker";
-import { Button, Card, Chip, Empty, PageTitle, Price, Screen, Segmented, Sheet, TopBar } from "@/components/ui";
+import { Badge, Button, Card, Chip, Empty, PageTitle, Price, Screen, Segmented, Sheet, TopBar } from "@/components/ui";
 
 const SORTS = { low: "Price: low to high", high: "Price: high to low", name: "Name A–Z" } as const;
 type Sort = keyof typeof SORTS;
 
 export default function Book() {
   const nav = useNavigate();
-  const { fleet } = useStore();
+  const { fleet, offers } = useStore();
   const uniq = <T,>(xs: T[]) => Array.from(new Set(xs)).sort();
   const CATEGORIES = ["All", ...uniq(fleet.map((c) => c.category))];
   const BRANDS = ["All", ...uniq(fleet.map((c) => c.make))];
@@ -21,6 +21,10 @@ export default function Book() {
   const SEATS = ["All", ...uniq(fleet.map((c) => String(c.seats)))];
   const [params, setParams] = useSearchParams();
   const period = (params.get("period") as Period) || "daily";
+  // "View all" on Home opens this page with only the discounted cars.
+  const offersOnly = params.get("offers") === "1";
+  const offerOff = useMemo(() => new Map(offers.filter((o) => o.kind === "car" && o.car).map((o) => [o.car!.id, o.off])), [offers]);
+  const toggleOffers = () => setParams((s) => { if (offersOnly) s.delete("offers"); else s.set("offers", "1"); return s; }, { replace: true });
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<Sort>("high");
   const [cat, setCat] = useState("All");
@@ -43,12 +47,12 @@ export default function Book() {
 
   const cars = useMemo(() => {
     const term = q.trim().toLowerCase();
-    const list = fleet.filter((c) => c.vehicleIds.some((v) => !busy.has(v))
+    const list = fleet.filter((c) => c.vehicleIds.some((v) => !busy.has(v)) && (!offersOnly || offerOff.has(c.id))
       && (cat === "All" || c.category === cat) && (brand === "All" || c.make === brand)
       && (year === "All" || String(c.year) === year) && (seats === "All" || String(c.seats) === seats)
       && `${c.make} ${carName(c)} ${c.category}`.toLowerCase().includes(term));
     return list.sort((a, b) => (sort === "name" ? carName(a).localeCompare(carName(b)) : (priceFor(a, period) - priceFor(b, period)) * (sort === "low" ? 1 : -1)));
-  }, [fleet, busy, q, sort, cat, brand, year, seats, period]);
+  }, [fleet, busy, q, sort, cat, brand, year, seats, period, offersOnly, offerOff]);
 
   const setPeriod = (p: Period) => setParams((s) => { s.set("period", p); return s; }, { replace: true });
   const dateQuery = from && to ? `&from=${from}&to=${to}` : "";
@@ -81,19 +85,32 @@ export default function Book() {
         </div>
       </Card>
 
+      {!!offerOff.size && (
+        <div className="mb-3 flex">
+          <Chip active={offersOnly} onClick={toggleOffers}><Tag className="h-4 w-4" /> Offers only</Chip>
+        </div>
+      )}
+
       <div className="space-y-3">
-        {cars.map((c, i) => (
+        {cars.map((c, i) => {
+          const off = offersOnly ? offerOff.get(c.id) ?? 0 : 0;
+          const base = priceFor(c, period);
+          return (
           <Card key={c.id} className="p-4" delay={Math.min(i, 6) * 0.05}>
-            <p className="text-lg font-bold leading-tight">{carName(c)}</p>
+            <div className="flex items-start justify-between gap-2">
+              <p className="text-lg font-bold leading-tight">{carName(c)}</p>
+              {!!off && <Badge className="shrink-0 bg-danger text-white">{off}% off</Badge>}
+            </div>
             <p className="flex items-center gap-1.5 text-sm text-ink-muted">{c.year} · {c.category} · <Users className="h-3.5 w-3.5" /> {c.seats} seats</p>
             <img src={c.image} alt={carName(c)} className="mx-auto my-2 h-[130px] w-full object-contain" loading="lazy" />
             <div className="flex items-center justify-between">
-              <Price value={priceFor(c, period)} unit={PERIOD_UNIT[period]} />
-              <Button size="sm" arrow onClick={() => nav(`/book/${c.id}?period=${period}${dateQuery}`)}>View &amp; book</Button>
+              <Price value={off ? Math.round(base * (1 - off / 100)) : base} old={off ? base : undefined} unit={PERIOD_UNIT[period]} />
+              <Button size="sm" arrow onClick={() => nav(`/book/${c.id}?period=${period}${off ? `&off=${off}` : ""}${dateQuery}`)}>View &amp; book</Button>
             </div>
           </Card>
-        ))}
-        {!cars.length && <Empty icon={<Search />} title="No cars found" text="Try another name or clear the filter." action={<Button variant="ghost" onClick={clearAll}>Clear</Button>} />}
+          );
+        })}
+        {!cars.length && <Empty icon={<Search />} title={offersOnly ? "No offers right now" : "No cars found"} text={offersOnly ? "Turn off Offers only to see every car." : "Try another name or clear the filter."} action={<Button variant="ghost" onClick={clearAll}>Clear</Button>} />}
       </div>
 
       <Sheet open={sheet === "sort"} onClose={() => setSheet(null)} title="Sort by">

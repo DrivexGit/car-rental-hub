@@ -41,7 +41,7 @@ export default function Home() {
         </div>
       )}
 
-      {!!carOffers.length && <SectionHead title="Your Offers" to="/book" />}
+      {!!carOffers.length && <SectionHead title="Your Offers" to="/book?offers=1" />}
       <div className="no-scrollbar -mx-5 flex gap-3 overflow-x-auto px-5 pb-1">
         {carOffers.map(({ id, car, off }) => {
           const c = car!;
