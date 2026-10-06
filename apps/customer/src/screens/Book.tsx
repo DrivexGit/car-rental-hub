@@ -1,19 +1,21 @@
+import { useI18n } from "@/lib/i18n";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowUpDown, CalendarDays, ChevronRight, Search, SlidersHorizontal, Users } from "lucide-react";
+import { ArrowUpDown, CalendarDays, ChevronRight, Search, SlidersHorizontal, Tag, Users } from "lucide-react";
 import { PERIOD_UNIT, carName, priceFor, type Period } from "@/data/catalog";
 import { useStore } from "@/lib/store";
 import { supabase } from "@/lib/supabase";
 import { shortDay } from "@/lib/format";
 import { DateRangeSheet } from "@/components/DatePicker";
-import { Button, Card, Chip, Empty, PageTitle, Price, Screen, Segmented, Sheet, TopBar } from "@/components/ui";
+import { Badge, Button, Card, Chip, Empty, PageTitle, Price, Screen, Segmented, Sheet, TopBar } from "@/components/ui";
 
 const SORTS = { low: "Price: low to high", high: "Price: high to low", name: "Name A–Z" } as const;
 type Sort = keyof typeof SORTS;
 
 export default function Book() {
   const nav = useNavigate();
-  const { fleet } = useStore();
+  const { t } = useI18n();
+  const { fleet, offers } = useStore();
   const uniq = <T,>(xs: T[]) => Array.from(new Set(xs)).sort();
   const CATEGORIES = ["All", ...uniq(fleet.map((c) => c.category))];
   const BRANDS = ["All", ...uniq(fleet.map((c) => c.make))];
@@ -21,6 +23,10 @@ export default function Book() {
   const SEATS = ["All", ...uniq(fleet.map((c) => String(c.seats)))];
   const [params, setParams] = useSearchParams();
   const period = (params.get("period") as Period) || "daily";
+  // "View all" on Home opens this page with only the discounted cars.
+  const offersOnly = params.get("offers") === "1";
+  const offerOff = useMemo(() => new Map(offers.filter((o) => o.kind === "car" && o.car).map((o) => [o.car!.id, o.off])), [offers]);
+  const toggleOffers = () => setParams((s) => { if (offersOnly) s.delete("offers"); else s.set("offers", "1"); return s; }, { replace: true });
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<Sort>("high");
   const [cat, setCat] = useState("All");
@@ -43,31 +49,31 @@ export default function Book() {
 
   const cars = useMemo(() => {
     const term = q.trim().toLowerCase();
-    const list = fleet.filter((c) => c.vehicleIds.some((v) => !busy.has(v))
+    const list = fleet.filter((c) => c.vehicleIds.some((v) => !busy.has(v)) && (!offersOnly || offerOff.has(c.id))
       && (cat === "All" || c.category === cat) && (brand === "All" || c.make === brand)
       && (year === "All" || String(c.year) === year) && (seats === "All" || String(c.seats) === seats)
       && `${c.make} ${carName(c)} ${c.category}`.toLowerCase().includes(term));
     return list.sort((a, b) => (sort === "name" ? carName(a).localeCompare(carName(b)) : (priceFor(a, period) - priceFor(b, period)) * (sort === "low" ? 1 : -1)));
-  }, [fleet, busy, q, sort, cat, brand, year, seats, period]);
+  }, [fleet, busy, q, sort, cat, brand, year, seats, period, offersOnly, offerOff]);
 
   const setPeriod = (p: Period) => setParams((s) => { s.set("period", p); return s; }, { replace: true });
   const dateQuery = from && to ? `&from=${from}&to=${to}` : "";
 
   return (
-    <Screen>
+    <Screen wide>
       <TopBar />
-      <PageTitle title="Find your drive" />
-      <div className="pt-safe sticky top-0 z-20 -mx-5 bg-bg/95 px-5 pb-3 pt-2 backdrop-blur">
+      <PageTitle title={t("Find your drive")} />
+      <div className="pt-safe sticky top-0 z-20 -mx-5 bg-bg/95 px-5 pb-3 pt-2 backdrop-blur lg:-mx-10 lg:px-10">
 
-      <Segmented value={period} onChange={setPeriod} options={[{ value: "daily", label: "Daily" }, { value: "weekly", label: "Weekly" }, { value: "monthly", label: "Monthly" }]} />
+      <Segmented value={period} onChange={setPeriod} options={[{ value: "daily", label: t("Daily") }, { value: "weekly", label: t("Weekly") }, { value: "monthly", label: t("Monthly") }]} />
 
       <div className="mt-3 flex gap-2">
         <label className="flex h-12 flex-1 items-center gap-2.5 rounded-xl border border-line bg-white px-3.5">
           <Search className="h-5 w-5 text-ink-muted" />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search cars" className="w-full bg-transparent text-[15px] outline-none placeholder:text-ink-faint" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("Search cars")} className="w-full bg-transparent text-[15px] outline-none placeholder:text-ink-faint" />
         </label>
-        <IconBtn label="Sort" onClick={() => setSheet("sort")}><ArrowUpDown className="h-5 w-5" /></IconBtn>
-        <IconBtn label="Filter" onClick={() => setSheet("filter")} dot={filtered}><SlidersHorizontal className="h-5 w-5" /></IconBtn>
+        <IconBtn label={t("Sort")} onClick={() => setSheet("sort")}><ArrowUpDown className="h-5 w-5" /></IconBtn>
+        <IconBtn label={t("Filter")} onClick={() => setSheet("filter")} dot={filtered}><SlidersHorizontal className="h-5 w-5" /></IconBtn>
       </div>
       </div>
 
@@ -75,49 +81,62 @@ export default function Book() {
         <div className="flex h-14 items-center gap-3 px-4">
           <CalendarDays className="h-5 w-5" />
           <span className="flex-1 text-[15px] font-medium">
-            {from && to ? `${shortDay(from)} – ${shortDay(to)}` : <>Add rental dates <span className="font-normal text-ink-faint">(optional)</span></>}
+            {from && to ? `${shortDay(from)} – ${shortDay(to)}` : <>{t("Add rental dates")} <span className="font-normal text-ink-faint">{t("(optional)")}</span></>}
           </span>
-          <ChevronRight className="h-5 w-5 text-ink-faint" />
+          <ChevronRight className="h-5 w-5 text-ink-faint rtl:-scale-x-100" />
         </div>
       </Card>
 
-      <div className="space-y-3">
-        {cars.map((c, i) => (
+      {!!offerOff.size && (
+        <div className="mb-3 flex">
+          <Chip active={offersOnly} onClick={toggleOffers}><Tag className="h-4 w-4" /> {t("Offers only")}</Chip>
+        </div>
+      )}
+
+      <div className="grid gap-3 md:grid-cols-2 lg:gap-4 xl:grid-cols-3">
+        {cars.map((c, i) => {
+          const off = offersOnly ? offerOff.get(c.id) ?? 0 : 0;
+          const base = priceFor(c, period);
+          return (
           <Card key={c.id} className="p-4" delay={Math.min(i, 6) * 0.05}>
-            <p className="text-lg font-bold leading-tight">{carName(c)}</p>
-            <p className="flex items-center gap-1.5 text-sm text-ink-muted">{c.year} · {c.category} · <Users className="h-3.5 w-3.5" /> {c.seats} seats</p>
+            <div className="flex items-start justify-between gap-2">
+              <p className="text-lg font-bold leading-tight">{carName(c)}</p>
+              {!!off && <Badge className="shrink-0 bg-danger text-white">{t("{n}% off", { n: off })}</Badge>}
+            </div>
+            <p className="flex items-center gap-1.5 text-sm text-ink-muted">{c.year} · {t(c.category)} · <Users className="h-3.5 w-3.5" /> {t("{n} seats", { n: c.seats })}</p>
             <img src={c.image} alt={carName(c)} className="mx-auto my-2 h-[130px] w-full object-contain" loading="lazy" />
             <div className="flex items-center justify-between">
-              <Price value={priceFor(c, period)} unit={PERIOD_UNIT[period]} />
-              <Button size="sm" arrow onClick={() => nav(`/book/${c.id}?period=${period}${dateQuery}`)}>View &amp; book</Button>
+              <Price value={off ? Math.round(base * (1 - off / 100)) : base} old={off ? base : undefined} unit={t(PERIOD_UNIT[period])} />
+              <Button size="sm" arrow onClick={() => nav(`/book/${c.id}?period=${period}${off ? `&off=${off}` : ""}${dateQuery}`)}>{t("View & book")}</Button>
             </div>
           </Card>
-        ))}
-        {!cars.length && <Empty icon={<Search />} title="No cars found" text="Try another name or clear the filter." action={<Button variant="ghost" onClick={clearAll}>Clear</Button>} />}
+          );
+        })}
+        {!cars.length && <div className="col-span-full"><Empty icon={<Search />} title={offersOnly ? t("No offers right now") : t("No cars found")} text={offersOnly ? t("Turn off Offers only to see every car.") : t("Try another name or clear the filter.")} action={<Button variant="ghost" onClick={clearAll}>{t("Clear")}</Button>} /></div>}
       </div>
 
-      <Sheet open={sheet === "sort"} onClose={() => setSheet(null)} title="Sort by">
+      <Sheet open={sheet === "sort"} onClose={() => setSheet(null)} title={t("Sort by")}>
         <div className="space-y-2">
           {(Object.keys(SORTS) as Sort[]).map((k) => (
-            <button key={k} onClick={() => { setSort(k); setSheet(null); }} className={`flex h-14 w-full items-center justify-between rounded-xl border px-4 text-left font-medium ${sort === k ? "border-brand bg-brand-soft text-brand" : "border-line"}`}>
-              {SORTS[k]}
+            <button key={k} onClick={() => { setSort(k); setSheet(null); }} className={`flex h-14 w-full items-center justify-between rounded-xl border px-4 text-start font-medium ${sort === k ? "border-brand bg-brand-soft text-brand" : "border-line"}`}>
+              {t(SORTS[k])}
             </button>
           ))}
         </div>
       </Sheet>
 
-      <Sheet open={sheet === "filter"} onClose={() => setSheet(null)} title="Filter">
+      <Sheet open={sheet === "filter"} onClose={() => setSheet(null)} title={t("Filter")}>
         {([["Car type", CATEGORIES, cat, setCat], ["Brand", BRANDS, brand, setBrand], ["Year", YEARS, year, setYear], ["Seats", SEATS, seats, setSeats]] as const).map(([label, opts, val, set]) => (
           <div key={label} className="mb-5">
-            <p className="mb-2 text-sm font-semibold text-ink-muted">{label}</p>
+            <p className="mb-2 text-sm font-semibold text-ink-muted">{t(label)}</p>
             <div className="flex flex-wrap gap-2">
-              {opts.map((k) => <Chip key={k} active={val === k} onClick={() => set(k)}>{label === "Seats" && k !== "All" ? `${k} seats` : k}</Chip>)}
+              {opts.map((k) => <Chip key={k} active={val === k} onClick={() => set(k)}>{label === "Seats" && k !== "All" ? t("{n} seats", { n: k }) : k === "All" || label === "Car type" ? t(k) : k}</Chip>)}
             </div>
           </div>
         ))}
         <div className="flex gap-2">
-          {filtered && <Button size="lg" variant="ghost" className="w-auto" onClick={clearAll}>Clear</Button>}
-          <Button size="lg" onClick={() => setSheet(null)}>Show {cars.length} cars</Button>
+          {filtered && <Button size="lg" variant="ghost" className="w-auto" onClick={clearAll}>{t("Clear")}</Button>}
+          <Button size="lg" onClick={() => setSheet(null)}>{cars.length === 1 ? t("Show {n} car", { n: cars.length }) : t("Show {n} cars", { n: cars.length })}</Button>
         </div>
       </Sheet>
 
@@ -130,7 +149,7 @@ export default function Book() {
 const IconBtn = ({ children, label, onClick, dot }: { children: React.ReactNode; label: string; onClick: () => void; dot?: boolean }) => (
   <button onClick={onClick} aria-label={label} className="relative grid h-12 w-12 place-items-center rounded-xl border border-line bg-white">
     {children}
-    {dot && <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-brand" />}
+    {dot && <span className="absolute end-2.5 top-2.5 h-2 w-2 rounded-full bg-brand" />}
   </button>
 );
 

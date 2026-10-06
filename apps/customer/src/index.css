@@ -2,7 +2,26 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Theme tokens (RGB triplets so Tailwind opacity modifiers work). Switch with <html data-theme="navy">. */
+:root, :root[data-theme="green"] {
+  --brand: 31 77 47; --brand-dark: 23 58 36; --brand-soft: 232 240 234;
+  --bg: 246 245 242; --line: 236 235 231; --tint: 238 240 238; --muted: 236 235 230;
+  --ink: 20 20 20; --ink-muted: 107 107 107; --ink-faint: 163 163 163;
+  --danger: 217 48 37; --danger-soft: 253 238 238;
+  --warn: 245 158 11; --warn-text: 217 119 6; --warn-soft: 255 251 235;
+  --hero: 11 26 17; --night: 11 15 20;
+}
+:root[data-theme="navy"] {
+  --brand: 18 42 84; --brand-dark: 11 29 61; --brand-soft: 230 236 246;
+  --bg: 245 246 249; --line: 230 233 240; --tint: 236 240 246; --muted: 232 235 242;
+  --hero: 8 18 40; --night: 8 14 30;
+}
+
 html, body, #root { height: 100%; }
+
+/* Arabic: its own font, and no letter-spacing (it breaks the joined letters). */
+html[lang="ar"] { font-family: "IBM Plex Sans Arabic", Inter, system-ui, sans-serif; }
+html[lang="ar"] [class*="tracking-"] { letter-spacing: normal; }
 body { @apply bg-bg text-ink antialiased; -webkit-tap-highlight-color: transparent; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { scrollbar-width: none; }
@@ -14,12 +33,12 @@ img[src^="/cars/"] { mix-blend-mode: multiply; }
 
 /* react-day-picker themed to Drivex */
 .drivex-cal {
-  --rdp-accent-color: #1f4d2f;
-  --rdp-accent-background-color: #e8f0ea;
+  --rdp-accent-color: rgb(var(--brand));
+  --rdp-accent-background-color: rgb(var(--brand-soft));
   --rdp-day-height: 44px; --rdp-day-width: 44px;
   --rdp-day_button-height: 42px; --rdp-day_button-width: 42px; --rdp-day_button-border-radius: 12px;
-  --rdp-range_start-date-background-color: #1f4d2f; --rdp-range_end-date-background-color: #1f4d2f;
-  --rdp-range_middle-background-color: #e8f0ea; --rdp-today-color: #1f4d2f;
+  --rdp-range_start-date-background-color: rgb(var(--brand)); --rdp-range_end-date-background-color: rgb(var(--brand));
+  --rdp-range_middle-background-color: rgb(var(--brand-soft)); --rdp-today-color: rgb(var(--brand));
   font-size: 15px;
 }
 .drivex-cal .rdp-month_caption { font-weight: 700; font-size: 17px; }

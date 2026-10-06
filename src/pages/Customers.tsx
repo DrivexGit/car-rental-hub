@@ -5,7 +5,13 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { aed, fdate } from '@/lib/format';
+
+const initials = (name?: string) => (name || '?').split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
+const Face = ({ c, className }: { c: any; className?: string }) => (
+  <Avatar className={className}><AvatarImage src={c.avatar_url ?? undefined} alt="" className="object-cover" /><AvatarFallback>{initials(c.full_name)}</AvatarFallback></Avatar>
+);
 
 export default function Customers() {
   const [rows, setRows] = useState<any[]>([]);
@@ -32,7 +38,12 @@ export default function Customers() {
             const unpaid = (r.invoices || []).filter((i: any) => i.status === 'pending').reduce((a: number, i: any) => a + Number(i.amount), 0);
             return (
               <TableRow key={r.id} className="cursor-pointer" onClick={() => setParams({ id: r.id })}>
-                <TableCell className="font-medium">{r.full_name}<div className="text-xs text-muted-foreground">{r.email}</div></TableCell>
+                <TableCell className="font-medium">
+                  <div className="flex items-center gap-3">
+                    <Face c={r} className="h-9 w-9" />
+                    <div>{r.full_name}<div className="text-xs text-muted-foreground">{r.email}</div></div>
+                  </div>
+                </TableCell>
                 <TableCell className="text-sm">{r.phone}</TableCell>
                 <TableCell className="text-xs">{fdate(r.created_at)}</TableCell>
                 <TableCell className="text-right">{(r.reservations || []).length}</TableCell>
@@ -68,7 +79,7 @@ function CustomerDetail({ id }: { id: string }) {
   if (!d?.c) return <p className="text-muted-foreground">Loading…</p>;
   return (
     <div className="space-y-6">
-      <SheetHeader><SheetTitle>{d.c.full_name}</SheetTitle></SheetHeader>
+      <SheetHeader><SheetTitle className="flex items-center gap-3"><Face c={d.c} className="h-14 w-14" />{d.c.full_name}</SheetTitle></SheetHeader>
       <div className="grid grid-cols-2 gap-3 text-sm">
         <Info label="Phone" value={<a className="underline" href={`tel:${d.c.phone}`}>{d.c.phone}</a>} />
         <Info label="Email" value={d.c.email || '—'} />

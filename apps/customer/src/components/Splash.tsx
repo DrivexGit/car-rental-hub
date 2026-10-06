@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { useI18n } from "@/lib/i18n";
 
 /** Animated launch screen: green wipe, the D mark sweeps in, the wordmark reveals, then everything lifts away. */
 export function Splash({ ready }: { ready: boolean }) {
+  const { t } = useI18n();
   const [minDone, setMinDone] = useState(false);
   const [show] = useState(() => { try { return !sessionStorage.getItem("drivex.splash"); } catch { return true; } });
   useEffect(() => {
@@ -36,7 +38,7 @@ export function Splash({ ready }: { ready: boolean }) {
               transition={{ duration: 0.7, delay: 0.55, ease: [0.2, 0.8, 0.2, 1] }} />
             <motion.p className="mt-3 text-xs font-medium uppercase tracking-[.35em] text-white/60"
               initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.05 }}>
-              Drive. Easy.
+              {t("Drive. Easy.")}
             </motion.p>
           </div>
         </motion.div>

@@ -1,8 +1,9 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import { translate } from "@/lib/i18n";
 import { api, supabase } from "@/lib/supabase";
 import { carImage, slug, toFleet, type Car, type Period } from "@/data/catalog";
 
-export type User = { id: string; phone: string; name: string; email?: string; notify: { bookings: boolean; invoices: boolean; offers: boolean } };
+export type User = { id: string; phone: string; name: string; email?: string; avatarUrl?: string; notify: { bookings: boolean; invoices: boolean; offers: boolean } };
 export type BookingStatus = "pending" | "upcoming" | "ongoing" | "overdue" | "completed" | "cancelled";
 export type Booking = {
   id: string; car: Car; plate: string; period: Period; pickup: string; dropoff: string;
@@ -22,6 +23,7 @@ type Store = Data & {
   refresh: () => Promise<void>;
   signOut: () => Promise<void>;
   updateUser: (u: { name?: string; email?: string; notify?: User["notify"] }) => Promise<void>;
+  setAvatar: (photo: Blob | null) => Promise<void>;
   payInvoice: (id: string, returnPath: string) => Promise<{ redirected: boolean }>;
   extend: (bookingId: string, days: number) => Promise<void>;
   carById: (id: string) => Car | undefined;
@@ -76,6 +78,7 @@ async function loadAll(): Promise<{ user: User; data: Data } | null> {
   return {
     user: {
       id: uid, phone: c.data.phone, name: c.data.full_name, email: c.data.email ?? undefined,
+      avatarUrl: c.data.avatar_url ?? undefined,
       notify: { bookings: c.data.notify_bookings, invoices: c.data.notify_invoices, offers: c.data.notify_offers },
     },
     data: {
@@ -135,6 +138,26 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (u.notify) Object.assign(patch, { notify_bookings: u.notify.bookings, notify_invoices: u.notify.invoices, notify_offers: u.notify.offers });
       const { error } = await supabase.from("customers").update(patch).eq("id", user!.id);
       if (error) throw new Error(error.message);
+      await refresh();
+    },
+    // One file per customer (avatars/<id>/avatar.<ext>); the stored URL carries a version so caches refresh.
+    setAvatar: async (photo) => {
+      const uid = user!.id;
+      const bucket = supabase.storage.from("avatars");
+      if (!photo) {
+        const { error } = await supabase.from("customers").update({ avatar_url: null }).eq("id", uid);
+        if (error) throw new Error(error.message);
+        await bucket.remove([`${uid}/avatar.webp`, `${uid}/avatar.jpg`]);
+      } else {
+        const ext = photo.type === "image/webp" ? "webp" : "jpg";
+        const path = `${uid}/avatar.${ext}`;
+        const up = await bucket.upload(path, photo, { upsert: true, contentType: photo.type, cacheControl: "3600" });
+        if (up.error) throw new Error(translate("Could not upload your photo. Please try again."));
+        const url = `${bucket.getPublicUrl(path).data.publicUrl}?v=${Date.now()}`;
+        const { error } = await supabase.from("customers").update({ avatar_url: url }).eq("id", uid);
+        if (error) throw new Error(translate("Could not save your photo. Please try again."));
+        await bucket.remove([`${uid}/avatar.${ext === "webp" ? "jpg" : "webp"}`]); // leftover from another device/browser
+      }
       await refresh();
     },
     payInvoice: async (id, returnPath) => {
