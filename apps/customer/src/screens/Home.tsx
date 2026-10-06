@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, ChevronRight, FileText } from "lucide-react";
+import { ArrowRight, Check, ChevronRight, Copy, FileText, Loader2 } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 import { motion } from "framer-motion";
 import { useStore, type Offer } from "@/lib/store";
 import { InstallBanner } from "@/components/InstallBanner";
@@ -88,13 +89,7 @@ export default function Home() {
               <Badge className="bg-brand text-white">{benefit.off}% off</Badge>
             </div>
             {benefit.description && <p className="mt-2 text-[15px]">{benefit.description}</p>}
-            {benefit.code && (
-              <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.15, type: "spring" }}
-                className="mt-5 rounded-card border-2 border-dashed border-brand bg-brand-soft p-4 text-center">
-                <p className="text-xs uppercase tracking-widest text-brand">Show this code</p>
-                <p className="mt-1 font-mono text-3xl font-bold tracking-[.2em] text-brand">{benefit.code}</p>
-              </motion.div>
-            )}
+            <BenefitCode offerId={benefit.id} />
             {benefit.terms && <p className="mt-4 text-xs text-ink-muted">{benefit.terms}</p>}
           </div>
         )}
@@ -109,18 +104,22 @@ function Carousel() {
   const nav = useNavigate();
   const [i, setI] = useState(0);
   const ref = useRef<HTMLDivElement>(null);
+  const held = useRef(false);
+  // Index from the slide nearest the left edge — works for any slide width/gap.
+  const indexOf = (el: HTMLDivElement) => {
+    const kids = [...el.children] as HTMLElement[];
+    const x = el.scrollLeft + kids[0].offsetLeft;
+    return kids.reduce((best, k, n) => (Math.abs(k.offsetLeft - x) < Math.abs(kids[best].offsetLeft - x) ? n : best), 0);
+  };
+  const go = (n: number) => { const el = ref.current; if (!el) return; const kids = el.children as HTMLCollectionOf<HTMLElement>; el.scrollTo({ left: kids[n].offsetLeft - kids[0].offsetLeft, behavior: "smooth" }); };
   useEffect(() => {
-    const t = setInterval(() => {
-      const el = ref.current; if (!el) return;
-      const w = (el.firstElementChild as HTMLElement).offsetWidth + 12;
-      const next = (Math.round(el.scrollLeft / w) + 1) % BANNERS.length;
-      el.scrollTo({ left: next * w, behavior: "smooth" });
-    }, 5000);
+    const t = setInterval(() => { const el = ref.current; if (el && !held.current) go((indexOf(el) + 1) % BANNERS.length); }, 5000);
     return () => clearInterval(t);
   }, []);
   return (
     <div>
-      <div ref={ref} onScroll={(e) => setI(Math.round(e.currentTarget.scrollLeft / (((e.currentTarget.firstElementChild as HTMLElement).offsetWidth) + 12)))}
+      <div ref={ref} onScroll={(e) => setI(indexOf(e.currentTarget))}
+        onPointerDown={() => (held.current = true)} onPointerUp={() => setTimeout(() => (held.current = false), 4000)} onTouchStart={() => (held.current = true)} onTouchEnd={() => setTimeout(() => (held.current = false), 4000)}
         className="no-scrollbar -mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-5 px-5">
         {BANNERS.map((b) => (
           <div key={b.title} className="relative h-[190px] w-[calc(100%-12px)] shrink-0 snap-start overflow-hidden rounded-card bg-[#0b1a11] p-4 text-white">
@@ -136,8 +135,36 @@ function Carousel() {
         ))}
       </div>
       <div className="mt-2.5 flex justify-center gap-1.5">
-        {BANNERS.map((_, k) => <span key={k} className={`h-1.5 rounded-full transition-all ${k === i ? "w-4 bg-ink" : "w-1.5 bg-ink-faint/50"}`} />)}
+        {BANNERS.map((_, k) => <button key={k} aria-label={`Slide ${k + 1}`} onClick={() => go(k)} className={`h-1.5 rounded-full transition-all ${k === i ? "w-4 bg-ink" : "w-1.5 bg-ink-faint/50"}`} />)}
       </div>
     </div>
+  );
+}
+
+/** The customer's own code for a partner offer (created on first open), with a copy button. */
+function BenefitCode({ offerId }: { offerId: string }) {
+  const [code, setCode] = useState("");
+  const [copied, setCopied] = useState(false);
+  useEffect(() => {
+    setCode("");
+    supabase.rpc("my_offer_code", { p_offer: offerId }).then(({ data }) => setCode((data as string) ?? ""));
+  }, [offerId]);
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(code); } catch { /* ignore */ }
+    setCopied(true); setTimeout(() => setCopied(false), 1800);
+  };
+  return (
+    <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.15, type: "spring" }}
+      className="mt-5 rounded-card border-2 border-dashed border-brand bg-brand-soft p-4 text-center">
+      <p className="text-xs uppercase tracking-widest text-brand">Your personal code — show it at the venue</p>
+      {code ? (
+        <>
+          <p className="mt-1 whitespace-nowrap font-mono text-2xl font-bold tracking-wider text-brand">{code}</p>
+          <Button size="sm" variant="ghost" className="mt-3" onClick={copy}>
+            {copied ? <><Check className="h-4 w-4" /> Copied</> : <><Copy className="h-4 w-4" /> Copy code</>}
+          </Button>
+        </>
+      ) : <Loader2 className="mx-auto mt-2 h-7 w-7 animate-spin text-brand" />}
+    </motion.div>
   );
 }

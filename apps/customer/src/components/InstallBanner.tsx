@@ -32,11 +32,11 @@ export function InstallBanner() {
       <AnimatePresence>
         {show && (
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-            <div className="mb-4 flex items-center gap-3 rounded-card bg-ink p-3.5 text-white">
+            <div className="mb-4 flex items-center gap-3 rounded-card border border-line bg-white p-3.5 shadow-card">
               <img src="/icons/icon-192.png" alt="" className="h-11 w-11 rounded-xl" />
-              <div className="flex-1"><p className="font-semibold">Get the Drivex app</p><p className="text-xs text-white/70">Faster, full screen, with alerts.</p></div>
-              <Button size="sm" className="bg-white text-ink hover:bg-white" onClick={install}><Download className="h-4 w-4" /> Install</Button>
-              <button onClick={dismiss} aria-label="Dismiss" className="p-1 text-white/60"><X className="h-4 w-4" /></button>
+              <div className="flex-1"><p className="font-semibold text-ink">Get the Drivex app</p><p className="text-xs text-ink-muted">Faster, full screen, with alerts.</p></div>
+              <Button size="sm" onClick={install}><Download className="h-4 w-4" /> Install</Button>
+              <button onClick={dismiss} aria-label="Dismiss" className="p-1 text-ink-faint"><X className="h-4 w-4" /></button>
             </div>
           </motion.div>
         )}

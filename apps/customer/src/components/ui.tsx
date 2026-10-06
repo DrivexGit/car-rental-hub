@@ -48,7 +48,7 @@ function Bell() {
   const { notes } = useStore();
   const unread = notes.filter((n) => !n.read).length;
   return (
-    <Link to="/notifications" onClick={tap} aria-label="Notifications" className="relative grid h-10 w-10 place-items-center rounded-full border border-line bg-white">
+    <Link to="/notifications" onClick={(e) => { if (location.pathname === "/notifications") e.preventDefault(); tap(); }} aria-label="Notifications" className="relative grid h-10 w-10 place-items-center rounded-full border border-line bg-white">
       <motion.span animate={unread ? { rotate: [0, -14, 12, -8, 0] } : {}} transition={{ duration: 0.8, repeat: unread ? Infinity : 0, repeatDelay: 4 }}>
         <BellIcon className="h-5 w-5" />
       </motion.span>
@@ -238,7 +238,7 @@ export function TabBar() {
     <nav className="pb-safe fixed inset-x-0 bottom-0 z-30 mx-auto max-w-[480px] border-t border-line bg-white/95 backdrop-blur">
       <div className="grid grid-cols-5">
         {TABS.map(({ to, label, icon: Icon }) => (
-          <NavLink key={to} to={to} end={to === "/"} onClick={tap} className={({ isActive }) => cx("relative flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-medium", isActive ? "text-brand" : "text-ink-faint")}>
+          <NavLink key={to} to={to} end={to === "/"} onClick={(e) => { if (location.pathname === to) e.preventDefault(); tap(); }} className={({ isActive }) => cx("relative flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-medium", isActive ? "text-brand" : "text-ink-faint")}>
             {({ isActive }) => (
               <>
                 {isActive && <motion.span layoutId="tab-pill" className="absolute top-1.5 h-8 w-12 rounded-full bg-brand-soft" transition={{ type: "spring", stiffness: 500, damping: 35 }} />}

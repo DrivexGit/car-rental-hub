@@ -1,0 +1,77 @@
+<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+@page{size:A4;margin:14mm}
+body{font-family:Vazirmatn,sans-serif;color:#1d2433;font-size:10.5pt;line-height:1.75;margin:0}
+h1{font-size:19pt;margin:0 0 1mm;color:#1f4d2f}h2{font-size:12.5pt;margin:6mm 0 2mm;color:#1f4d2f;border-bottom:2px solid #e3ece6;padding-bottom:1mm}
+.sub{color:#667;margin-bottom:5mm}
+table{width:100%;border-collapse:collapse;font-size:9.8pt;margin-bottom:2mm}
+td,th{border-bottom:1px solid #e5e7eb;padding:1.6mm 2mm;text-align:right;vertical-align:top}
+th{background:#f3f6f4;font-weight:600}td:first-child{width:7mm;color:#889}
+.p0{color:#b42318;font-weight:700}.p1{color:#b54708;font-weight:700}.p2{color:#475467;font-weight:700}
+.box{background:#fff8e6;border:1px solid #f0d58a;border-radius:8px;padding:3mm 4mm;margin:3mm 0}
+.done{background:#eef6f1;border:1px solid #b9dcc5;border-radius:8px;padding:3mm 4mm}
+code{direction:ltr;unicode-bidi:embed;font-size:9pt;background:#f2f4f7;padding:0 1mm;border-radius:3px}
+</style></head><body>
+<h1>DriveX — فیدبک اپ مشتری</h1>
+<div class="sub">از جلسه‌ی دمو با آقای ذاکری · ۳ اکتبر ۲۰۲۶ · هدف: همه‌ی موارد تا پایان هفته‌ی بعد · <span class="p0">P0</span> فوری · <span class="p1">P1</span> این هفته · <span class="p2">P2</span> هفته‌ی بعد</div>
+
+<div class="done"><b>نظر کلی:</b> «خوشگل شد.» ذاکری از بوکینگ، صفحه‌ی ماشین (About This Car) و نوتیفیکیشن راضی بود. دیتابیس مشترک است و داشبورد آسیب نبیند؛ دیتای قبلی حفظ شود.</div>
+
+<h2>۱. ظاهر و حس اپ</h2>
+<table><tr><th>#</th><th>مورد</th><th>اولویت</th></tr>
+<tr><td>1</td><td>صفحه‌ی لاگین زشت است. یک عکس پس‌زمینه‌ی باکیفیت (ساخته‌شده با AI، ماشین/دبی) بگذارید.</td><td class="p0">P0</td></tr>
+<tr><td>2</td><td>رنگ‌ها بی‌روح است؛ همه‌اش سبز و مشکی و سفید است. کمی <b>قرمز</b> در جاهای مناسب استفاده شود و نسخه‌ی <b>سرمه‌ای/نیوی</b> به‌جای سبز تست شود (لوگو هم احتمالاً به سمت سرمه‌ای می‌رود). ذاکری با کامیار صحبت می‌کند، پس رنگ را به‌صورت token نگه دارید تا عوض کردنش یک خط باشد.</td><td class="p1">P1</td></tr>
+<tr><td>3</td><td>تب‌بار پایین مثل طرح ذاکری <b>سایه</b> و یک <b>بوردر/لاین</b> بالایی داشته باشد. رنگش هم با طرح تطبیق داده شود.</td><td class="p1">P1</td></tr>
+<tr><td>4</td><td>انیمیشن و جابه‌جایی صفحه‌ها اپی شود، نه سایتی (الان تق کلیک می‌شود و صفحه لود می‌شود). از GSAP یا کتابخانه‌ی مشابه برای ترنزیشن، dim و حرکت دکمه‌های منو استفاده شود. افکت‌ها کمی «قرتی‌تر» شوند.</td><td class="p1">P1</td></tr>
+<tr><td>5</td><td>انیمیشن اولِ اپ (اسپلش/آنبوردینگ) تکمیل شود.</td><td class="p2">P2</td></tr>
+</table>
+
+<h2>۲. باگ‌ها</h2>
+<table><tr><th>#</th><th>مورد</th><th>اولویت</th></tr>
+<tr><td>6</td><td>بیلبورد/کاروسل آفرهای صفحه‌ی اول اشتباه این‌ور و آن‌ور می‌رود.</td><td class="p0">P0</td></tr>
+<tr><td>7</td><td>دکمه‌ی <code>Get DriveX App</code> سفید شده است.</td><td class="p0">P0</td></tr>
+<tr><td>8</td><td>در صفحه‌ی ماشین‌ها موقع اسکرول، <b>هدر باید ثابت بماند</b>.</td><td class="p0">P0</td></tr>
+<tr><td>9</td><td>بعضی صفحه‌ها دو بار می‌افتد (صفحه‌ی تکراری).</td><td class="p0">P0</td></tr>
+<tr><td>10</td><td>متن چت ساپورت در جای درست (زیر پیام) نمایش داده شود.</td><td class="p1">P1</td></tr>
+</table>
+
+<h2>۳. نسخه‌ی وب</h2>
+<table><tr><th>#</th><th>مورد</th><th>اولویت</th></tr>
+<tr><td>11</td><td>الان در وب، نمای موبایل نشان داده می‌شود. یک <b>نسخه‌ی دسکتاپ واقعی</b> (ریسپانسیو) طراحی و پیاده شود.</td><td class="p1">P1</td></tr>
+<tr><td>12</td><td>بعداً: اپ و داشبورد روی دو دامنه‌ی جدا (فعلاً یک ریپو). به <code>drivex.ae</code> دست نزنید.</td><td class="p2">P2</td></tr>
+</table>
+
+<h2>۴. رزرو و ماشین‌ها</h2>
+<table><tr><th>#</th><th>مورد</th><th>اولویت</th></tr>
+<tr><td>13</td><td>فیلترها کامل شوند: نوع خودرو + <b>سال</b> + <b>تعداد صندلی</b> + <b>برند</b>. سرچ اسم (مثلاً Mercedes) کار می‌کند.</td><td class="p0">P0</td></tr>
+<tr><td>14</td><td><b>عکس خودروها:</b> عکس‌های استودیویی سایت را از علی داوری (فولدربندی‌شده) بگیرید یا از سایت crawl کنید و دسته‌بندی کنید. کار با محمدجواد است.</td><td class="p0">P0</td></tr>
+<tr><td>15</td><td>View All Offers به صفحه‌ی Book با فیلتر آفرها برود (فعلاً اوکی است). جزئیات رزرو (details) تکمیل شود.</td><td class="p1">P1</td></tr>
+</table>
+
+<h2>۵. کد تخفیف و پروفایل</h2>
+<table><tr><th>#</th><th>مورد</th><th>اولویت</th></tr>
+<tr><td>16</td><td>کد تخفیف روی صفحه‌ی ساین‌این نمایش داده شود و <b>دکمه‌ی کپی</b> داشته باشد.</td><td class="p0">P0</td></tr>
+<tr><td>17</td><td>کد برای همه <code>DRIVEXC</code> نباشد. هر کاربر <b>کد یکتا</b> بگیرد و تعداد استفاده از هر کد شمرده و در پنل نشان داده شود.</td><td class="p1">P1</td></tr>
+<tr><td>18</td><td><b>عکس پروفایل</b> قابل آپلود باشد (با محدودیت حجم و فشرده‌سازی) و در پنل ادمین و صفحه‌ی لیدها با عکس نمایش داده شود.</td><td class="p1">P1</td></tr>
+<tr><td>19</td><td>زبان: عربی (لهجه/لحن اماراتی) کنار انگلیسی. Coming Soon برداشته شود.</td><td class="p1">P1</td></tr>
+</table>
+
+<h2>۶. پنل ادمین / لیدها</h2>
+<table><tr><th>#</th><th>مورد</th><th>اولویت</th></tr>
+<tr><td>20</td><td>در پروفایل لید، <b>بوکینگ‌های همان مشتری</b> نمایش داده شود. الان دیتا اشتباه است.</td><td class="p0">P0</td></tr>
+<tr><td>21</td><td>«ارسال پیام به مخاطب» از صفحه‌ی لید کار کند.</td><td class="p1">P1</td></tr>
+<tr><td>22</td><td>هیستوری چت‌گونه‌ی اتفاقات مشتری (مدل CRM ذاکری) کامل نمایش داده شود.</td><td class="p2">P2</td></tr>
+</table>
+
+<h2>۷. هفته‌ی بعد (بعد از موارد بالا)</h2>
+<table><tr><th>#</th><th>مورد</th><th>اولویت</th></tr>
+<tr><td>23</td><td>درگاه پرداخت (Ziina) کامل و تست‌شده.</td><td class="p2">P2</td></tr>
+<tr><td>24</td><td>صدور فاکتور.</td><td class="p2">P2</td></tr>
+<tr><td>25</td><td>SMS روی سیستم.</td><td class="p2">P2</td></tr>
+<tr><td>26</td><td>هر نوتیفیکیشن اپ در <b>واتس‌اپ</b> مشتری هم بیاید.</td><td class="p2">P2</td></tr>
+<tr><td>27</td><td>AI ساپورت: اعتبار/شارژ آن را باید DriveX بدهد (درخواست شده است). بعد از شارژ، تست کامل انجام شود.</td><td class="p2">P2</td></tr>
+</table>
+
+<div class="box"><b>تحویل:</b> بعد از هر دسته، لینک preview و یک گزارش کوتاه (انجام شد / مانده / سؤال) فرستاده شود. هیچ تغییری روی دیتابیس production بدون تأیید حسین اجرا نشود.</div>
+</body></html>

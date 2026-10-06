@@ -14,12 +14,21 @@ type Sort = keyof typeof SORTS;
 export default function Book() {
   const nav = useNavigate();
   const { fleet } = useStore();
-  const CATEGORIES = ["All", ...Array.from(new Set(fleet.map((c) => c.category)))];
+  const uniq = <T,>(xs: T[]) => Array.from(new Set(xs)).sort();
+  const CATEGORIES = ["All", ...uniq(fleet.map((c) => c.category))];
+  const BRANDS = ["All", ...uniq(fleet.map((c) => c.make))];
+  const YEARS = ["All", ...uniq(fleet.map((c) => String(c.year)).filter((y) => y !== "0")).reverse()];
+  const SEATS = ["All", ...uniq(fleet.map((c) => String(c.seats)))];
   const [params, setParams] = useSearchParams();
   const period = (params.get("period") as Period) || "daily";
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<Sort>("high");
   const [cat, setCat] = useState("All");
+  const [brand, setBrand] = useState("All");
+  const [year, setYear] = useState("All");
+  const [seats, setSeats] = useState("All");
+  const filtered = cat !== "All" || brand !== "All" || year !== "All" || seats !== "All";
+  const clearAll = () => { setQ(""); setCat("All"); setBrand("All"); setYear("All"); setSeats("All"); };
   const [sheet, setSheet] = useState<null | "dates" | "sort" | "filter">(null);
   const [from, setFrom] = useState(params.get("from") || "");
   const [to, setTo] = useState(params.get("to") || "");
@@ -33,9 +42,13 @@ export default function Book() {
   }, [from, to]);
 
   const cars = useMemo(() => {
-    const list = fleet.filter((c) => c.vehicleIds.some((v) => !busy.has(v)) && (cat === "All" || c.category === cat) && carName(c).toLowerCase().includes(q.trim().toLowerCase()));
+    const term = q.trim().toLowerCase();
+    const list = fleet.filter((c) => c.vehicleIds.some((v) => !busy.has(v))
+      && (cat === "All" || c.category === cat) && (brand === "All" || c.make === brand)
+      && (year === "All" || String(c.year) === year) && (seats === "All" || String(c.seats) === seats)
+      && `${c.make} ${carName(c)} ${c.category}`.toLowerCase().includes(term));
     return list.sort((a, b) => (sort === "name" ? carName(a).localeCompare(carName(b)) : (priceFor(a, period) - priceFor(b, period)) * (sort === "low" ? 1 : -1)));
-  }, [fleet, busy, q, sort, cat, period]);
+  }, [fleet, busy, q, sort, cat, brand, year, seats, period]);
 
   const setPeriod = (p: Period) => setParams((s) => { s.set("period", p); return s; }, { replace: true });
   const dateQuery = from && to ? `&from=${from}&to=${to}` : "";
@@ -44,10 +57,21 @@ export default function Book() {
     <Screen>
       <TopBar />
       <PageTitle title="Find your drive" />
+      <div className="pt-safe sticky top-0 z-20 -mx-5 bg-bg/95 px-5 pb-3 pt-2 backdrop-blur">
 
       <Segmented value={period} onChange={setPeriod} options={[{ value: "daily", label: "Daily" }, { value: "weekly", label: "Weekly" }, { value: "monthly", label: "Monthly" }]} />
 
-      <Card className="mt-3" onClick={() => setSheet("dates")}>
+      <div className="mt-3 flex gap-2">
+        <label className="flex h-12 flex-1 items-center gap-2.5 rounded-xl border border-line bg-white px-3.5">
+          <Search className="h-5 w-5 text-ink-muted" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search cars" className="w-full bg-transparent text-[15px] outline-none placeholder:text-ink-faint" />
+        </label>
+        <IconBtn label="Sort" onClick={() => setSheet("sort")}><ArrowUpDown className="h-5 w-5" /></IconBtn>
+        <IconBtn label="Filter" onClick={() => setSheet("filter")} dot={filtered}><SlidersHorizontal className="h-5 w-5" /></IconBtn>
+      </div>
+      </div>
+
+      <Card className="mb-3" onClick={() => setSheet("dates")}>
         <div className="flex h-14 items-center gap-3 px-4">
           <CalendarDays className="h-5 w-5" />
           <span className="flex-1 text-[15px] font-medium">
@@ -57,16 +81,7 @@ export default function Book() {
         </div>
       </Card>
 
-      <div className="mt-3 flex gap-2">
-        <label className="flex h-12 flex-1 items-center gap-2.5 rounded-xl border border-line bg-white px-3.5">
-          <Search className="h-5 w-5 text-ink-muted" />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search cars" className="w-full bg-transparent text-[15px] outline-none placeholder:text-ink-faint" />
-        </label>
-        <IconBtn label="Sort" onClick={() => setSheet("sort")}><ArrowUpDown className="h-5 w-5" /></IconBtn>
-        <IconBtn label="Filter" onClick={() => setSheet("filter")} dot={cat !== "All"}><SlidersHorizontal className="h-5 w-5" /></IconBtn>
-      </div>
-
-      <div className="mt-4 space-y-3">
+      <div className="space-y-3">
         {cars.map((c, i) => (
           <Card key={c.id} className="p-4" delay={Math.min(i, 6) * 0.05}>
             <p className="text-lg font-bold leading-tight">{carName(c)}</p>
@@ -78,7 +93,7 @@ export default function Book() {
             </div>
           </Card>
         ))}
-        {!cars.length && <Empty icon={<Search />} title="No cars found" text="Try another name or clear the filter." action={<Button variant="ghost" onClick={() => { setQ(""); setCat("All"); }}>Clear</Button>} />}
+        {!cars.length && <Empty icon={<Search />} title="No cars found" text="Try another name or clear the filter." action={<Button variant="ghost" onClick={clearAll}>Clear</Button>} />}
       </div>
 
       <Sheet open={sheet === "sort"} onClose={() => setSheet(null)} title="Sort by">
@@ -91,11 +106,19 @@ export default function Book() {
         </div>
       </Sheet>
 
-      <Sheet open={sheet === "filter"} onClose={() => setSheet(null)} title="Car type">
-        <div className="flex flex-wrap gap-2">
-          {CATEGORIES.map((k) => <Chip key={k} active={cat === k} onClick={() => setCat(k)}>{k}</Chip>)}
+      <Sheet open={sheet === "filter"} onClose={() => setSheet(null)} title="Filter">
+        {([["Car type", CATEGORIES, cat, setCat], ["Brand", BRANDS, brand, setBrand], ["Year", YEARS, year, setYear], ["Seats", SEATS, seats, setSeats]] as const).map(([label, opts, val, set]) => (
+          <div key={label} className="mb-5">
+            <p className="mb-2 text-sm font-semibold text-ink-muted">{label}</p>
+            <div className="flex flex-wrap gap-2">
+              {opts.map((k) => <Chip key={k} active={val === k} onClick={() => set(k)}>{label === "Seats" && k !== "All" ? `${k} seats` : k}</Chip>)}
+            </div>
+          </div>
+        ))}
+        <div className="flex gap-2">
+          {filtered && <Button size="lg" variant="ghost" className="w-auto" onClick={clearAll}>Clear</Button>}
+          <Button size="lg" onClick={() => setSheet(null)}>Show {cars.length} cars</Button>
         </div>
-        <Button size="lg" className="mt-6" onClick={() => setSheet(null)}>Show {cars.length} cars</Button>
       </Sheet>
 
       <DateRangeSheet open={sheet === "dates"} onClose={() => setSheet(null)} from={from} to={to}

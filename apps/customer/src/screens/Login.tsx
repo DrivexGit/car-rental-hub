@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { api, supabase } from "@/lib/supabase";
-import { Button, Logo } from "@/components/ui";
+import { Button } from "@/components/ui";
 
 type Step = "phone" | "code" | "name";
 
@@ -40,19 +40,23 @@ export default function Login() {
   });
 
   return (
-    <main className="pt-safe pb-safe mx-auto flex min-h-full max-w-[480px] flex-col px-6">
+    <main className="relative min-h-full overflow-hidden bg-[#0b0f14] text-white">
+      <img src="/img/login-bg.webp" alt="" className="absolute inset-x-0 top-0 h-[70vh] w-full object-cover object-top" />
+      <div className="absolute inset-x-0 top-0 h-[70vh] bg-gradient-to-b from-black/30 via-transparent to-[#0b0f14]" />
+      <div className="pt-safe pb-safe relative mx-auto flex min-h-[100dvh] max-w-[480px] flex-col px-6">
       <div className="flex h-16 items-center">
         {step !== "phone" ? (
-          <button onClick={() => { setError(""); setStep(step === "name" ? "code" : "phone"); }} className="grid h-10 w-10 place-items-center rounded-full border border-line bg-white" aria-label="Back">
+          <button onClick={() => { setError(""); setStep(step === "name" ? "code" : "phone"); }} className="grid h-10 w-10 place-items-center rounded-full border border-white/20 bg-white/10 backdrop-blur" aria-label="Back">
             <ArrowLeft className="h-5 w-5" />
           </button>
-        ) : <Logo className="h-7" />}
+        ) : <img src="/logo.png" alt="Drivex" className="h-8" />}
       </div>
+      <div className="flex-1" />
 
       {step === "phone" && (
         <Panel title="Welcome to Drivex" sub="Enter your mobile number to sign in or create your account.">
-          <label className="mb-2 block text-sm font-medium text-ink-muted">Mobile number</label>
-          <div className="flex h-14 items-center rounded-xl border border-line bg-white px-4 focus-within:border-brand">
+          <label className="mb-2 block text-sm font-medium text-white/70">Mobile number</label>
+          <div className="flex h-14 items-center rounded-xl border border-line bg-white px-4 text-ink focus-within:border-brand">
             <span className="mr-3 border-r border-line pr-3 font-semibold">🇦🇪 +971</span>
             <input autoFocus inputMode="tel" placeholder="50 123 4567" value={phone} onChange={(e) => setPhone(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && phoneOk && sendCode()}
@@ -60,17 +64,17 @@ export default function Login() {
           </div>
           <Err msg={error} />
           <Button size="lg" className="mt-6" disabled={!phoneOk || busy} onClick={sendCode}>{busy ? <Loader2 className="h-5 w-5 animate-spin" /> : "Send code"}</Button>
-          <p className="mt-4 text-center text-xs text-ink-faint">By continuing you agree to our Terms and Privacy Policy.</p>
+          <p className="mt-4 text-center text-xs text-white/50">By continuing you agree to our Terms and Privacy Policy.</p>
         </Panel>
       )}
 
       {step === "code" && (
-        <Panel title="Enter the code" sub={<>We sent a 6-digit code by SMS to <b className="text-ink">{full}</b></>}>
+        <Panel title="Enter the code" sub={<>We sent a 6-digit code by SMS to <b className="text-white">{full}</b></>}>
           <CodeInput value={code} onChange={(v) => { setCode(v); if (v.length === 6) verify(v); }} />
           {testMode && <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700">Test mode: SMS is not connected yet. Use code <b>123456</b>.</p>}
           <Err msg={error} />
           <Button size="lg" className="mt-6" disabled={code.length < 6 || busy} onClick={() => verify(code)}>{busy ? <Loader2 className="h-5 w-5 animate-spin" /> : "Continue"}</Button>
-          <button disabled={timer > 0 || busy} onClick={sendCode} className="mt-4 w-full text-center text-sm font-medium text-brand disabled:text-ink-faint">
+          <button disabled={timer > 0 || busy} onClick={sendCode} className="mt-4 w-full text-center text-sm font-medium text-white disabled:text-white/40">
             {timer ? `Resend code in ${timer}s` : "Resend code"}
           </button>
         </Panel>
@@ -79,23 +83,24 @@ export default function Login() {
       {step === "name" && (
         <Panel title="What's your name?" sub="So we know how to greet you. You only do this once.">
           <input autoFocus placeholder="Full name" value={name} onChange={(e) => setName(e.target.value)}
-            className="h-14 w-full rounded-xl border border-line bg-white px-4 text-lg outline-none focus:border-brand" />
+            className="h-14 w-full rounded-xl border border-line bg-white px-4 text-lg text-ink outline-none focus:border-brand" />
           <Err msg={error} />
           <Button size="lg" className="mt-6" disabled={name.trim().length < 2 || busy} onClick={() => verify(code, name.trim())}>
             {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : "Get started"}
           </Button>
         </Panel>
       )}
+      </div>
     </main>
   );
 }
 
-const Err = ({ msg }: { msg: string }) => (msg ? <p className="mt-3 text-sm font-medium text-danger">{msg}</p> : null);
+const Err = ({ msg }: { msg: string }) => (msg ? <p className="mt-3 text-sm font-medium text-red-300">{msg}</p> : null);
 
 const Panel = ({ title, sub, children }: { title: string; sub: React.ReactNode; children: React.ReactNode }) => (
-  <section className="pt-8">
-    <h1 className="text-[30px] font-bold leading-tight tracking-tight">{title}</h1>
-    <p className="mb-8 mt-2 text-[15px] text-ink-muted">{sub}</p>
+  <section className="pb-10">
+    <h1 className="text-[32px] font-bold leading-tight tracking-tight">{title}</h1>
+    <p className="mb-7 mt-2 text-[15px] text-white/75">{sub}</p>
     {children}
   </section>
 );
@@ -109,7 +114,7 @@ function CodeInput({ value, onChange }: { value: string; onChange: (v: string) =
         className="absolute inset-0 opacity-0" aria-label="Verification code" />
       <div className="grid grid-cols-6 gap-2">
         {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className={`grid h-14 place-items-center rounded-xl border bg-white text-2xl font-bold ${i === value.length ? "border-brand" : "border-line"}`}>
+          <div key={i} className={`grid h-14 place-items-center rounded-xl border bg-white text-2xl font-bold text-ink ${i === value.length ? "border-brand" : "border-line"}`}>
             {value[i] ?? ""}
           </div>
         ))}

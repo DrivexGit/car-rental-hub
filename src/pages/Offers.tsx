@@ -24,9 +24,29 @@ export default function Offers() {
   const tenantId = useTenantId();
   const { toast } = useToast();
 
+  const [codes, setCodes] = useState<any[]>([]);
+  const [redeem, setRedeem] = useState('');
   const load = async () => {
-    const { data } = await supabase.from('offers' as any).select('*').order('kind').order('sort_order');
+    const [{ data }, c] = await Promise.all([
+      supabase.from('offers' as any).select('*').order('kind').order('sort_order'),
+      supabase.from('offer_codes' as any).select('offer_id, code, uses, last_used_at, customers(full_name, phone)').order('uses', { ascending: false }),
+    ]);
     setRows((data as any) || []);
+    setCodes((c.data as any) || []);
+  };
+  // Venue reported a customer's personal code → count one use.
+  const recordUse = async () => {
+    const code = redeem.trim().toUpperCase();
+    if (!code) return;
+    const { data, error } = await supabase.rpc('redeem_offer_code' as any, { p_code: code });
+    const row = (data as any)?.[0];
+    if (error || !row) { toast({ title: 'Code not found', description: error?.message ?? code, variant: 'destructive' }); return; }
+    toast({ title: `Use recorded — ${row.offer_title}`, description: `${row.customer_name} · ${row.customer_phone} · ${row.uses} use(s) in total` });
+    setRedeem(''); load();
+  };
+  const stats = (offerId: string) => {
+    const list = codes.filter((c) => c.offer_id === offerId);
+    return { count: list.length, uses: list.reduce((n, c) => n + c.uses, 0) };
   };
   useEffect(() => {
     load();
@@ -55,9 +75,13 @@ export default function Offers() {
           <Button onClick={() => setEdit(blank('car'))}><Plus className="mr-2 h-4 w-4" />Car discount</Button>
         </div>
       </div>
-      <p className="mb-4 text-sm text-muted-foreground">Car discounts are shown on the app home screen and applied automatically when a customer books that model. Partner benefits show a code the customer shows at the venue.</p>
+      <p className="mb-4 text-sm text-muted-foreground">Car discounts are shown on the app home screen and applied automatically when a customer books that model. Partner benefits give every customer their own personal code (base code + 5 characters) to show at the venue.</p>
+      <div className="mb-4 flex max-w-md gap-2">
+        <Input placeholder="Customer's code, e.g. DRIVEX45-F8E95" value={redeem} onChange={(e) => setRedeem(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && recordUse()} className="font-mono" />
+        <Button onClick={recordUse} disabled={!redeem.trim()}>Record use</Button>
+      </div>
       <Table>
-        <TableHeader><TableRow><TableHead>Type</TableHead><TableHead>Title</TableHead><TableHead>Discount</TableHead><TableHead>Code</TableHead><TableHead>Active</TableHead><TableHead /></TableRow></TableHeader>
+        <TableHeader><TableRow><TableHead>Type</TableHead><TableHead>Title</TableHead><TableHead>Discount</TableHead><TableHead>Base code</TableHead><TableHead>Customer codes</TableHead><TableHead>Active</TableHead><TableHead /></TableRow></TableHeader>
         <TableBody>
           {rows.map((r) => (
             <TableRow key={r.id}>
@@ -65,6 +89,7 @@ export default function Offers() {
               <TableCell className="font-medium">{r.title}<div className="text-xs text-muted-foreground">{r.subtitle}</div></TableCell>
               <TableCell>{r.discount_pct}%</TableCell>
               <TableCell className="font-mono text-xs">{r.redeem_code || '—'}</TableCell>
+              <TableCell className="text-xs">{r.kind === 'partner' ? (() => { const s = stats(r.id); return <span title={codes.filter((c) => c.offer_id === r.id).map((c) => `${c.code} · ${c.customers?.full_name ?? ''} · ${c.uses}`).join('\n')}>{s.count} codes · <b>{s.uses} uses</b></span>; })() : '—'}</TableCell>
               <TableCell><Switch checked={r.is_active} onCheckedChange={async (v) => { await supabase.from('offers' as any).update({ is_active: v }).eq('id', r.id); load(); }} /></TableCell>
               <TableCell className="whitespace-nowrap text-right">
                 <Button size="icon" variant="ghost" onClick={() => setEdit({ ...blank(r.kind), ...Object.fromEntries(Object.entries(r).map(([k, v]) => [k, v ?? ''])) } as Offer)}><Pencil className="h-4 w-4" /></Button>
