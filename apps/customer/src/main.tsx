@@ -5,17 +5,21 @@ import { MotionConfig } from "framer-motion";
 import App from "./App";
 import { StoreProvider } from "./lib/store";
 import { initTheme } from "./lib/theme";
+import { I18nProvider, initLang } from "./lib/i18n";
 import "./index.css";
 
 initTheme();
+initLang();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <BrowserRouter>
       <MotionConfig reducedMotion="user">
-        <StoreProvider>
-          <App />
-        </StoreProvider>
+        <I18nProvider>
+          <StoreProvider>
+            <App />
+          </StoreProvider>
+        </I18nProvider>
       </MotionConfig>
     </BrowserRouter>
   </StrictMode>,
