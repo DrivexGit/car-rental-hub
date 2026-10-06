@@ -26,15 +26,20 @@ export const Price = ({ value, unit, old, size = "text-xl" }: { value: number; u
 
 export const Logo = ({ className = "h-6" }: { className?: string }) => <img src="/logo-dark.png" alt="Drivex" className={className} />;
 
-export function Avatar({ size = 40 }: { size?: number }) {
+/** The customer's photo, or their initials when they have not uploaded one. */
+export function Face({ size = 40, className }: { size?: number; className?: string }) {
   const { user } = useStore();
   const initials = (user?.name || "?").split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
   return (
-    <Link to="/profile" style={{ width: size, height: size }} className="grid place-items-center rounded-full bg-brand text-white font-semibold ring-2 ring-white shadow-card" aria-label="Profile">
-      {initials}
-    </Link>
+    <span style={{ width: size, height: size, fontSize: size * 0.4 }} className={cx("grid shrink-0 place-items-center overflow-hidden rounded-full bg-brand font-semibold text-white", className)}>
+      {user?.avatarUrl ? <img src={user.avatarUrl} alt="" className="h-full w-full object-cover" /> : initials}
+    </span>
   );
 }
+
+export const Avatar = ({ size = 40 }: { size?: number }) => (
+  <Link to="/profile" aria-label="Profile"><Face size={size} className="ring-2 ring-white shadow-card" /></Link>
+);
 
 /** Top bar of every tab: logo left, avatar (or custom) right. */
 export const TopBar = ({ right }: { right?: ReactNode }) => (

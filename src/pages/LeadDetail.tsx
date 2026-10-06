@@ -32,22 +32,26 @@ export default function LeadDetail() {
   const [convState, setConvState] = useState<any>(null);
   const [reservations, setReservations] = useState<any[]>([]);
   const [documents, setDocuments] = useState<any[]>([]);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('chat');
 
   const load = async () => {
     if (!id) return;
-    const [l, m, c, r, d] = await Promise.all([
+    const [l, m, c, r, d, cu] = await Promise.all([
       supabase.from('leads').select('*, lead_channels(channel, username, phone_number, is_primary)').eq('id', id).single(),
       supabase.from('messages').select('*').eq('lead_id', id).order('created_at', { ascending: true }),
       supabase.from('conversation_states').select('*').eq('lead_id', id).maybeSingle(),
       supabase.from('reservations').select('*, vehicles(plate_number, make, model, image_url)').eq('lead_id', id),
       supabase.from('customer_documents').select('*').eq('lead_id', id),
+      // The app customer linked to this lead may have uploaded a profile photo.
+      supabase.from('customers' as any).select('avatar_url').eq('lead_id', id).maybeSingle(),
     ]);
     setLead(l.data);
     setMessages(m.data || []);
     setConvState(c.data);
     setReservations(r.data || []);
     setDocuments(d.data || []);
+    setAvatarUrl((cu.data as any)?.avatar_url ?? null);
   };
 
   useEffect(() => { load(); }, [id]);
@@ -145,7 +149,7 @@ export default function LeadDetail() {
       <div className="bg-card rounded-2xl border shadow-sm overflow-hidden flex flex-col md:flex-row items-center gap-6 p-6">
         <div className="relative">
           <Avatar className="h-24 w-24 border-4 border-muted shadow-xl">
-            <AvatarImage src="" />
+            <AvatarImage src={avatarUrl ?? undefined} className="object-cover" />
             <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-violet-600 text-white text-3xl font-bold">
               {getInitials(lead.full_name)}
             </AvatarFallback>

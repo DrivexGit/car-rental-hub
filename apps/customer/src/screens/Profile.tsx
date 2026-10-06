@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bell, CreditCard, FileText, Globe, Headphones, LogOut, Palette, Pencil, Settings2, ShieldCheck } from "lucide-react";
 import { useStore } from "@/lib/store";
-import { Card, ListGroup, ListRow, Logo, PageTitle, Screen, Segmented, Sheet } from "@/components/ui";
+import { Card, Face, ListGroup, ListRow, Logo, PageTitle, Screen, Segmented, Sheet } from "@/components/ui";
 import { getTheme, setTheme, THEMES, type Theme } from "@/lib/theme";
 import { Link } from "react-router-dom";
 
@@ -11,7 +11,6 @@ export default function Profile() {
   const nav = useNavigate();
   const [themeOpen, setThemeOpen] = useState(false);
   const [theme, setThemeState] = useState<Theme>(getTheme);
-  const initials = user!.name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
   return (
     <Screen>
       <div className="flex items-center justify-between pb-4 pt-3">
@@ -21,7 +20,7 @@ export default function Profile() {
       <PageTitle title="My profile" />
 
       <Card className="mb-6 flex items-center gap-4 p-4">
-        <div className="grid h-16 w-16 place-items-center rounded-full bg-brand text-xl font-bold text-white">{initials}</div>
+        <Face size={64} />
         <div className="min-w-0 flex-1">
           <p className="truncate text-lg font-bold">{user!.name}</p>
           <p className="truncate text-sm text-ink-muted">{user!.email || user!.phone}</p>

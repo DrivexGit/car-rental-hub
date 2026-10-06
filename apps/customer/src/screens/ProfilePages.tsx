@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { BellRing, CheckCircle2, ChevronRight, FileText, IdCard, Loader2, Smartphone, Upload } from "lucide-react";
+import { BellRing, Camera, CheckCircle2, ChevronRight, FileText, IdCard, Loader2, Smartphone, Upload } from "lucide-react";
 import { enablePush, pushSupported } from "@/lib/push";
 import { supabase } from "@/lib/supabase";
 import { useStore } from "@/lib/store";
 import { day, money } from "@/lib/format";
-import { BackBar, Button, Card, Dirham, Empty, ListGroup, ListRow, Screen } from "@/components/ui";
+import { BackBar, Button, Card, Dirham, Empty, Face, ListGroup, ListRow, Screen } from "@/components/ui";
+import { compressSquare } from "@/lib/image";
 import { PayInvoiceSheet } from "@/screens/PaySheet";
 import { whatsappLink } from "@/config";
 import type { Invoice } from "@/lib/store";
@@ -20,6 +21,7 @@ export function EditProfile() {
   return (
     <Screen tabs={false}>
       <BackBar title="Edit profile" />
+      <PhotoPicker />
       <Field label="Full name" value={name} onChange={setName} />
       <Field label="Email (optional)" value={email} onChange={setEmail} type="email" />
       <Field label="Mobile number" value={user!.phone} disabled />
@@ -29,6 +31,29 @@ export function EditProfile() {
         {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : "Save"}
       </Button>
     </Screen>
+  );
+}
+
+/** Tap the photo to pick one; it is cropped square and shrunk on the phone before upload. */
+function PhotoPicker() {
+  const { user, setAvatar } = useStore();
+  const input = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const run = async (fn: () => Promise<void>) => { setBusy(true); setError(""); try { await fn(); } catch (e) { setError((e as Error).message); } finally { setBusy(false); } };
+  return (
+    <div className="mb-6 flex flex-col items-center">
+      <button type="button" onClick={() => input.current?.click()} disabled={busy} aria-label="Change profile photo" className="relative rounded-full disabled:opacity-60">
+        <Face size={96} />
+        <span className="absolute bottom-0 right-0 grid h-9 w-9 place-items-center rounded-full border-2 border-white bg-brand text-white">
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+        </span>
+      </button>
+      <input ref={input} type="file" accept="image/*" hidden
+        onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) run(async () => setAvatar(await compressSquare(f))); }} />
+      {user?.avatarUrl && <button type="button" disabled={busy} onClick={() => run(() => setAvatar(null))} className="mt-3 text-sm font-medium text-ink-muted underline">Remove photo</button>}
+      {error && <p className="mt-2 text-center text-sm font-medium text-danger">{error}</p>}
+    </div>
   );
 }
 
