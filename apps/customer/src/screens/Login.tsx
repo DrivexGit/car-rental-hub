@@ -14,8 +14,13 @@ export default function Login() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [testMode, setTestMode] = useState(false);
-  const full = `+971${phone.replace(/\D/g, "").replace(/^(00971|971|0)/, "")}`;
+  // Persian/Arabic-Indic digits are converted so a Farsi keyboard still works.
+  const asciiPhone = phone.replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06f0)).replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660));
+  const national = asciiPhone.replace(/\D/g, "").replace(/^(00971|971|0)/, "");
+  const full = `+971${national}`;
   const phoneOk = /^\+9715\d{8}$/.test(full);
+  // Only warn once the number is clearly not a UAE mobile, not while the user is still typing.
+  const phoneHint = national && (!national.startsWith("5") || national.length > 9) ? "Enter a UAE mobile number, e.g. 50 123 4567." : "";
 
   useEffect(() => {
     if (!timer) return;
@@ -40,9 +45,9 @@ export default function Login() {
   });
 
   return (
-    <main className="relative min-h-full overflow-hidden bg-[#0b0f14] text-white">
+    <main className="relative min-h-full overflow-hidden bg-night text-white">
       <img src="/img/login-bg.webp" alt="" className="absolute inset-x-0 top-0 h-[70vh] w-full object-cover object-top" />
-      <div className="absolute inset-x-0 top-0 h-[70vh] bg-gradient-to-b from-black/30 via-transparent to-[#0b0f14]" />
+      <div className="absolute inset-x-0 top-0 h-[70vh] bg-gradient-to-b from-black/30 via-transparent to-night" />
       <div className="pt-safe pb-safe relative mx-auto flex min-h-[100dvh] max-w-[480px] flex-col px-6">
       <div className="flex h-16 items-center">
         {step !== "phone" ? (
@@ -62,7 +67,7 @@ export default function Login() {
               onKeyDown={(e) => e.key === "Enter" && phoneOk && sendCode()}
               className="h-full flex-1 bg-transparent text-lg tracking-wide outline-none placeholder:text-ink-faint" />
           </div>
-          <Err msg={error} />
+          <Err msg={error || phoneHint} />
           <Button size="lg" className="mt-6" disabled={!phoneOk || busy} onClick={sendCode}>{busy ? <Loader2 className="h-5 w-5 animate-spin" /> : "Send code"}</Button>
           <p className="mt-4 text-center text-xs text-white/50">By continuing you agree to our Terms and Privacy Policy.</p>
         </Panel>
@@ -71,7 +76,7 @@ export default function Login() {
       {step === "code" && (
         <Panel title="Enter the code" sub={<>We sent a 6-digit code by SMS to <b className="text-white">{full}</b></>}>
           <CodeInput value={code} onChange={(v) => { setCode(v); if (v.length === 6) verify(v); }} />
-          {testMode && <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700">Test mode: SMS is not connected yet. Use code <b>123456</b>.</p>}
+          {testMode && <p className="mt-3 rounded-lg bg-warn-soft px-3 py-2 text-sm text-warn-text">Test mode: SMS is not connected yet. Use code <b>123456</b>.</p>}
           <Err msg={error} />
           <Button size="lg" className="mt-6" disabled={code.length < 6 || busy} onClick={() => verify(code)}>{busy ? <Loader2 className="h-5 w-5 animate-spin" /> : "Continue"}</Button>
           <button disabled={timer > 0 || busy} onClick={sendCode} className="mt-4 w-full text-center text-sm font-medium text-white disabled:text-white/40">

@@ -6,7 +6,8 @@ import { admin, anonClient, fail, json, TENANT_ID } from "./_lib.js";
 // ponytail: OTP is checked against OTP_TEST_CODE until an SMS provider is configured; then send/verify a real code here.
 
 const normalize = (p: string) => {
-  const d = String(p || "").replace(/\D/g, "").replace(/^00/, "").replace(/^0/, "");
+  const ascii = String(p || "").replace(/[۰-۹]/g, (c) => String(c.charCodeAt(0) - 0x06f0)).replace(/[٠-٩]/g, (c) => String(c.charCodeAt(0) - 0x0660));
+  const d = ascii.replace(/\D/g, "").replace(/^00/, "").replace(/^0/, "");
   const full = d.startsWith("971") ? d : `971${d}`;
   return /^9715\d{8}$/.test(full) ? `+${full}` : null;
 };
