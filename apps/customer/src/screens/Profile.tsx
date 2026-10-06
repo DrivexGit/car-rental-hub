@@ -1,12 +1,16 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, CreditCard, FileText, Globe, Headphones, LogOut, Pencil, Settings2, ShieldCheck } from "lucide-react";
+import { Bell, CreditCard, FileText, Globe, Headphones, LogOut, Palette, Pencil, Settings2, ShieldCheck } from "lucide-react";
 import { useStore } from "@/lib/store";
-import { Card, ListGroup, ListRow, Logo, PageTitle, Screen } from "@/components/ui";
+import { Card, ListGroup, ListRow, Logo, PageTitle, Screen, Segmented, Sheet } from "@/components/ui";
+import { getTheme, setTheme, THEMES, type Theme } from "@/lib/theme";
 import { Link } from "react-router-dom";
 
 export default function Profile() {
   const { user, signOut } = useStore();
   const nav = useNavigate();
+  const [themeOpen, setThemeOpen] = useState(false);
+  const [theme, setThemeState] = useState<Theme>(getTheme);
   const initials = user!.name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
   return (
     <Screen>
@@ -33,12 +37,16 @@ export default function Profile() {
       <ListGroup title="Preferences & support">
         <ListRow icon={<Bell className="h-5 w-5" />} label="Notifications" to="/profile/notifications" />
         <ListRow icon={<Globe className="h-5 w-5" />} label="Change language" value="English" to="/profile/language" />
+        <ListRow icon={<Palette className="h-5 w-5" />} label="Appearance" value={THEMES.find((t) => t.value === theme)?.label} onClick={() => setThemeOpen(true)} />
         <ListRow icon={<Headphones className="h-5 w-5" />} label="Support & legal" to="/profile/legal" />
         <ListRow icon={<Settings2 className="h-5 w-5" />} label="Other" to="/profile/other" />
       </ListGroup>
       <ListGroup>
         <ListRow danger icon={<LogOut className="h-5 w-5" />} label="Log out" onClick={() => { signOut(); nav("/"); }} />
       </ListGroup>
+      <Sheet open={themeOpen} onClose={() => setThemeOpen(false)} title="Appearance">
+        <Segmented value={theme} options={THEMES} onChange={(t) => { setTheme(t); setThemeState(t); }} />
+      </Sheet>
     </Screen>
   );
 }

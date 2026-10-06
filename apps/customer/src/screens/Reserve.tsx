@@ -43,7 +43,7 @@ export default function Reserve() {
       <BackBar title="Book your car" right={<span className="text-sm text-ink-muted">1 of 3</span>} />
 
       <Card className="overflow-hidden">
-        <div className="bg-gradient-to-b from-[#eef0ee] to-white px-4 pt-4">
+        <div className="bg-gradient-to-b from-tint to-white px-4 pt-4">
           <img src={car.image} alt={carName(car)} className="mx-auto h-[170px] w-full object-contain" />
         </div>
         {!!specs?.gallery.length && <Gallery photos={specs.gallery} name={carName(car)} />}

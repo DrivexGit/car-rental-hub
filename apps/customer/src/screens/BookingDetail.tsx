@@ -36,7 +36,7 @@ export default function BookingDetail() {
       <BackBar title="Booking details" right={<StatusDot status={b.status} />} />
 
       <Card className="overflow-hidden">
-        <div className="bg-gradient-to-b from-[#eef0ee] to-white px-4 pt-3"><img src={car.image} alt="" className="mx-auto h-[150px] object-contain" /></div>
+        <div className="bg-gradient-to-b from-tint to-white px-4 pt-3"><img src={car.image} alt="" className="mx-auto h-[150px] object-contain" /></div>
         <div className="p-4">
           <div className="flex items-start justify-between">
             <div><p className="text-xl font-bold">{carName(car)}</p><p className="text-sm text-ink-muted">{car.year} · {car.category}</p></div>

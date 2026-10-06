@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useEffect } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { api } from "@/lib/supabase";
@@ -36,13 +37,17 @@ export default function App() {
 
 function Body() {
   const { user, ready } = useStore();
-  const { pathname } = useLocation();
+  const location = useLocation();
+  const { pathname } = location;
   if (!ready) return <div className="grid h-full place-items-center"><Loader2 className="h-8 w-8 animate-spin text-brand" /></div>;
   if (!user) return <Routes><Route path="*" element={<Login />} /></Routes>;
 
   return (
     <>
-      <Routes>
+      {/* Quick fade-out of the old page before the next one slides in, so a tap never feels like a hard jump. */}
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div key={pathname} className="h-full" exit={{ opacity: 0, transition: { duration: 0.12 } }}>
+      <Routes location={location}>
         <Route path="/" element={<Home />} />
         <Route path="/book" element={<Book />} />
         <Route path="/book/:carId" element={<Reserve />} />
@@ -63,6 +68,8 @@ function Body() {
         <Route path="/notifications" element={<Inbox />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+        </motion.div>
+      </AnimatePresence>
       {TAB_ROUTES.includes(pathname) && <TabBar />}
     </>
   );

@@ -48,8 +48,8 @@ export default function Home() {
           const now = Math.round(c.daily * (1 - off / 100));
           return (
             <Card key={id} className="w-[170px] shrink-0 overflow-hidden" onClick={() => nav(`/book/${c.id}?period=daily&off=${off}`)}>
-              <div className="relative h-[100px] bg-gradient-to-b from-[#eef0ee] to-white">
-                <Badge className="absolute left-2 top-2 bg-brand text-white">{off}% off</Badge>
+              <div className="relative h-[100px] bg-gradient-to-b from-tint to-white">
+                <Badge className="absolute left-2 top-2 bg-danger text-white">{off}% off</Badge>
                 <img src={c.image} alt="" className="h-full w-full object-contain p-2" loading="lazy" />
               </div>
               <div className="p-3">
@@ -74,7 +74,7 @@ export default function Home() {
             {d.image && <img src={d.image} alt={d.title} className="h-[100px] w-full object-cover" loading="lazy" />}
             <div className="flex items-center justify-between p-3">
               <div><p className="text-sm font-semibold">{d.title}</p><p className="text-xs text-ink-muted">{d.subtitle}</p></div>
-              <Badge>{d.off}% off</Badge>
+              <Badge className="bg-danger-soft text-danger">{d.off}% off</Badge>
             </div>
           </Card>
         ))}
@@ -86,7 +86,7 @@ export default function Home() {
             {benefit.image && <img src={benefit.image} alt="" className="h-44 w-full rounded-card object-cover" />}
             <div className="mt-4 flex items-center justify-between">
               <p className="text-ink-muted">{benefit.subtitle}{benefit.location ? ` · ${benefit.location}` : ""}</p>
-              <Badge className="bg-brand text-white">{benefit.off}% off</Badge>
+              <Badge className="bg-danger text-white">{benefit.off}% off</Badge>
             </div>
             {benefit.description && <p className="mt-2 text-[15px]">{benefit.description}</p>}
             <BenefitCode offerId={benefit.id} />
@@ -122,7 +122,7 @@ function Carousel() {
         onPointerDown={() => (held.current = true)} onPointerUp={() => setTimeout(() => (held.current = false), 4000)} onTouchStart={() => (held.current = true)} onTouchEnd={() => setTimeout(() => (held.current = false), 4000)}
         className="no-scrollbar -mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-5 px-5">
         {BANNERS.map((b) => (
-          <div key={b.title} className="relative h-[190px] w-[calc(100%-12px)] shrink-0 snap-start overflow-hidden rounded-card bg-[#0b1a11] p-4 text-white">
+          <div key={b.title} className="relative h-[190px] w-[calc(100%-12px)] shrink-0 snap-start overflow-hidden rounded-card bg-hero p-4 text-white">
             <motion.img src={b.image} alt="" className="absolute inset-0 h-full w-full object-cover" initial={{ scale: 1.15 }} animate={{ scale: 1 }} transition={{ duration: 6, ease: "easeOut" }} />
             <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/35 to-transparent" />
             <p className="relative text-[10px] font-semibold uppercase tracking-[.15em] text-white/70">{b.kicker}</p>

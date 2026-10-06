@@ -1,7 +1,7 @@
 import { type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion, type HTMLMotionProps } from "framer-motion";
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import { Link, NavLink, useNavigate, useNavigationType } from "react-router-dom";
 import { ArrowLeft, ArrowRight, Bell as BellIcon, CarFront, ChevronRight, Headphones, Home, ClipboardList, User, X } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { money } from "@/lib/format";
@@ -133,9 +133,9 @@ export const Chip = ({ children, onClick, tone = "default", active }: { children
 const STATUS = {
   overdue: ["bg-danger", "text-danger", "Overdue"],
   ongoing: ["bg-brand", "text-brand", "Ongoing"],
-  upcoming: ["bg-amber-500", "text-amber-600", "Upcoming"],
+  upcoming: ["bg-warn", "text-warn-text", "Upcoming"],
   completed: ["bg-ink-faint", "text-ink-faint", "Completed"],
-  pending: ["bg-amber-500", "text-amber-600", "Awaiting payment"],
+  pending: ["bg-warn", "text-warn-text", "Awaiting payment"],
   cancelled: ["bg-ink-faint", "text-ink-faint", "Cancelled"],
 } as const;
 export const StatusDot = ({ status }: { status: keyof typeof STATUS }) => (
@@ -158,11 +158,11 @@ export const SectionHead = ({ title, to }: { title: string; to?: string }) => (
 
 export function ListRow({ icon, label, value, to, onClick, danger }: { icon?: ReactNode; label: ReactNode; value?: ReactNode; to?: string; onClick?: () => void; danger?: boolean }) {
   const body = (
-    <div className={cx("flex min-h-[56px] items-center gap-3.5 px-4 py-3", danger && "text-danger")}>
+    <div className={cx("group flex min-h-[56px] items-center gap-3.5 px-4 py-3", danger && "text-danger")}>
       {icon && <span className={cx("shrink-0", danger ? "text-danger" : "text-ink")}>{icon}</span>}
       <span className="flex-1 text-[15px] font-medium">{label}</span>
       {value && <span className="text-sm text-ink-muted">{value}</span>}
-      {(to || onClick) && <ChevronRight className="h-5 w-5 text-ink-faint" />}
+      {(to || onClick) && <ChevronRight className="h-5 w-5 text-ink-faint transition-transform group-active:translate-x-1" />}
     </div>
   );
   if (to) return <Link to={to} className="block active:bg-bg">{body}</Link>;
@@ -179,7 +179,7 @@ export const ListGroup = ({ title, children }: { title?: string; children: React
 
 export function Segmented<T extends string>({ value, options, onChange }: { value: T; options: { value: T; label: string }[]; onChange: (v: T) => void }) {
   return (
-    <div className="grid rounded-xl bg-[#ecebe6] p-1" style={{ gridTemplateColumns: `repeat(${options.length},1fr)` }}>
+    <div className="grid rounded-xl bg-muted p-1" style={{ gridTemplateColumns: `repeat(${options.length},1fr)` }}>
       {options.map((o) => (
         <button key={o.value} onClick={() => onChange(o.value)} className={cx("h-10 rounded-lg text-sm font-medium transition", value === o.value ? "bg-white text-ink shadow-card font-semibold" : "text-ink-muted")}>
           {o.label}
@@ -235,12 +235,13 @@ const TABS = [
 
 export function TabBar() {
   return (
-    <nav className="pb-safe fixed inset-x-0 bottom-0 z-30 mx-auto max-w-[480px] border-t border-line bg-white/95 backdrop-blur">
+    <nav className="pb-safe fixed inset-x-0 bottom-0 z-30 mx-auto max-w-[480px] border-t border-line bg-white/95 shadow-tabbar backdrop-blur">
       <div className="grid grid-cols-5">
         {TABS.map(({ to, label, icon: Icon }) => (
           <NavLink key={to} to={to} end={to === "/"} onClick={(e) => { if (location.pathname === to) e.preventDefault(); tap(); }} className={({ isActive }) => cx("relative flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-medium", isActive ? "text-brand" : "text-ink-faint")}>
             {({ isActive }) => (
               <>
+                {isActive && <motion.span layoutId="tab-line" className="absolute inset-x-4 top-0 h-[3px] rounded-b-full bg-brand" transition={{ type: "spring", stiffness: 500, damping: 35 }} />}
                 {isActive && <motion.span layoutId="tab-pill" className="absolute top-1.5 h-8 w-12 rounded-full bg-brand-soft" transition={{ type: "spring", stiffness: 500, damping: 35 }} />}
                 <motion.span className="relative" animate={{ y: isActive ? -1 : 0, scale: isActive ? 1.08 : 1 }}><Icon className="h-6 w-6" strokeWidth={isActive ? 2.4 : 1.8} /></motion.span>
                 <span className="relative">{label}</span>
@@ -254,11 +255,15 @@ export function TabBar() {
 }
 
 /** Page wrapper for tab screens. */
-export const Screen = ({ children, tabs = true, className }: { children: ReactNode; tabs?: boolean; className?: string }) => (
-  <motion.main
-    initial={{ opacity: 0, x: tabs ? 0 : 24, y: tabs ? 8 : 0 }} animate={{ opacity: 1, x: 0, y: 0 }}
-    transition={{ duration: 0.32, ease: [0.2, 0.8, 0.2, 1] }}
-    className={cx("pt-safe mx-auto min-h-full max-w-[480px] px-5", tabs ? "pb-28" : "pb-10", className)}>
-    {children}
-  </motion.main>
-);
+export function Screen({ children, tabs = true, className }: { children: ReactNode; tabs?: boolean; className?: string }) {
+  // Inner pages slide in from the right going forward and from the left going back; tabs just fade up.
+  const back = useNavigationType() === "POP";
+  return (
+    <motion.main
+      initial={{ opacity: 0, x: tabs ? 0 : back ? -24 : 24, y: tabs ? 8 : 0 }} animate={{ opacity: 1, x: 0, y: 0 }}
+      transition={{ duration: 0.32, ease: [0.2, 0.8, 0.2, 1] }}
+      className={cx("pt-safe mx-auto min-h-full max-w-[480px] px-5", tabs ? "pb-28" : "pb-10", className)}>
+      {children}
+    </motion.main>
+  );
+}

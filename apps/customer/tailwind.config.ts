@@ -1,20 +1,28 @@
 import type { Config } from "tailwindcss";
 
-// Tokens taken from Zakeri's 5 master screens.
+// Every colour is a CSS variable (RGB triplet) defined per theme in src/index.css,
+// so a theme or brand colour change is one block there and `/opacity` modifiers keep working.
+const token = (name: string) => `rgb(var(--${name}) / <alpha-value>)`;
+
 export default {
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
   theme: {
     extend: {
       colors: {
-        brand: { DEFAULT: "#1f4d2f", dark: "#173a24", soft: "#e8f0ea" },
-        bg: "#f6f5f2",
-        ink: { DEFAULT: "#141414", muted: "#6b6b6b", faint: "#a3a3a3" },
-        line: "#ecebe7",
-        danger: { DEFAULT: "#d93025", soft: "#fdeeee" },
+        brand: { DEFAULT: token("brand"), dark: token("brand-dark"), soft: token("brand-soft") },
+        bg: token("bg"),
+        ink: { DEFAULT: token("ink"), muted: token("ink-muted"), faint: token("ink-faint") },
+        line: token("line"),
+        danger: { DEFAULT: token("danger"), soft: token("danger-soft") },
+        warn: { DEFAULT: token("warn"), text: token("warn-text"), soft: token("warn-soft") },
+        tint: token("tint"),
+        muted: token("muted"),
+        hero: token("hero"),
+        night: token("night"),
       },
       fontFamily: { sans: ["Inter", "system-ui", "sans-serif"] },
       borderRadius: { card: "14px" },
-      boxShadow: { card: "0 1px 2px rgba(20,20,20,.04)" },
+      boxShadow: { card: "0 1px 2px rgb(var(--ink) / .04)", tabbar: "0 -6px 24px rgb(var(--ink) / .08)" },
     },
   },
 } satisfies Config;
