@@ -5,6 +5,7 @@ import { useStore } from "@/lib/store";
 import { api } from "@/lib/supabase";
 import { SUPPORT_PHONE, whatsappLink } from "@/config";
 import { Avatar, Chip, Logo, Screen } from "@/components/ui";
+import { useI18n } from "@/lib/i18n";
 
 type Msg = { role: "user" | "assistant"; content: string; urgent?: boolean };
 const CHIPS = ["Extend my rental", "Payment help"];
@@ -15,6 +16,7 @@ const WhatsAppIcon = () => (
 );
 
 export default function Support() {
+  const { t } = useI18n();
   const { user } = useStore();
   const first = user!.name.split(" ")[0];
   const ask = (useLocation().state as { ask?: string } | null)?.ask;
@@ -34,9 +36,9 @@ export default function Support() {
     setMsgs(next); setText(""); setBusy(true);
     try {
       const data = await api<{ reply: string; urgent: boolean }>("chat", { messages: next.slice(-12).map(({ role, content }) => ({ role, content })), urgentCall });
-      setMsgs([...next, { role: "assistant", content: data.reply || "Sorry, something went wrong.", urgent: data.urgent }]);
+      setMsgs([...next, { role: "assistant", content: data.reply || t("Sorry, something went wrong."), urgent: data.urgent }]);
     } catch {
-      setMsgs([...next, { role: "assistant", content: "I can't connect right now. Please message us on WhatsApp or call us." }]);
+      setMsgs([...next, { role: "assistant", content: t("I can't connect right now. Please message us on WhatsApp or call us.") }]);
     } finally { setBusy(false); }
   };
 
@@ -45,19 +47,19 @@ export default function Support() {
       <div className="flex items-center justify-between pb-4 pt-3"><Logo /><Avatar /></div>
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-[28px] font-bold tracking-tight">How can we help?</h1>
-          <p className="mt-1 flex items-center gap-1.5 text-sm"><Sparkles className="h-4 w-4 text-brand" /><b>Drivex AI</b><span className="text-ink-faint">· AI assistant</span></p>
+          <h1 className="text-[28px] font-bold tracking-tight">{t("How can we help?")}</h1>
+          <p className="mt-1 flex items-center gap-1.5 text-sm"><Sparkles className="h-4 w-4 text-brand" /><b>Drivex AI</b><span className="text-ink-faint">· {t("AI assistant")}</span></p>
         </div>
         <a href={whatsappLink(`Hi Drivex, this is ${user!.name}.`)} target="_blank" rel="noreferrer" aria-label="WhatsApp"
           className="grid h-12 w-12 place-items-center rounded-full bg-[#25d366]/10 text-[#1a9e4b]"><WhatsAppIcon /></a>
       </div>
 
       <div className="mt-5 flex-1 space-y-3">
-        <Bubble role="assistant" content={`Hi ${first}. What can I help you with?`} />
+        <Bubble role="assistant" content={t("Hi {name}. What can I help you with?", { name: first })} />
         {!msgs.length && (
           <div className="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5">
-            {CHIPS.map((c) => <Chip key={c} onClick={() => send(c)}>{c}</Chip>)}
-            <Chip tone="danger" onClick={() => send("Urgent call — I need help now.", true)}><Phone className="h-4 w-4" /> Urgent call</Chip>
+            {CHIPS.map((c) => <Chip key={c} onClick={() => send(t(c))}>{t(c)}</Chip>)}
+            <Chip tone="danger" onClick={() => send(t("Urgent call — I need help now."), true)}><Phone className="h-4 w-4" /> {t("Urgent call")}</Chip>
           </div>
         )}
         {msgs.map((m, i) => <Bubble key={i} {...m} />)}
@@ -67,28 +69,29 @@ export default function Support() {
 
       {!!msgs.length && (
         <div className="no-scrollbar -mx-5 mb-2 flex gap-2 overflow-x-auto px-5">
-          <Chip tone="danger" onClick={() => send("Urgent call — I need help now.", true)}><Phone className="h-4 w-4" /> Urgent call</Chip>
-          {CHIPS.map((c) => <Chip key={c} onClick={() => send(c)}>{c}</Chip>)}
+          <Chip tone="danger" onClick={() => send(t("Urgent call — I need help now."), true)}><Phone className="h-4 w-4" /> {t("Urgent call")}</Chip>
+          {CHIPS.map((c) => <Chip key={c} onClick={() => send(t(c))}>{t(c)}</Chip>)}
         </div>
       )}
 
-      <form onSubmit={(e) => { e.preventDefault(); send(text); }} className="sticky bottom-20 lg:bottom-4 flex items-center gap-2 rounded-2xl border border-line bg-white p-1.5 pl-4 shadow-card">
-        <input value={text} onChange={(e) => setText(e.target.value)} placeholder="Ask a question…" className="h-11 flex-1 bg-transparent text-[15px] outline-none placeholder:text-ink-faint" />
-        <button disabled={!text.trim() || busy} className="grid h-11 w-11 place-items-center rounded-xl bg-brand text-white disabled:opacity-40" aria-label="Send"><SendHorizontal className="h-5 w-5" /></button>
+      <form onSubmit={(e) => { e.preventDefault(); send(text); }} className="sticky bottom-20 lg:bottom-4 flex items-center gap-2 rounded-2xl border border-line bg-white p-1.5 ps-4 shadow-card">
+        <input value={text} onChange={(e) => setText(e.target.value)} placeholder={t("Ask a question…")} className="h-11 flex-1 bg-transparent text-[15px] outline-none placeholder:text-ink-faint" />
+        <button disabled={!text.trim() || busy} className="grid h-11 w-11 place-items-center rounded-xl bg-brand text-white disabled:opacity-40" aria-label={t("Send")}><SendHorizontal className="h-5 w-5 rtl:-scale-x-100" /></button>
       </form>
     </Screen>
   );
 }
 
 function Bubble({ role, content, urgent }: Msg) {
+  const { t } = useI18n();
   const mine = role === "user";
   return (
     <div className={`flex flex-col ${mine ? "items-end" : "items-start"}`}>
-      <div className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-4 py-3 text-[15px] leading-relaxed ${mine ? "rounded-br-md bg-brand text-white" : "rounded-bl-md bg-muted"}`}>{content}</div>
+      <div className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-4 py-3 text-[15px] leading-relaxed ${mine ? "rounded-ee-md bg-brand text-white" : "rounded-es-md bg-muted"}`} dir="auto">{content}</div>
       {urgent && (
         <div className="mt-2 w-[85%] rounded-2xl border border-danger/30 bg-danger-soft p-3">
-          <p className="flex items-center gap-1.5 text-sm font-semibold text-danger"><TriangleAlert className="h-4 w-4" /> Our team has been alerted</p>
-          <a href={`tel:${SUPPORT_PHONE}`} className="mt-2 flex h-11 items-center justify-center gap-2 rounded-xl bg-danger font-semibold text-white"><Phone className="h-4 w-4" /> Call Drivex now</a>
+          <p className="flex items-center gap-1.5 text-sm font-semibold text-danger"><TriangleAlert className="h-4 w-4" /> {t("Our team has been alerted")}</p>
+          <a href={`tel:${SUPPORT_PHONE}`} className="mt-2 flex h-11 items-center justify-center gap-2 rounded-xl bg-danger font-semibold text-white"><Phone className="h-4 w-4" /> {t("Call Drivex now")}</a>
         </div>
       )}
     </div>

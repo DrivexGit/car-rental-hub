@@ -1,3 +1,26 @@
-// Arabic (Gulf/UAE tone), keyed by the English text.
+// Arabic (Gulf/UAE tone), keyed by the English text. Login and photo upload errors.
 export default {
+  "Welcome to Drivex": "أهلاً بك في درايفكس",
+  "Enter your mobile number to sign in or create your account.": "أدخل رقم جوالك لتسجيل الدخول أو إنشاء حسابك.",
+  "Mobile number": "رقم الجوال",
+  "Send code": "إرسال الرمز",
+  "By continuing you agree to our Terms and Privacy Policy.": "بمتابعتك فأنت توافق على الشروط وسياسة الخصوصية.",
+  "Enter a UAE mobile number, e.g. 50 123 4567.": "أدخل رقم جوال إماراتي، مثال: 50 123 4567.",
+  "Enter the code": "أدخل الرمز",
+  "We sent a 6-digit code by SMS to": "أرسلنا رمزاً من 6 أرقام برسالة نصية إلى",
+  "Test mode: SMS is not connected yet.": "وضع التجربة: الرسائل النصية غير مفعّلة بعد.",
+  "Use code {code}": "استخدم الرمز {code}",
+  "Resend code in {n}s": "إعادة الإرسال بعد {n} ث",
+  "Resend code": "إعادة إرسال الرمز",
+  "What's your name?": "ما اسمك؟",
+  "So we know how to greet you. You only do this once.": "حتى نعرف كيف نناديك. تفعلها مرة واحدة فقط.",
+  "Full name": "الاسم الكامل",
+  "Get started": "ابدأ الآن",
+  "Verification code": "رمز التحقق",
+  "Please choose an image file.": "الرجاء اختيار ملف صورة.",
+  "That photo is too large. Choose one under 10 MB.": "حجم الصورة كبير. اختر صورة أقل من 10 ميغابايت.",
+  "We could not read that image. Try a JPG or PNG.": "تعذّرت قراءة الصورة. جرّب صورة JPG أو PNG.",
+  "We could not process that image.": "تعذّرت معالجة الصورة.",
+  "Could not upload your photo. Please try again.": "تعذّر رفع صورتك. حاول مرة أخرى.",
+  "Could not save your photo. Please try again.": "تعذّر حفظ صورتك. حاول مرة أخرى.",
 } as Record<string, string>;

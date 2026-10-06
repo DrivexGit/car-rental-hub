@@ -45,7 +45,7 @@ function Body() {
   return (
     <>
       <SideNav />
-      <div className="h-full lg:pl-64">
+      <div className="h-full lg:ps-64">
       {/* Quick fade-out of the old page before the next one slides in, so a tap never feels like a hard jump. */}
       <AnimatePresence mode="wait" initial={false}>
         <motion.div key={pathname} className="h-full" exit={{ opacity: 0, transition: { duration: 0.12 } }}>

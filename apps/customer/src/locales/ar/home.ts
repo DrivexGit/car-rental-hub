@@ -1,3 +1,71 @@
-// Arabic (Gulf/UAE tone), keyed by the English text.
+// Arabic (Gulf/UAE tone), keyed by the English text. Home, Support, Inbox, Confirmed, install and push prompts.
 export default {
+  // Home
+  "Good morning": "صباح الخير",
+  "Good afternoon": "مساء الخير",
+  "Good evening": "مساء الخير",
+  "{greeting}, {name}": "{greeting}، {name}",
+  "Your next journey, beautifully taken care of.": "رحلتك القادمة، بكل عناية وأناقة.",
+  "Pending invoice": "فاتورة معلّقة",
+  "Your Offers": "عروضك",
+  "Dining benefits": "مزايا المطاعم",
+  "Slide {n}": "الشريحة {n}",
+  "Your personal code — show it at the venue": "رمزك الخاص — أبرزه في المكان",
+  "Copied": "تم النسخ",
+  "Copy code": "نسخ الرمز",
+  "Exclusive renter benefits": "مزايا حصرية للمستأجرين",
+  "A little more luxury.": "قليل من الفخامة.",
+  "Enjoy 30% off at Al Noor Restaurant.": "استمتع بخصم 30% في مطعم النور.",
+  "Explore benefit": "اكتشف الميزة",
+  "Monthly plans": "الباقات الشهرية",
+  "Drive more, pay less.": "قُد أكثر، وادفع أقل.",
+  "Save up to 40% with a monthly rental.": "وفّر حتى 40% مع الإيجار الشهري.",
+  "See monthly cars": "شاهد سيارات الإيجار الشهري",
+
+  // Inbox
+  "now": "الآن",
+  "{n}m": "{n} د",
+  "{n}h": "{n} س",
+  "{n}d": "{n} ي",
+  "You're all caught up": "لا يوجد جديد",
+  "Invoices, Salik and booking updates show up here.": "تظهر هنا الفواتير وسالك وتحديثات الحجز.",
+
+  // Confirmed
+  "Booking saved": "تم حفظ الحجز",
+  "You're all set!": "كل شيء جاهز!",
+  "Your car is held. Pay the invoice to confirm it.": "سيارتك محجوزة لك. ادفع الفاتورة لتأكيد الحجز.",
+  "Your booking is confirmed. We'll message you before pickup.": "تم تأكيد حجزك. سنراسلك قبل موعد الاستلام.",
+  "View booking": "عرض الحجز",
+  "Back to home": "العودة للرئيسية",
+
+  // Support
+  "How can we help?": "كيف نقدر نساعدك؟",
+  "AI assistant": "المساعد الذكي",
+  "Hi {name}. What can I help you with?": "هلا {name}. كيف أقدر أساعدك؟",
+  "Urgent call — I need help now.": "اتصال عاجل — أحتاج مساعدة الآن.",
+  "Urgent call": "اتصال عاجل",
+  "Extend my rental": "تمديد الإيجار",
+  "Payment help": "مساعدة في الدفع",
+  "Ask a question…": "اكتب سؤالك…",
+  "Our team has been alerted": "تم تنبيه فريقنا",
+  "Call Drivex now": "اتصل بدرايفكس الآن",
+  "Sorry, something went wrong.": "عذراً، حدث خطأ ما.",
+  "I can't connect right now. Please message us on WhatsApp or call us.": "لا أستطيع الاتصال حالياً. راسلنا على واتساب أو اتصل بنا.",
+
+  // Install banner and push prompt
+  "Get the Drivex app": "حمّل تطبيق درايفكس",
+  "Faster, full screen, with alerts.": "أسرع، بملء الشاشة، مع التنبيهات.",
+  "Install": "تثبيت",
+  "Dismiss": "إخفاء",
+  "Add Drivex to your Home Screen": "أضف درايفكس إلى الشاشة الرئيسية",
+  "Tap {x} in the browser bar.": "اضغط {x} في شريط المتصفح.",
+  "Tap {x} in the browser bar (or the ⋮ menu).": "اضغط {x} في شريط المتصفح (أو من القائمة ⋮).",
+  "Choose {x}.": "اختر {x}.",
+  "Add to Home Screen": "إضافة إلى الشاشة الرئيسية",
+  "Open Drivex from your Home Screen.": "افتح درايفكس من الشاشة الرئيسية.",
+  "Got it": "فهمت",
+  "Turn on notifications": "فعّل الإشعارات",
+  "Invoices, Salik and booking updates.": "الفواتير وسالك وتحديثات الحجز.",
+  "Allow": "السماح",
+  "Not now": "ليس الآن",
 } as Record<string, string>;

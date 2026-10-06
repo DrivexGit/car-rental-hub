@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import { translate } from "@/lib/i18n";
 import { api, supabase } from "@/lib/supabase";
 import { carImage, slug, toFleet, type Car, type Period } from "@/data/catalog";
 
@@ -151,10 +152,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const ext = photo.type === "image/webp" ? "webp" : "jpg";
         const path = `${uid}/avatar.${ext}`;
         const up = await bucket.upload(path, photo, { upsert: true, contentType: photo.type, cacheControl: "3600" });
-        if (up.error) throw new Error("Could not upload your photo. Please try again.");
+        if (up.error) throw new Error(translate("Could not upload your photo. Please try again."));
         const url = `${bucket.getPublicUrl(path).data.publicUrl}?v=${Date.now()}`;
         const { error } = await supabase.from("customers").update({ avatar_url: url }).eq("id", uid);
-        if (error) throw new Error("Could not save your photo. Please try again.");
+        if (error) throw new Error(translate("Could not save your photo. Please try again."));
         await bucket.remove([`${uid}/avatar.${ext === "webp" ? "jpg" : "webp"}`]); // leftover from another device/browser
       }
       await refresh();
