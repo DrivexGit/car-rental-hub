@@ -72,7 +72,7 @@ export default function Support() {
         </div>
       )}
 
-      <form onSubmit={(e) => { e.preventDefault(); send(text); }} className="sticky bottom-20 flex items-center gap-2 rounded-2xl border border-line bg-white p-1.5 pl-4 shadow-card">
+      <form onSubmit={(e) => { e.preventDefault(); send(text); }} className="sticky bottom-20 lg:bottom-4 flex items-center gap-2 rounded-2xl border border-line bg-white p-1.5 pl-4 shadow-card">
         <input value={text} onChange={(e) => setText(e.target.value)} placeholder="Ask a question…" className="h-11 flex-1 bg-transparent text-[15px] outline-none placeholder:text-ink-faint" />
         <button disabled={!text.trim() || busy} className="grid h-11 w-11 place-items-center rounded-xl bg-brand text-white disabled:opacity-40" aria-label="Send"><SendHorizontal className="h-5 w-5" /></button>
       </form>

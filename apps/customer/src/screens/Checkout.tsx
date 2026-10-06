@@ -69,7 +69,7 @@ export default function Checkout() {
       </Card>
       {error && <p className="mt-4 rounded-card bg-danger-soft p-3 text-sm font-medium text-danger">{error}</p>}
 
-      <div className="pb-safe fixed inset-x-0 bottom-0 z-30 mx-auto max-w-[480px] border-t border-line bg-white px-5 pt-3">
+      <div className="pb-safe fixed inset-x-0 bottom-0 z-30 mx-auto max-w-[480px] border-t border-line bg-white px-5 pt-3 lg:left-64 lg:max-w-[560px] lg:px-10">
         <Button size="lg" className="mb-3" disabled={busy} onClick={pay}>
           {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Pay <Dirham /> {money(q.total)}</>}
         </Button>

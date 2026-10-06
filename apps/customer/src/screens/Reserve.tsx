@@ -39,9 +39,12 @@ export default function Reserve() {
   const toggle = (id: string) => setExtras((x) => (x.includes(id) ? x.filter((i) => i !== id) : [...x, id]));
 
   return (
-    <Screen tabs={false} className="pb-36">
+    <Screen tabs={false} wide className="pb-36">
       <BackBar title="Book your car" right={<span className="text-sm text-ink-muted">1 of 3</span>} />
 
+      {/* Desktop: the car on the left, the booking options on the right. */}
+      <div className="lg:grid lg:grid-cols-2 lg:items-start lg:gap-10">
+      <div>
       <Card className="overflow-hidden">
         <div className="bg-gradient-to-b from-tint to-white px-4 pt-4">
           <img src={car.image} alt={carName(car)} className="mx-auto h-[170px] w-full object-contain" />
@@ -80,7 +83,9 @@ export default function Reserve() {
         </>
       )}
 
-      <h2 className="mb-2 mt-6 font-semibold">Rental plan</h2>
+      </div>
+      <div>
+      <h2 className="mb-2 mt-6 font-semibold lg:mt-0">Rental plan</h2>
       <Segmented value={period} onChange={(p) => { setPeriod(p); setQty(p === "daily" ? 3 : 1); }} options={[{ value: "daily", label: "Daily" }, { value: "weekly", label: "Weekly" }, { value: "monthly", label: "Monthly" }]} />
 
       <Card className="mt-3 divide-y divide-line">
@@ -115,10 +120,12 @@ export default function Reserve() {
           );
         })}
       </Card>
+      </div>
+      </div>
 
       <DateSheet open={picking} onClose={() => setPicking(false)} value={pickup} onPick={setPickup} />
 
-      <div className="pb-safe fixed inset-x-0 bottom-0 z-30 mx-auto max-w-[480px] border-t border-line bg-white px-5 pt-3">
+      <div className="pb-safe fixed inset-x-0 bottom-0 z-30 mx-auto max-w-[480px] border-t border-line bg-white px-5 pt-3 lg:left-64 lg:max-w-[1040px] lg:px-10">
         <div className="mb-3 flex items-baseline justify-between">
           <span className="text-ink-muted">Total · {qty} {unit}{qty > 1 ? "s" : ""}</span>
           <span className="text-2xl font-bold"><Dirham /> {money(q.total)}</span>

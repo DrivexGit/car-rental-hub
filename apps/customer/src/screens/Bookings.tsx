@@ -20,7 +20,7 @@ export default function Bookings() {
     .sort((a, b) => (sort === "priority" ? PRIORITY[a.status] - PRIORITY[b.status] : 0) || b.pickup.localeCompare(a.pickup));
 
   return (
-    <Screen>
+    <Screen wide>
       <TopBar />
       <PageTitle title="My bookings" />
       <div className="mb-3 flex items-center justify-between">
@@ -32,7 +32,7 @@ export default function Bookings() {
         </button>
       </div>
 
-      <div className="space-y-3">
+      <div className="grid gap-3 lg:grid-cols-2 lg:gap-4">
         {list.map((b) => <BookingCard key={b.id} b={b} />)}
       </div>
       {!list.length && (

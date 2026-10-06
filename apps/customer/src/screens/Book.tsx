@@ -58,10 +58,10 @@ export default function Book() {
   const dateQuery = from && to ? `&from=${from}&to=${to}` : "";
 
   return (
-    <Screen>
+    <Screen wide>
       <TopBar />
       <PageTitle title="Find your drive" />
-      <div className="pt-safe sticky top-0 z-20 -mx-5 bg-bg/95 px-5 pb-3 pt-2 backdrop-blur">
+      <div className="pt-safe sticky top-0 z-20 -mx-5 bg-bg/95 px-5 pb-3 pt-2 backdrop-blur lg:-mx-10 lg:px-10">
 
       <Segmented value={period} onChange={setPeriod} options={[{ value: "daily", label: "Daily" }, { value: "weekly", label: "Weekly" }, { value: "monthly", label: "Monthly" }]} />
 
@@ -91,7 +91,7 @@ export default function Book() {
         </div>
       )}
 
-      <div className="space-y-3">
+      <div className="grid gap-3 md:grid-cols-2 lg:gap-4 xl:grid-cols-3">
         {cars.map((c, i) => {
           const off = offersOnly ? offerOff.get(c.id) ?? 0 : 0;
           const base = priceFor(c, period);
@@ -110,7 +110,7 @@ export default function Book() {
           </Card>
           );
         })}
-        {!cars.length && <Empty icon={<Search />} title={offersOnly ? "No offers right now" : "No cars found"} text={offersOnly ? "Turn off Offers only to see every car." : "Try another name or clear the filter."} action={<Button variant="ghost" onClick={clearAll}>Clear</Button>} />}
+        {!cars.length && <div className="col-span-full"><Empty icon={<Search />} title={offersOnly ? "No offers right now" : "No cars found"} text={offersOnly ? "Turn off Offers only to see every car." : "Try another name or clear the filter."} action={<Button variant="ghost" onClick={clearAll}>Clear</Button>} /></div>}
       </div>
 
       <Sheet open={sheet === "sort"} onClose={() => setSheet(null)} title="Sort by">

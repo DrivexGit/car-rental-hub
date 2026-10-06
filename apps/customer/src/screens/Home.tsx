@@ -22,7 +22,7 @@ export default function Home() {
   const first = user!.name.split(" ")[0];
 
   return (
-    <Screen>
+    <Screen wide>
       <TopBar />
       <InstallBanner />
       <PushPrompt />

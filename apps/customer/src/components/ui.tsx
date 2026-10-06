@@ -43,8 +43,8 @@ export const Avatar = ({ size = 40 }: { size?: number }) => (
 
 /** Top bar of every tab: logo left, avatar (or custom) right. */
 export const TopBar = ({ right }: { right?: ReactNode }) => (
-  <div className="flex items-center justify-between pt-3 pb-4">
-    <Logo />
+  <div className="flex items-center justify-between pt-3 pb-4 lg:justify-end">
+    <Logo className="h-6 lg:hidden" />
     {right ?? <div className="flex items-center gap-2.5"><Bell /><Avatar /></div>}
   </div>
 );
@@ -73,7 +73,7 @@ export const PageTitle = ({ title, sub }: { title: ReactNode; sub?: ReactNode })
 export function BackBar({ title, right }: { title?: string; right?: ReactNode }) {
   const nav = useNavigate();
   return (
-    <div className="sticky top-0 z-20 -mx-5 mb-3 flex items-center gap-3 bg-bg/90 px-5 py-3 backdrop-blur">
+    <div className="sticky top-0 z-20 -mx-5 mb-3 flex items-center gap-3 bg-bg/90 px-5 py-3 backdrop-blur lg:-mx-10 lg:px-10">
       <button onClick={() => nav(-1)} className="grid h-10 w-10 place-items-center rounded-full bg-white shadow-card border border-line" aria-label="Back">
         <ArrowLeft className="h-5 w-5" />
       </button>
@@ -200,13 +200,13 @@ export function Sheet({ open, onClose, title, children }: { open: boolean; onClo
   return createPortal(
     <AnimatePresence>
       {open && (
-    <motion.div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40" onClick={onClose}
+    <motion.div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 lg:items-center lg:p-6" onClick={onClose}
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
       <motion.div onClick={(e) => e.stopPropagation()}
         initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", stiffness: 380, damping: 36 }}
         drag="y" dragConstraints={{ top: 0, bottom: 0 }} dragElastic={{ top: 0, bottom: 0.6 }}
         onDragEnd={(_, i) => { if (i.offset.y > 120 || i.velocity.y > 600) onClose(); }}
-        className="max-h-[92vh] w-full max-w-[480px] overflow-y-auto rounded-t-3xl bg-white p-5 pb-[max(env(safe-area-inset-bottom),24px)]">
+        className="max-h-[92vh] w-full max-w-[480px] overflow-y-auto rounded-t-3xl bg-white p-5 lg:rounded-3xl lg:pb-6 pb-[max(env(safe-area-inset-bottom),24px)]">
         <div className="mx-auto -mt-2 mb-3 h-1.5 w-10 rounded-full bg-line" />
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-lg font-bold">{title}</h3>
@@ -240,7 +240,7 @@ const TABS = [
 
 export function TabBar() {
   return (
-    <nav className="pb-safe fixed inset-x-0 bottom-0 z-30 mx-auto max-w-[480px] border-t border-line bg-white/95 shadow-tabbar backdrop-blur">
+    <nav className="pb-safe fixed inset-x-0 bottom-0 z-30 mx-auto max-w-[480px] lg:hidden border-t border-line bg-white/95 shadow-tabbar backdrop-blur">
       <div className="grid grid-cols-5">
         {TABS.map(({ to, label, icon: Icon }) => (
           <NavLink key={to} to={to} end={to === "/"} onClick={(e) => { if (location.pathname === to) e.preventDefault(); tap(); }} className={({ isActive }) => cx("relative flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-medium", isActive ? "text-brand" : "text-ink-faint")}>
@@ -259,15 +259,37 @@ export function TabBar() {
   );
 }
 
+/** Desktop navigation (lg and up): replaces the bottom tab bar. */
+export function SideNav() {
+  const { user } = useStore();
+  return (
+    <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-line bg-white p-5 lg:flex">
+      <Link to="/" className="mb-8 mt-1 px-2"><Logo className="h-7" /></Link>
+      <nav className="flex flex-1 flex-col gap-1">
+        {TABS.map(({ to, label, icon: Icon }) => (
+          <NavLink key={to} to={to} end={to === "/"} className={({ isActive }) => cx("flex h-12 items-center gap-3 rounded-xl px-3 text-[15px] font-medium transition-colors", isActive ? "bg-brand-soft text-brand" : "text-ink-muted hover:bg-bg hover:text-ink")}>
+            {({ isActive }) => (<><Icon className="h-5 w-5" strokeWidth={isActive ? 2.4 : 1.8} />{label}</>)}
+          </NavLink>
+        ))}
+      </nav>
+      <Link to="/profile" className="flex items-center gap-3 rounded-xl p-2 hover:bg-bg">
+        <Face size={40} />
+        <span className="min-w-0"><span className="block truncate text-sm font-semibold">{user?.name}</span><span className="block truncate text-xs text-ink-muted">{user?.phone}</span></span>
+      </Link>
+    </aside>
+  );
+}
+
 /** Page wrapper for tab screens. */
-export function Screen({ children, tabs = true, className }: { children: ReactNode; tabs?: boolean; className?: string }) {
+/** `wide` pages use the full desktop content width; the rest stay a readable column. */
+export function Screen({ children, tabs = true, wide, className }: { children: ReactNode; tabs?: boolean; wide?: boolean; className?: string }) {
   // Inner pages slide in from the right going forward and from the left going back; tabs just fade up.
   const back = useNavigationType() === "POP";
   return (
     <motion.main
       initial={{ opacity: 0, x: tabs ? 0 : back ? -24 : 24, y: tabs ? 8 : 0 }} animate={{ opacity: 1, x: 0, y: 0 }}
       transition={{ duration: 0.32, ease: [0.2, 0.8, 0.2, 1] }}
-      className={cx("pt-safe mx-auto min-h-full max-w-[480px] px-5", tabs ? "pb-28" : "pb-10", className)}>
+      className={cx("pt-safe mx-auto min-h-full max-w-[480px] px-5 lg:px-10", wide ? "lg:max-w-[1040px]" : "lg:max-w-[560px]", tabs ? "pb-28 lg:pb-12" : "pb-10", className)}>
       {children}
     </motion.main>
   );

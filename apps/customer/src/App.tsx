@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { api } from "@/lib/supabase";
-import { TabBar } from "@/components/ui";
+import { SideNav, TabBar } from "@/components/ui";
 import { Splash } from "@/components/Splash";
 import Inbox from "@/screens/Inbox";
 import Login from "@/screens/Login";
@@ -44,6 +44,8 @@ function Body() {
 
   return (
     <>
+      <SideNav />
+      <div className="h-full lg:pl-64">
       {/* Quick fade-out of the old page before the next one slides in, so a tap never feels like a hard jump. */}
       <AnimatePresence mode="wait" initial={false}>
         <motion.div key={pathname} className="h-full" exit={{ opacity: 0, transition: { duration: 0.12 } }}>
@@ -70,6 +72,7 @@ function Body() {
       </Routes>
         </motion.div>
       </AnimatePresence>
+      </div>
       {TAB_ROUTES.includes(pathname) && <TabBar />}
     </>
   );
