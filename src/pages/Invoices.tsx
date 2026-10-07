@@ -11,7 +11,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { CustomerSelect, ReservationSelect } from '@/components/CustomerSelect';
 import { aed, fdate } from '@/lib/format';
-import { Plus } from 'lucide-react';
+import { Download, Plus } from 'lucide-react';
+import { COMPANY } from '@/lib/company';
+import { invoiceHtml, printInvoice } from '@/lib/invoice';
 
 const STATUS_STYLE: Record<string, string> = { pending: 'bg-amber-100 text-amber-800', paid: 'bg-emerald-100 text-emerald-800', void: 'bg-muted text-muted-foreground' };
 
@@ -20,6 +22,16 @@ export async function markPaidManually(inv: any) {
   await supabase.from('invoices' as any).update({ status: 'paid', paid_at: new Date().toISOString() }).eq('id', inv.id);
   await supabase.from('payments' as any).insert({ tenant_id: inv.tenant_id, invoice_id: inv.id, customer_id: inv.customer_id, amount: inv.amount, provider: 'manual', status: 'succeeded' });
   if (inv.reservation_id) await supabase.from('reservations').update({ status: 'confirmed' }).eq('id', inv.reservation_id).eq('status', 'pending');
+}
+
+/** Opens the tax invoice in the print dialog; "Save as PDF" downloads it. */
+function downloadInvoice(r: any) {
+  const v = r.reservations?.vehicles;
+  return printInvoice(invoiceHtml({
+    invoice: { number: r.number, issued: r.issued_at, status: r.status, paidAt: r.paid_at, description: r.description, detail: v ? `${v.make} ${v.model} · ${v.plate_number}` : undefined, amount: Number(r.amount) },
+    to: { name: r.customers?.full_name || 'Customer', phone: r.customers?.phone, email: r.customers?.email },
+    company: COMPANY, logoUrl: `${location.origin}/logo-dark.png`,
+  }));
 }
 
 export default function Invoices() {
@@ -32,7 +44,7 @@ export default function Invoices() {
   const { toast } = useToast();
 
   const load = async () => {
-    let query = supabase.from('invoices' as any).select('*, customers(full_name, phone), reservations(vehicles(make, model, plate_number))').order('issued_at', { ascending: false });
+    let query = supabase.from('invoices' as any).select('*, customers(full_name, phone, email), reservations(vehicles(make, model, plate_number))').order('issued_at', { ascending: false });
     if (status !== 'all') query = query.eq('status', status);
     const { data } = await query;
     setRows((data as any) || []);
@@ -80,6 +92,7 @@ export default function Invoices() {
               <TableCell className="text-right font-medium">{aed(r.amount)}</TableCell>
               <TableCell><Badge className={STATUS_STYLE[r.status]}>{r.status === 'pending' ? 'unpaid' : r.status}</Badge></TableCell>
               <TableCell className="whitespace-nowrap text-right">
+                <Button size="sm" variant="ghost" aria-label={`Download invoice ${r.number}`} title="Download invoice (Save as PDF)" onClick={() => downloadInvoice(r)}><Download className="h-4 w-4" /></Button>
                 {r.status === 'pending' && <>
                   <Button size="sm" variant="ghost" onClick={async () => { await markPaidManually(r); toast({ title: 'Marked as paid' }); load(); }}>Mark paid</Button>
                   <Button size="sm" variant="ghost" onClick={async () => { await supabase.from('invoices' as any).update({ status: 'void' }).eq('id', r.id); load(); }}>Void</Button>

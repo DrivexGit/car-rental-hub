@@ -170,6 +170,21 @@ async function fresh(viewport, lang = "en") {
   await ctx.close();
 }
 
+// 6. Invoice download: the tax invoice document is built with the right VAT split and customer.
+{
+  const { ctx, page, errors } = await fresh({ width: 390, height: 844 });
+  await page.goto(BASE + "/bookings/r1", { waitUntil: "networkidle" }); await page.waitForTimeout(600);
+  await page.getByRole("button", { name: "Download invoice" }).first().click();
+  let html = null;
+  for (let k = 0; k < 20 && !html; k++) { await page.waitForTimeout(150); const f = page.frames().find((fr) => fr !== page.mainFrame()); html = f ? await f.content().catch(() => null) : null; }
+  ok("invoice document opened for printing", !!html && html.includes("TAX INVOICE"));
+  ok("shows number, customer and amounts", !!html && html.includes("INV-1001") && html.includes("Test Customer") && html.includes("AED 3,571.43") && html.includes("AED 178.57") && html.includes("AED 3,750.00"), html ? "" : "no iframe");
+  ok("shows car detail and unpaid stamp", !!html && html.includes("Mercedes G63") && html.includes("UNPAID"));
+  if (html) { const p2 = await ctx.newPage(); await p2.setViewportSize({ width: 794, height: 1123 }); await p2.setContent(html, { waitUntil: "load" }); await p2.screenshot({ path: OUT + "/i-invoice.png" }); }
+  ok("no console errors (invoice)", errors.length === 0, errors.join(" | "));
+  await ctx.close();
+}
+
 console.log(results.map((r) => (r.pass ? "PASS  " : "FAIL  ") + r.name + (r.pass ? "" : "   -> " + r.extra)).join("\n"));
 console.log(results.filter((r) => r.pass).length + "/" + results.length + " passed");
 await browser.close();

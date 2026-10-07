@@ -8,6 +8,7 @@ import { day, money } from "@/lib/format";
 import { BackBar, Button, Card, Dirham, Empty, Face, ListGroup, ListRow, Screen } from "@/components/ui";
 import { compressSquare } from "@/lib/image";
 import { PayInvoiceSheet } from "@/screens/PaySheet";
+import { InvoiceDownload } from "@/components/InvoiceDownload";
 import { whatsappLink } from "@/config";
 import type { Invoice } from "@/lib/store";
 import { LANGS, useI18n } from "@/lib/i18n";
@@ -81,6 +82,7 @@ export function Payments() {
             <div key={i.id} className="flex min-h-[64px] items-center gap-3 px-4 py-3">
               <FileText className="h-5 w-5 text-ink-muted" />
               <div className="flex-1"><p className="font-medium">{i.number}</p><p className="text-xs text-ink-muted">{day(i.paidAt || i.issued)}</p></div>
+              <InvoiceDownload invoice={i} />
               <div className="text-end">
                 <p className="font-bold"><Dirham /> {money(i.amount)}</p>
                 {i.status === "paid" ? <span className="inline-flex items-center gap-1 text-xs text-brand"><CheckCircle2 className="h-3.5 w-3.5" /> {t("Paid")}</span>
