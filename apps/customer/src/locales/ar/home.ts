@@ -52,6 +52,17 @@ export default {
   "Sorry, something went wrong.": "عذراً، حدث خطأ ما.",
   "I can't connect right now. Please message us on WhatsApp or call us.": "لا أستطيع الاتصال حالياً. راسلنا على واتساب أو اتصل بنا.",
 
+  // Onboarding
+  "Welcome": "أهلاً بك",
+  "Skip": "تخطّي",
+  "Next": "التالي",
+  "Book in a minute": "احجز في دقيقة",
+  "Pick a car, choose your dates and pay. That's it.": "اختر سيارتك وحدّد التواريخ وادفع. بهذه البساطة.",
+  "Everything in one place": "كل شيء في مكان واحد",
+  "Your bookings, invoices, Salik and fines, always up to date.": "حجوزاتك وفواتيرك وسالك ومخالفاتك، محدّثة دائماً.",
+  "Help when you need it": "مساعدة وقت ما تحتاجها",
+  "Chat with Drivex AI any time, or call us if it's urgent.": "تحدّث مع مساعد درايفكس الذكي في أي وقت، أو اتصل بنا إذا كان الأمر عاجلاً.",
+
   // Install banner and push prompt
   "Get the Drivex app": "حمّل تطبيق درايفكس",
   "Faster, full screen, with alerts.": "أسرع، بملء الشاشة، مع التنبيهات.",

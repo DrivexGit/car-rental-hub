@@ -6,6 +6,7 @@ import { useStore } from "@/lib/store";
 import { api } from "@/lib/supabase";
 import { SideNav, TabBar } from "@/components/ui";
 import { Splash } from "@/components/Splash";
+import { Onboarding } from "@/components/Onboarding";
 import Inbox from "@/screens/Inbox";
 import Login from "@/screens/Login";
 import Home from "@/screens/Home";
@@ -45,6 +46,7 @@ function Body() {
   return (
     <>
       <SideNav />
+      <Onboarding />
       <div className="h-full lg:ps-64">
       {/* Quick fade-out of the old page before the next one slides in, so a tap never feels like a hard jump. */}
       <AnimatePresence mode="wait" initial={false}>

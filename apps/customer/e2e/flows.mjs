@@ -27,7 +27,7 @@ async function fresh(viewport, lang = "en") {
     try {
       if (!localStorage.getItem("drivex.customer.auth")) localStorage.setItem("drivex.customer.auth", s);
       if (!localStorage.getItem("drivex.lang")) localStorage.setItem("drivex.lang", l);
-      sessionStorage.setItem("drivex.splash", "1");
+      sessionStorage.setItem("drivex.splash", "1"); localStorage.setItem("drivex.onboarded", "1");
     } catch { /* ignore */ }
   }, [SESSION, lang]);
   const page = await ctx.newPage();
@@ -122,6 +122,35 @@ async function fresh(viewport, lang = "en") {
   ok("uploaded file is small (compressed)", !!up && up.len < 60000, String(up?.len));
   ok("avatar_url saved on the customer", !!patch && (patch.body || "").includes("avatars/" + UID + "/avatar."), patch?.body);
   ok("no console errors (upload)", errors.length === 0, errors.join(" | "));
+  await ctx.close();
+}
+
+// 4b. Onboarding: first launch only, skippable, translated, remembered.
+{
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  await mock(ctx);
+  await ctx.addInitScript(([s]) => { try { if (!localStorage.getItem("drivex.customer.auth")) localStorage.setItem("drivex.customer.auth", s); sessionStorage.setItem("drivex.splash", "1"); } catch { /* ignore */ } }, [SESSION]);
+  const page = await ctx.newPage();
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.goto(BASE + "/", { waitUntil: "networkidle" }); await page.waitForTimeout(600);
+  ok("onboarding shows on first launch", (await page.getByRole("dialog").count()) === 1 && (await page.getByText("Book in a minute").count()) === 1);
+  await page.screenshot({ path: OUT + "/i-onboarding.png" });
+  await page.getByRole("button", { name: /Next/ }).click(); await page.waitForTimeout(600);
+  ok("next slide", (await page.getByText("Everything in one place").count()) === 1);
+  await page.getByRole("button", { name: /Next/ }).click(); await page.waitForTimeout(600);
+  ok("last slide offers Get started", (await page.getByRole("button", { name: /Get started/ }).count()) === 1);
+  await page.getByRole("button", { name: /Get started/ }).click(); await page.waitForTimeout(600);
+  ok("onboarding closes and is remembered", (await page.getByRole("dialog").count()) === 0 && (await page.evaluate(() => localStorage.getItem("drivex.onboarded"))) === "1");
+  await page.reload({ waitUntil: "networkidle" }); await page.waitForTimeout(500);
+  ok("not shown again after reload", (await page.getByRole("dialog").count()) === 0);
+  await page.evaluate(() => { localStorage.removeItem("drivex.onboarded"); localStorage.setItem("drivex.lang", "ar"); });
+  await page.reload({ waitUntil: "networkidle" }); await page.waitForTimeout(600);
+  ok("Arabic onboarding is translated and RTL", (await page.getByText("احجز في دقيقة").count()) === 1);
+  await page.screenshot({ path: OUT + "/i-onboarding-ar.png" });
+  await page.getByRole("button", { name: "تخطّي" }).click(); await page.waitForTimeout(500);
+  ok("skip closes it", (await page.getByRole("dialog").count()) === 0);
+  ok("no page errors (onboarding)", errors.length === 0, errors.join(" | "));
   await ctx.close();
 }
 
