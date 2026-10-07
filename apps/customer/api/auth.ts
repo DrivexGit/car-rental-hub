@@ -1,5 +1,6 @@
 import { createHmac } from "node:crypto";
 import { admin, anonClient, fail, json, TENANT_ID } from "./_lib.js";
+import { allowed, clientIp, record } from "./_ratelimit.js";
 
 // Phone sign-in. Each customer is a Supabase auth user with a hidden email + server-derived password,
 // so the app gets a normal Supabase session and RLS works.
@@ -14,15 +15,29 @@ const normalize = (p: string) => {
 const emailFor = (phone: string) => `c${phone.slice(1)}@customers.drivex.app`;
 const passwordFor = (phone: string) => createHmac("sha256", process.env.AUTH_SECRET!).update(phone).digest("hex");
 
+const TOO_MANY = "Too many attempts. Please wait a few minutes and try again.";
+
 export async function POST(req: Request) {
   const { action, phone: raw, code, name } = await req.json().catch(() => ({}));
   const phone = normalize(raw);
   if (!phone) return fail("Enter a valid UAE mobile number.");
 
-  if (action === "send") return json({ ok: true, testMode: !process.env.SMS_PROVIDER });
+  const who = { phone, ip: clientIp(req) };
+
+  if (action === "send") {
+    // ponytail: when an SMS provider is connected, send the real code here (after this check).
+    if (!(await allowed("send", who, { phone: [5, 10], ip: [20, 60] }))) return fail(TOO_MANY, 429);
+    await record("send", who);
+    return json({ ok: true, testMode: !process.env.SMS_PROVIDER });
+  }
 
   if (action !== "verify") return fail("Unknown action");
-  if (String(code) !== (process.env.OTP_TEST_CODE || "")) return fail("Wrong code. Please try again.", 401);
+  // Wrong guesses are limited, so a 6-digit code cannot be brute forced.
+  if (!(await allowed("verify_fail", who, { phone: [5, 10], ip: [30, 60] }))) return fail(TOO_MANY, 429);
+  if (String(code) !== (process.env.OTP_TEST_CODE || "")) {
+    await record("verify_fail", who);
+    return fail("Wrong code. Please try again.", 401);
+  }
 
   const db = admin();
   const { data: existing } = await db.from("customers").select("id").eq("tenant_id", TENANT_ID).eq("phone", phone).maybeSingle();

@@ -17,6 +17,8 @@ export default {
   "Full name": "الاسم الكامل",
   "Get started": "ابدأ الآن",
   "Verification code": "رمز التحقق",
+  "Too many attempts. Please wait a few minutes and try again.": "محاولات كثيرة. انتظر دقائق ثم حاول مرة أخرى.",
+  "Something went wrong. Please try again.": "حدث خطأ ما. حاول مرة أخرى.",
   "Please choose an image file.": "الرجاء اختيار ملف صورة.",
   "That photo is too large. Choose one under 10 MB.": "حجم الصورة كبير. اختر صورة أقل من 10 ميغابايت.",
   "We could not read that image. Try a JPG or PNG.": "تعذّرت قراءة الصورة. جرّب صورة JPG أو PNG.",

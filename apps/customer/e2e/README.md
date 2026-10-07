@@ -1,6 +1,6 @@
 # Customer app QA (end to end)
 
-Browser tests that drive the real UI in Chrome. **The backend is mocked** (`lib.mjs` fakes the Supabase REST/auth/storage calls and `/api/*` and injects a fake session), so nothing touches the production database and no real account is created.
+Browser tests that drive the real UI in Chrome, plus an API test for sign-in. **The backend is mocked** (`lib.mjs` fakes the Supabase REST/auth/storage calls and `/api/*` and injects a fake session), so nothing touches the production database and no real account is created.
 
 ## Run
 
@@ -22,6 +22,7 @@ Screenshots and `report.json` go to `e2e/.out/` (git-ignored). Look at them: the
 |---|---|
 | `flows.mjs` | Tab navigation, offers filter, reserve → checkout, browser back, language and theme switch (and persistence), Support chip in Arabic, avatar upload (compress → storage → `avatar_url`), desktop sidebar and centred sheet. Prints PASS/FAIL per check. |
 | `sweep.mjs` | Every main page × mobile/desktop × English/Arabic: console errors, horizontal overflow, `dir`, and Latin words left on Arabic pages. |
+| `api-auth.mjs` | `api/auth.ts` rate limiting (needs no running app: PostgREST is faked in-process): code requests per phone/IP, wrong-code lockout, fail-open when the table is missing. |
 | `login.mjs` | Login screen × viewport × language × theme, phone validation (Persian digits accepted, non-UAE number rejected). |
 
 Also run `npm run i18n:check`: every `t("…")` key must have an Arabic translation. It cannot see keys passed as variables (`t(label)`); add those to `src/locales/ar` by hand.
