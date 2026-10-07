@@ -23,9 +23,18 @@ Screenshots and `report.json` go to `e2e/.out/` (git-ignored). Look at them: the
 | `flows.mjs` | Tab navigation, offers filter, reserve → checkout, browser back, language and theme switch (and persistence), Support chip in Arabic, avatar upload (compress → storage → `avatar_url`), desktop sidebar and centred sheet. Prints PASS/FAIL per check. |
 | `sweep.mjs` | Every main page × mobile/desktop × English/Arabic: console errors, horizontal overflow, `dir`, and Latin words left on Arabic pages. |
 | `api-auth.mjs` | `api/auth.ts` rate limiting (needs no running app: PostgREST is faked in-process): code requests per phone/IP, wrong-code lockout, fail-open when the table is missing. |
+| `api-chat.mjs` | `api/chat.ts` (AI support) with Supabase, the AI provider and the staff webhook faked: auth, urgent detection in English/Persian/Arabic, no false alarms on ordinary questions, urgent row + staff alert contents, model-raised urgency, AI outage fallback, own-data-only context, input hygiene. |
 | `login.mjs` | Login screen × viewport × language × theme, phone validation (Persian digits accepted, non-UAE number rejected). |
 
 Also run `npm run i18n:check`: every `t("…")` key must have an Arabic translation. It cannot see keys passed as variables (`t(label)`); add those to `src/locales/ar` by hand.
+
+## AI support: manual check with the real model
+
+The suite never calls the real AI (it costs DriveX credit, and an urgent case writes a real row and pages staff). Before a release, do this once against a **test customer** and tell staff first:
+
+1. Ask an FAQ question and a question about your own booking and invoice; check the answer matches the data.
+2. Ask in Persian and in Arabic; the reply must be in the same language.
+3. Write "I had an accident": the reply must be calm, mention safety/999 and that the team was alerted; a row must appear in `urgent_requests`, the panel must notify, and n8n must post the alert. Mark the row handled afterwards.
 
 ## Not covered
 

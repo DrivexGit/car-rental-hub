@@ -4,7 +4,7 @@ import { admin, fail, getCustomer, json } from "./_lib.js";
 // Context (FAQ + the customer's own bookings, invoices, fines) is loaded server-side from Supabase.
 // Urgent cases are flagged by keywords OR by the model, saved to urgent_requests and posted to STAFF_WEBHOOK_URL (n8n).
 
-const URGENT = /\b(accident|crash|collision|hit|broke ?down|breakdown|won'?t start|flat tyre|flat tire|tow|police|stolen|theft|fire|smoke|injur|hurt|ambulance|locked out|lost (the )?key|emergency|stuck|urgent)\b|تصادف|خراب|پلیس|دزد|آتش|زخمی|اورژانس|فوری|گیر کرد|حادث|شرطة|عطل|سرقة|طوارئ|حريق/i;
+const URGENT = /\b(accident|crash(ed|es|ing)?|collision|collided|hit|broke ?down|broken ?down|breakdown|won'?t start|flat (tyre|tire)s?|tow(ed|ing)?|police|stolen|theft|fire|smoke|injur(y|ies|ed)|hurt|ambulance|locked out|lost (the )?keys?|emergency|stuck|urgent)\b|تصادف|خراب|پلیس|دزد|آتش|زخمی|اورژانس|فوری|گیر کرد|حادث|شرطة|عطل|سرقة|طوارئ|حريق/i;
 
 const SYSTEM = (ctx: unknown, faq: { question: string; answer: string }[]) => `You are Drivex AI, the support assistant of Drivex Car Rental in Dubai.
 Rules:
