@@ -139,13 +139,13 @@ function Carousel() {
         onPointerDown={() => (held.current = true)} onPointerUp={() => setTimeout(() => (held.current = false), 4000)} onTouchStart={() => (held.current = true)} onTouchEnd={() => setTimeout(() => (held.current = false), 4000)}
         className="no-scrollbar -mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-5 px-5">
         {BANNERS.map((b) => (
-          <div key={b.title} className="relative h-[190px] w-[calc(100%-12px)] shrink-0 snap-start overflow-hidden rounded-card bg-hero p-4 text-white">
-            <motion.img src={b.image} alt="" className="absolute inset-0 h-full w-full object-cover" initial={{ scale: 1.15 }} animate={{ scale: 1 }} transition={{ duration: 6, ease: "easeOut" }} />
+          <div key={b.title} className="relative h-[190px] w-[calc(100%-12px)] shrink-0 snap-start overflow-hidden rounded-card bg-hero p-4 text-white lg:h-[340px] lg:p-10">
+            <motion.img src={b.image} alt="" className="absolute inset-0 h-full w-full object-cover lg:object-[50%_70%]" initial={{ scale: 1.15 }} animate={{ scale: 1 }} transition={{ duration: 6, ease: "easeOut" }} />
             <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/35 to-transparent rtl:bg-gradient-to-l" />
-            <p className="relative text-[10px] font-semibold uppercase tracking-[.15em] text-white/70">{t(b.kicker)}</p>
-            <p className="relative mt-1 w-[60%] text-[26px] font-bold leading-[1.05]">{t(b.title)}</p>
-            <p className="relative mt-1.5 w-[55%] text-[13px] text-white/80">{t(b.text)}</p>
-            <button onClick={() => nav(b.to)} className="absolute bottom-4 start-4 inline-flex h-9 items-center gap-1.5 rounded-lg bg-white px-3 text-sm font-semibold text-ink">
+            <p className="relative text-[10px] font-semibold uppercase tracking-[.15em] text-white/70 lg:text-xs">{t(b.kicker)}</p>
+            <p className="relative mt-1 w-[60%] text-[26px] font-bold leading-[1.05] lg:mt-3 lg:w-[58%] lg:text-[34px] xl:w-[45%] xl:text-[48px]">{t(b.title)}</p>
+            <p className="relative mt-1.5 w-[55%] text-[13px] text-white/80 lg:mt-3 lg:w-[50%] lg:text-base xl:mt-4 xl:w-[40%] xl:text-lg">{t(b.text)}</p>
+            <button onClick={() => nav(b.to)} className="absolute bottom-4 start-4 inline-flex h-9 items-center gap-1.5 rounded-lg bg-white px-3 text-sm font-semibold text-ink lg:bottom-10 lg:start-10 lg:h-12 lg:px-5 lg:text-base">
               {t(b.cta)} <ArrowRight className="h-4 w-4 rtl:-scale-x-100" />
             </button>
           </div>

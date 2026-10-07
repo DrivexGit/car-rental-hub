@@ -14,6 +14,7 @@ import {
   ExternalLink, CheckCircle2, AlertCircle, Sparkles,
   MoreVertical, Send, Info, History, FileText
 } from 'lucide-react';
+import { LeadTimeline } from '@/components/LeadTimeline';
 import { calculateDynamicProgress } from '@/lib/leadProgress';
 import { channelMeta, leadContact, leadChatLink } from '@/lib/channels';
 import { cn } from '@/lib/utils';
@@ -33,6 +34,7 @@ export default function LeadDetail() {
   const [reservations, setReservations] = useState<any[]>([]);
   const [documents, setDocuments] = useState<any[]>([]);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [customerId, setCustomerId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('chat');
 
   const load = async () => {
@@ -44,7 +46,7 @@ export default function LeadDetail() {
       supabase.from('reservations').select('*, vehicles(plate_number, make, model, image_url)').eq('lead_id', id),
       supabase.from('customer_documents').select('*').eq('lead_id', id),
       // The app customer linked to this lead may have uploaded a profile photo.
-      supabase.from('customers' as any).select('avatar_url').eq('lead_id', id).maybeSingle(),
+      supabase.from('customers' as any).select('id, avatar_url').eq('lead_id', id).maybeSingle(),
     ]);
     setLead(l.data);
     setMessages(m.data || []);
@@ -52,6 +54,7 @@ export default function LeadDetail() {
     setReservations(r.data || []);
     setDocuments(d.data || []);
     setAvatarUrl((cu.data as any)?.avatar_url ?? null);
+    setCustomerId((cu.data as any)?.id ?? null);
   };
 
   useEffect(() => { load(); }, [id]);
@@ -298,10 +301,14 @@ export default function LeadDetail() {
         {/* Main Area */}
         <div className="lg:col-span-8">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="w-full grid grid-cols-4 h-14 p-1.5 bg-muted/50 rounded-xl border border-muted mb-6">
+            <TabsList className="w-full grid grid-cols-5 h-14 p-1.5 bg-muted/50 rounded-xl border border-muted mb-6">
               <TabsTrigger value="chat" className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm font-bold text-xs uppercase tracking-tight">
                 <MessageCircle className="h-4 w-4 mr-2" />
                 Chat
+              </TabsTrigger>
+              <TabsTrigger value="timeline" className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm font-bold text-xs uppercase tracking-tight">
+                <History className="h-4 w-4 mr-2" />
+                Timeline
               </TabsTrigger>
               <TabsTrigger value="documents" className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm font-bold text-xs uppercase tracking-tight">
                 <Paperclip className="h-4 w-4 mr-2" />
@@ -391,6 +398,10 @@ export default function LeadDetail() {
                   </div>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="timeline" className="mt-0 outline-none">
+              <LeadTimeline customerId={customerId} messages={messages} reservations={reservations} documents={documents} />
             </TabsContent>
 
             <TabsContent value="documents" className="mt-0 outline-none">

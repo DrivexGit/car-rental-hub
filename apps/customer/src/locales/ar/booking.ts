@@ -24,6 +24,7 @@ export default {
   "Extend rental": "تمديد الإيجار",
   "Your return date has passed. Extend the rental or return the car to avoid extra charges.": "انتهى موعد الإرجاع. مدّد الإيجار أو أرجع السيارة لتفادي رسوم إضافية.",
   "No invoices yet.": "لا توجد فواتير بعد.",
+  "Download invoice": "تنزيل الفاتورة",
   "Salik & fines": "سالك والمخالفات",
   "No Salik or fines. Drive safe!": "لا توجد رسوم سالك أو مخالفات. قيادة آمنة!",
   "Salik and fines are added to your next invoice.": "تُضاف رسوم سالك والمخالفات إلى فاتورتك القادمة.",

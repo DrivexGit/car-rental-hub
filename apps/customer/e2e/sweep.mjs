@@ -70,7 +70,7 @@ for (const [vp, viewport] of VPS) {
   for (const lang of ["en", "ar"]) {
     const ctx = await browser.newContext({ viewport });
     await mock(ctx);
-    await ctx.addInitScript(([s, l]) => { try { localStorage.setItem("drivex.customer.auth", s); localStorage.setItem("drivex.lang", l); sessionStorage.setItem("drivex.splash", "1"); } catch {} }, [SESSION, lang]);
+    await ctx.addInitScript(([s, l]) => { try { localStorage.setItem("drivex.customer.auth", s); localStorage.setItem("drivex.lang", l); sessionStorage.setItem("drivex.splash", "1"); localStorage.setItem("drivex.onboarded", "1"); } catch {} }, [SESSION, lang]);
     const page = await ctx.newPage();
     let errors = [];
     page.on("console", (m) => { if (m.type() === "error" && !/Failed to load resource|favicon/.test(m.text())) errors.push(m.text().slice(0, 160)); });

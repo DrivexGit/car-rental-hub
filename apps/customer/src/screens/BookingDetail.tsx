@@ -6,6 +6,7 @@ import { EXTRAS, PERIOD_DAYS, carName, priceFor } from "@/data/catalog";
 import { day, money, shortDay } from "@/lib/format";
 import { BackBar, Badge, Button, Card, Dirham, ListGroup, ListRow, Screen, Sheet, StatusDot } from "@/components/ui";
 import { PayInvoiceSheet } from "@/screens/PaySheet";
+import { InvoiceDownload } from "@/components/InvoiceDownload";
 import { whatsappLink } from "@/config";
 import { useI18n } from "@/lib/i18n";
 
@@ -76,6 +77,7 @@ export default function BookingDetail() {
           <div key={i.id} className="flex min-h-[64px] items-center gap-3 px-4 py-3">
             <FileText className="h-5 w-5 text-ink-muted" />
             <div className="flex-1"><p className="font-medium">{i.number}</p><p className="text-xs text-ink-muted">{day(i.issued)}</p></div>
+            <InvoiceDownload invoice={i} detail={`${carName(car)} · ${b.plate}`} />
             <div className="text-end">
               <p className="font-bold"><Dirham /> {money(i.amount)}</p>
               {i.status === "paid" ? <span className="inline-flex items-center gap-1 text-xs text-brand"><CheckCircle2 className="h-3.5 w-3.5" /> {t("Paid")}</span>

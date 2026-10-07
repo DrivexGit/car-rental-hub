@@ -27,7 +27,7 @@ async function fresh(viewport, lang = "en") {
     try {
       if (!localStorage.getItem("drivex.customer.auth")) localStorage.setItem("drivex.customer.auth", s);
       if (!localStorage.getItem("drivex.lang")) localStorage.setItem("drivex.lang", l);
-      sessionStorage.setItem("drivex.splash", "1");
+      sessionStorage.setItem("drivex.splash", "1"); localStorage.setItem("drivex.onboarded", "1");
     } catch { /* ignore */ }
   }, [SESSION, lang]);
   const page = await ctx.newPage();
@@ -125,6 +125,35 @@ async function fresh(viewport, lang = "en") {
   await ctx.close();
 }
 
+// 4b. Onboarding: first launch only, skippable, translated, remembered.
+{
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  await mock(ctx);
+  await ctx.addInitScript(([s]) => { try { if (!localStorage.getItem("drivex.customer.auth")) localStorage.setItem("drivex.customer.auth", s); sessionStorage.setItem("drivex.splash", "1"); } catch { /* ignore */ } }, [SESSION]);
+  const page = await ctx.newPage();
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.goto(BASE + "/", { waitUntil: "networkidle" }); await page.waitForTimeout(600);
+  ok("onboarding shows on first launch", (await page.getByRole("dialog").count()) === 1 && (await page.getByText("Book in a minute").count()) === 1);
+  await page.screenshot({ path: OUT + "/i-onboarding.png" });
+  await page.getByRole("button", { name: /Next/ }).click(); await page.waitForTimeout(600);
+  ok("next slide", (await page.getByText("Everything in one place").count()) === 1);
+  await page.getByRole("button", { name: /Next/ }).click(); await page.waitForTimeout(600);
+  ok("last slide offers Get started", (await page.getByRole("button", { name: /Get started/ }).count()) === 1);
+  await page.getByRole("button", { name: /Get started/ }).click(); await page.waitForTimeout(600);
+  ok("onboarding closes and is remembered", (await page.getByRole("dialog").count()) === 0 && (await page.evaluate(() => localStorage.getItem("drivex.onboarded"))) === "1");
+  await page.reload({ waitUntil: "networkidle" }); await page.waitForTimeout(500);
+  ok("not shown again after reload", (await page.getByRole("dialog").count()) === 0);
+  await page.evaluate(() => { localStorage.removeItem("drivex.onboarded"); localStorage.setItem("drivex.lang", "ar"); });
+  await page.reload({ waitUntil: "networkidle" }); await page.waitForTimeout(600);
+  ok("Arabic onboarding is translated and RTL", (await page.getByText("احجز في دقيقة").count()) === 1);
+  await page.screenshot({ path: OUT + "/i-onboarding-ar.png" });
+  await page.getByRole("button", { name: "تخطّي" }).click(); await page.waitForTimeout(500);
+  ok("skip closes it", (await page.getByRole("dialog").count()) === 0);
+  ok("no page errors (onboarding)", errors.length === 0, errors.join(" | "));
+  await ctx.close();
+}
+
 // 5. Desktop: no tab bar, sidebar navigation, sheet as a centred modal.
 {
   const { ctx, page, errors } = await fresh({ width: 1366, height: 850 });
@@ -138,6 +167,21 @@ async function fresh(viewport, lang = "en") {
   ok("sheet is a centred modal on desktop", !!box && box.y > 100 && box.y + box.height < 800, JSON.stringify(box));
   await page.screenshot({ path: OUT + "/i-desktop-sheet.png" });
   ok("no console errors (desktop)", errors.length === 0, errors.join(" | "));
+  await ctx.close();
+}
+
+// 6. Invoice download: the tax invoice document is built with the right VAT split and customer.
+{
+  const { ctx, page, errors } = await fresh({ width: 390, height: 844 });
+  await page.goto(BASE + "/bookings/r1", { waitUntil: "networkidle" }); await page.waitForTimeout(600);
+  await page.getByRole("button", { name: "Download invoice" }).first().click();
+  let html = null;
+  for (let k = 0; k < 20 && !html; k++) { await page.waitForTimeout(150); const f = page.frames().find((fr) => fr !== page.mainFrame()); html = f ? await f.content().catch(() => null) : null; }
+  ok("invoice document opened for printing", !!html && html.includes("TAX INVOICE"));
+  ok("shows number, customer and amounts", !!html && html.includes("INV-1001") && html.includes("Test Customer") && html.includes("AED 3,571.43") && html.includes("AED 178.57") && html.includes("AED 3,750.00"), html ? "" : "no iframe");
+  ok("shows car detail and unpaid stamp", !!html && html.includes("Mercedes G63") && html.includes("UNPAID"));
+  if (html) { const p2 = await ctx.newPage(); await p2.setViewportSize({ width: 794, height: 1123 }); await p2.setContent(html, { waitUntil: "load" }); await p2.screenshot({ path: OUT + "/i-invoice.png" }); }
+  ok("no console errors (invoice)", errors.length === 0, errors.join(" | "));
   await ctx.close();
 }
 

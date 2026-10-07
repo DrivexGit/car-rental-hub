@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { translate as t } from "@/lib/i18n";
 
 export const supabase = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_ANON_KEY, {
   auth: { persistSession: true, autoRefreshToken: true, storageKey: "drivex.customer.auth" },
@@ -13,6 +14,7 @@ export async function api<T = any>(path: string, body: unknown): Promise<T> {
     body: JSON.stringify(body),
   });
   const out = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(out.error || "Something went wrong. Please try again.");
+  if (r.status === 429) throw new Error(t("Too many attempts. Please wait a few minutes and try again."));
+  if (!r.ok) throw new Error(out.error || t("Something went wrong. Please try again."));
   return out as T;
 }
