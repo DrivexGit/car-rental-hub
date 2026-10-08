@@ -1,4 +1,13 @@
-import { mkdirSync } from "node:fs";
+import { existsSync, mkdirSync } from "node:fs";
+
+/** Chrome to drive: CHROME_PATH, else the usual install path on macOS / Windows / Linux, else Playwright's own Chromium. */
+export const chromePath = () => process.env.CHROME_PATH || [
+  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+  "C:/Program Files/Google/Chrome/Application/chrome.exe",
+  "/usr/bin/google-chrome", "/usr/bin/chromium",
+].find(existsSync);
+/** Navigation timeout in ms (E2E_TIMEOUT); the dev server can be slow to serve the first page on a busy machine. */
+export const NAV_TIMEOUT = Number(process.env.E2E_TIMEOUT) || 90000;
 export const BASE = process.env.BASE || "http://127.0.0.1:9291";
 export const OUT = "e2e/.out";
 mkdirSync(OUT, { recursive: true });
@@ -27,6 +36,7 @@ export const T = {
 };
 
 export async function mock(ctx) {
+  ctx.setDefaultNavigationTimeout(NAV_TIMEOUT);
   const cors = { "access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "*" };
   await ctx.route("**/*.supabase.co/**", async (route) => {
     const req = route.request();

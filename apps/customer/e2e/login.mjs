@@ -1,10 +1,11 @@
+import { chromePath } from "./lib.mjs";
 import { chromium } from "playwright-core";
 import { mkdirSync } from "node:fs";
 
 const BASE = process.env.BASE || "http://127.0.0.1:9291";
 const OUT = "e2e/.out";
 mkdirSync(OUT, { recursive: true });
-const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || "C:/Program Files/Google/Chrome/Application/chrome.exe", headless: true });
+const browser = await chromium.launch({ executablePath: chromePath(), headless: true });
 const results = [];
 
 for (const [vpName, viewport] of [["mobile", { width: 390, height: 844 }], ["desktop", { width: 1366, height: 850 }]]) {

@@ -4,6 +4,8 @@ Browser tests that drive the real UI in Chrome, plus an API test for sign-in. **
 
 ## Run
 
+Chrome is found automatically on macOS, Windows and Linux (set `CHROME_PATH` to use another one; with none installed, Playwright's own Chromium is used). On a slow machine raise the page-load timeout with `E2E_TIMEOUT=180000` (ms, default 90000).
+
 1. Start the app so it is reachable on IPv4 (Vite's default `localhost` can be IPv6 only):
    ```bash
    npm run dev -- --host 127.0.0.1 --port 9291 --strictPort

@@ -1,3 +1,4 @@
+import { chromePath } from "./lib.mjs";
 // Full-app QA with a mocked backend (nothing reaches the real Supabase project).
 import { chromium } from "playwright-core";
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -63,7 +64,7 @@ const PAGES = [
 ];
 const ALLOW = new Set(["DRIVEX", "info", "drivex", "English", "ready", "INV-", "Drivex", "Mercedes", "G63", "Audi", "Porsche", "Test", "Customer", "Apple", "Pay", "Dubai", "DIFC", "Barsha", "INV", "ZUMA", "Dining", "Enjoy", "Terms", "apply", "Automatic", "Petrol", "Leather", "seats", "CarPlay", "Sedan", "Coupe", "V8", "WhatsApp", "Mock", "reply", "Salik", "Ziina", "Mulkiya", "Emirates", "Car", "Rental", "rental", "invoice", "Invoice", "AED"]);
 
-const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || "C:/Program Files/Google/Chrome/Application/chrome.exe", headless: true });
+const browser = await chromium.launch({ executablePath: chromePath(), headless: true });
 const report = [];
 const VPS = [["mobile", { width: 390, height: 844 }], ["desktop", { width: 1366, height: 850 }]];
 for (const [vp, viewport] of VPS) {

@@ -4,7 +4,7 @@
 //   (apps/customer)  PANEL=http://127.0.0.1:9390 node e2e/panel-carphotos.mjs
 import { chromium } from "playwright-core";
 import { mkdirSync } from "node:fs";
-import { OUT } from "./lib.mjs";
+import { OUT, chromePath } from "./lib.mjs";
 import { deflateSync } from "node:zlib";
 
 const PANEL = process.env.PANEL || "http://127.0.0.1:9390";
@@ -25,7 +25,7 @@ const PUB = "https://fake.supabase.co/storage/v1/object/public/vehicle-images/";
 
 const results = [];
 const ok = (name, pass, extra = "") => results.push({ name, pass, extra });
-const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || "C:/Program Files/Google/Chrome/Application/chrome.exe", headless: true });
+const browser = await chromium.launch({ executablePath: chromePath(), headless: true });
 
 async function open(opts = {}) {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 }, ...opts });
