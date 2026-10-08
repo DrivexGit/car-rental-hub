@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { api, supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui";
@@ -74,6 +75,7 @@ export default function Login() {
           <Err msg={error || phoneHint} />
           <Button size="lg" className="mt-6" disabled={!phoneOk || busy} onClick={sendCode}>{busy ? <Loader2 className="h-5 w-5 animate-spin" /> : t("Send code")}</Button>
           <p className="mt-4 text-center text-xs text-white/50">{t("By continuing you agree to our Terms and Privacy Policy.")}</p>
+          <p className="mt-2 flex justify-center gap-4 text-xs text-white/60"><Link to="/terms" className="underline-offset-4 hover:text-white hover:underline">{t("Terms & conditions")}</Link><Link to="/privacy" className="underline-offset-4 hover:text-white hover:underline">{t("Privacy policy")}</Link></p>
         </Panel>
       )}
 

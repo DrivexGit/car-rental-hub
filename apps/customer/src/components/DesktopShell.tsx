@@ -204,7 +204,12 @@ export function Footer() {
         </div>
 
         <div className="mt-14 flex items-center justify-between border-t border-white/10 pt-6 text-sm text-white/45">
-          <p>© {year} {COMPANY.name}. {t("All rights reserved.")}</p>
+          <div className="flex items-center gap-6">
+            <p>© {year} {COMPANY.name}. {t("All rights reserved.")}</p>
+            <Link to="/terms" className="transition-colors hover:text-white">{t("Terms & conditions")}</Link>
+            <Link to="/privacy" className="transition-colors hover:text-white">{t("Privacy policy")}</Link>
+            <Link to="/delete-account" className="transition-colors hover:text-white">{t("Delete my account")}</Link>
+          </div>
           <motion.button whileHover={{ y: -2 }} onClick={() => window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" })}
             className="group inline-flex items-center gap-2 rounded-full border border-white/15 px-4 py-2 text-white/70 transition-colors hover:bg-white/10 hover:text-white">
             {t("Back to top")}<ArrowUp className="h-4 w-4 transition-transform duration-300 group-hover:-translate-y-0.5" />

@@ -211,8 +211,9 @@ export function Legal() {
       <ListGroup>
         <ListRow label={t("Chat with Drivex AI")} to="/support" />
         <ListRow label={t("WhatsApp us")} onClick={() => window.open(whatsappLink())} />
-        <ListRow label={t("Terms & conditions")} onClick={() => window.open("https://drivex.ae")} />
-        <ListRow label={t("Privacy policy")} onClick={() => window.open("https://drivex.ae")} />
+        <ListRow label={t("Terms & conditions")} to="/terms" />
+        <ListRow label={t("Privacy policy")} to="/privacy" />
+        <ListRow label={t("Delete my account")} to="/delete-account" />
       </ListGroup>
     </Screen>
   );

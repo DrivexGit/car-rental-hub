@@ -19,6 +19,7 @@ import Bookings from "@/screens/Bookings";
 import BookingDetail from "@/screens/BookingDetail";
 import Support from "@/screens/Support";
 import Profile from "@/screens/Profile";
+import { DeleteAccount, Privacy, Terms } from "@/screens/LegalPages";
 import { Payments, Documents, Notifications, Language, Legal, EditProfile, Security, Other } from "@/screens/ProfilePages";
 
 // Booking steps keep a fixed action bar at the bottom, so they get no footer.
@@ -44,7 +45,7 @@ function Body() {
   const location = useLocation();
   const { pathname } = location;
   if (!ready) return <div className="grid h-full place-items-center"><Loader2 className="h-8 w-8 animate-spin text-brand" /></div>;
-  if (!user) return <Routes><Route path="*" element={<Login />} /></Routes>;
+  if (!user) return <Routes><Route path="/terms" element={<Terms />} /><Route path="/privacy" element={<Privacy />} /><Route path="/delete-account" element={<DeleteAccount />} /><Route path="*" element={<Login />} /></Routes>;
 
   return (
     <>
@@ -73,6 +74,9 @@ function Body() {
         <Route path="/profile/language" element={<Language />} />
         <Route path="/profile/legal" element={<Legal />} />
         <Route path="/profile/other" element={<Other />} />
+        <Route path="/terms" element={<Terms />} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/delete-account" element={<DeleteAccount />} />
         <Route path="/notifications" element={<Inbox />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
