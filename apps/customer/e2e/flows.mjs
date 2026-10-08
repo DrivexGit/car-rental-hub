@@ -2,7 +2,7 @@
 import { chromium } from "playwright-core";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { deflateSync } from "node:zlib";
-import { BASE, OUT, UID, SESSION, mock } from "./lib.mjs";
+import { BASE, OUT, UID, SESSION, mock, chromePath } from "./lib.mjs";
 
 // A real 64x64 PNG for the upload test.
 function makePng() {
@@ -16,7 +16,7 @@ function makePng() {
 }
 mkdirSync(OUT, { recursive: true }); writeFileSync(OUT + "/avatar.png", makePng());
 
-const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || "C:/Program Files/Google/Chrome/Application/chrome.exe", headless: true });
+const browser = await chromium.launch({ executablePath: chromePath(), headless: true });
 const results = [];
 const ok = (name, pass, extra = "") => results.push({ name, pass, extra });
 
