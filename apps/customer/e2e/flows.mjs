@@ -231,6 +231,44 @@ async function fresh(viewport, lang = "en") {
   await ctx.close();
 }
 
+// 9. Splash (every other section skips it): shows, leaves, calms down for reduced motion, never traps the app.
+{
+  async function splashCase(opts, hang = false) {
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, ...opts });
+    await mock(ctx);
+    if (hang) await ctx.route("**/rest/v1/**", () => {}); // data never arrives, so the app is never "ready"
+    await ctx.addInitScript(([s]) => { try { if (!localStorage.getItem("drivex.customer.auth")) localStorage.setItem("drivex.customer.auth", s); localStorage.setItem("drivex.onboarded", "1"); } catch { /* ignore */ } }, [SESSION]);
+    const page = await ctx.newPage();
+    const errors = [];
+    page.on("pageerror", (e) => errors.push(e.message.slice(0, 150)));
+    await page.goto(BASE + "/", { waitUntil: "domcontentloaded" });
+    const splash = page.locator("[role=status][aria-label=Drivex]");
+    return { ctx, page, splash, errors, shown: async (ms) => { await page.waitForTimeout(ms); return (await splash.count()) > 0; } };
+  }
+  {
+    const c = await splashCase({});
+    ok("splash shows on first open", await c.shown(500));
+    ok("splash has the full animation (road lines + logo)", (await c.page.locator("[role=status] img").count()) >= 2);
+    ok("splash leaves by itself", !(await c.shown(3000)));
+    await c.page.reload({ waitUntil: "domcontentloaded" });
+    ok("not shown again in the same session", !(await c.shown(300)));
+    ok("no page errors (splash)", c.errors.length === 0, c.errors.join(" | "));
+    await c.ctx.close();
+  }
+  {
+    const c = await splashCase({ reducedMotion: "reduce" });
+    ok("reduced motion: quiet splash (single icon, no wipe)", (await c.shown(200)) && (await c.page.locator("[role=status] img").count()) === 1);
+    ok("reduced motion: leaves quickly", !(await c.shown(1500)));
+    await c.ctx.close();
+  }
+  {
+    const c = await splashCase({}, true);
+    ok("slow data: splash waits for it", await c.shown(3500));
+    ok("slow data: gives up after 5 s and shows the app", !(await c.shown(3000)));
+    await c.ctx.close();
+  }
+}
+
 console.log(results.map((r) => (r.pass ? "PASS  " : "FAIL  ") + r.name + (r.pass ? "" : "   -> " + r.extra)).join("\n"));
 console.log(results.filter((r) => r.pass).length + "/" + results.length + " passed");
 await browser.close();
