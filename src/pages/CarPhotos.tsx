@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { ImagePlus, Loader2, Replace, X } from 'lucide-react';
+import { checkImageFile } from '@/lib/photoFile';
 
 type Model = { tenant_id: string; make: string; model: string; image_url: string | null; gallery: string[] };
 const BUCKET = 'vehicle-images';
@@ -18,12 +19,15 @@ export default function CarPhotos() {
   const { toast } = useToast();
 
   const load = async () => {
-    const { data } = await supabase.from('vehicle_model_specs' as any).select('tenant_id, make, model, image_url, gallery').order('make').order('model');
-    setRows((data as any) || []);
+    const { data, error } = await supabase.from('vehicle_model_specs' as any).select('tenant_id, make, model, image_url, gallery').order('make').order('model');
+    if (error) toast({ title: 'Could not load car photos', description: error.message, variant: 'destructive' });
+    setRows(((data as any) || []).map((m: Model) => ({ ...m, gallery: m.gallery ?? [] })));
   };
   useEffect(() => { load(); }, []);
 
   const upload = async (m: Model, file: File, kind: 'studio' | 'gallery') => {
+    const bad = checkImageFile(file);
+    if (bad) throw new Error(bad);
     const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
     const name = `${Date.now()}-${Math.random().toString(36).slice(2, 6)}.${ext}`;
     const path = `models/${slug(m.make, m.model)}/${kind === 'studio' ? `studio-${name}` : `gallery/${name}`}`;
@@ -77,6 +81,12 @@ export default function CarPhotos() {
                 </div>
                 <div className="relative grid h-36 place-items-center rounded-lg bg-muted/40">
                   {m.image_url ? <img src={m.image_url} alt="" className="h-full w-full object-contain p-2" /> : <span className="text-xs text-muted-foreground">No studio photo</span>}
+                  {m.image_url && (
+                    <Button size="sm" variant="ghost" className="absolute bottom-2 left-2" disabled={!!busy}
+                      onClick={() => confirm('Remove the studio photo? The app will use its built-in image.') && run(key, () => save(m, { image_url: null }))}>
+                      <X className="mr-1 h-3.5 w-3.5" />Remove
+                    </Button>
+                  )}
                   <Button size="sm" variant="secondary" className="absolute bottom-2 right-2" disabled={!!busy}
                     onClick={() => pick(false, ([f]) => run(key, async () => save(m, { image_url: await upload(m, f, 'studio') })))}>
                     <Replace className="mr-1 h-3.5 w-3.5" />{m.image_url ? 'Replace' : 'Upload'}
@@ -88,7 +98,7 @@ export default function CarPhotos() {
                       <img src={src} alt="" loading="lazy" className="h-full w-full object-cover" />
                       <button aria-label="Remove photo" disabled={!!busy}
                         onClick={() => confirm('Remove this photo from the gallery?') && run(key, () => save(m, { gallery: m.gallery.filter((g) => g !== src) }))}
-                        className="absolute right-0.5 top-0.5 hidden rounded-full bg-black/70 p-0.5 text-white group-hover:block"><X className="h-3 w-3" /></button>
+                        className="absolute right-0.5 top-0.5 rounded-full bg-black/70 p-0.5 text-white [@media(hover:hover)]:hidden [@media(hover:hover)]:group-hover:block"><X className="h-3 w-3" /></button>
                     </div>
                   ))}
                   <button disabled={!!busy} aria-label="Add gallery photos"

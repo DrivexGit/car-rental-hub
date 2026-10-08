@@ -20,10 +20,11 @@ Screenshots and `report.json` go to `e2e/.out/` (git-ignored). Look at them: the
 
 | Script | Covers |
 |---|---|
-| `flows.mjs` | Tab navigation, offers filter, reserve → checkout, browser back, language and theme switch (and persistence), Support chip in Arabic, avatar upload (compress → storage → `avatar_url`), desktop sidebar and centred sheet. Prints PASS/FAIL per check. |
+| `flows.mjs` | Tab navigation, offers filter, reserve → checkout, browser back, language and theme switch (and persistence), Support chip in Arabic, avatar upload (compress → storage → `avatar_url`), desktop sidebar and centred sheet, no duplicate history entries when tapping the current page, long/unbroken chat text stays on screen. Prints PASS/FAIL per check. |
 | `sweep.mjs` | Every main page × mobile/desktop × English/Arabic: console errors, horizontal overflow, `dir`, and Latin words left on Arabic pages. |
 | `api-auth.mjs` | `api/auth.ts` rate limiting (needs no running app: PostgREST is faked in-process): code requests per phone/IP, wrong-code lockout, fail-open when the table is missing. |
 | `api-chat.mjs` | `api/chat.ts` (AI support) with Supabase, the AI provider and the staff webhook faked: auth, urgent detection in English/Persian/Arabic, no false alarms on ordinary questions, urgent row + staff alert contents, model-raised urgency, AI outage fallback, own-data-only context, input hygiene. |
+| `panel-carphotos.mjs` | Panel **Car photos** page (not part of `npm run e2e`: it needs the panel dev server on a fake backend, see the header of the file). Upload/replace/remove studio photo, gallery add/remove, file type and size checks, search, remove button usable on touch. |
 | `login.mjs` | Login screen × viewport × language × theme, phone validation (Persian digits accepted, non-UAE number rejected). |
 
 Also run `npm run i18n:check`: every `t("…")` key must have an Arabic translation. It cannot see keys passed as variables (`t(label)`); add those to `src/locales/ar` by hand.
