@@ -185,6 +185,52 @@ async function fresh(viewport, lang = "en") {
   await ctx.close();
 }
 
+// 7. Tapping the page you are already on never adds a history entry (#9), on phone and desktop.
+{
+  for (const [label, vp, sel] of [["phone", { width: 390, height: 844 }, "nav.fixed a"], ["desktop", { width: 1366, height: 850 }, "aside a"]]) {
+    const { ctx, page, errors } = await fresh(vp);
+    await page.goto(BASE + "/profile", { waitUntil: "networkidle" }); await page.waitForTimeout(500);
+    const start = await page.evaluate(() => history.length);
+    for (let k = 0; k < 3; k++) { await page.locator(sel, { hasText: "Profile" }).first().click(); await page.waitForTimeout(150); }
+    ok(`${label}: tapping the current tab adds no history`, (await page.evaluate(() => history.length)) === start);
+    if (label === "phone") {
+      await page.locator("a[aria-label='Profile']").first().click().catch(() => {});
+      ok("phone: tapping the avatar on the profile page adds no history", (await page.evaluate(() => history.length)) === start);
+      await page.goto(BASE + "/", { waitUntil: "networkidle" }); await page.waitForTimeout(400);
+      const h = await page.evaluate(() => history.length);
+      await page.locator("a[aria-label='Notifications']").first().click(); await page.waitForTimeout(300);
+      ok("phone: the bell opens notifications with one history entry", (await page.evaluate(() => history.length)) === h + 1, String(await page.evaluate(() => history.length)));
+    } else {
+      await page.locator("aside a", { hasText: "Profile" }).last().click(); await page.waitForTimeout(150);
+      ok("desktop: tapping the sidebar profile card adds no history", (await page.evaluate(() => history.length)) === start);
+    }
+    ok(`no console errors (history, ${label})`, errors.length === 0, errors.join(" | "));
+    await ctx.close();
+  }
+}
+
+// 8. Support chat shows long, multi-line and unbroken text inside the bubble (#10), phone and RTL.
+{
+  const { ctx, page, errors } = await fresh({ width: 360, height: 740 }, "ar");
+  const long = "سطر أول\nسطر ثاني مع نص طويل جداً جداً جداً جداً جداً جداً جداً جداً جداً جداً جداً جداً\n" + "https://example.com/" + "a".repeat(120) + "\n" + "x".repeat(200);
+  await ctx.route("**/api/chat", (r) => r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ reply: long, urgent: false }) }));
+  await page.goto(BASE + "/support", { waitUntil: "networkidle" }); await page.waitForTimeout(500);
+  await page.locator("form input").fill(long.slice(0, 300));
+  await page.locator("form button").click(); await page.waitForTimeout(900);
+  const m = await page.evaluate(() => {
+    const vw = document.documentElement.clientWidth;
+    const bubbles = [...document.querySelectorAll("div[dir='auto']")];
+    return { overflowX: document.documentElement.scrollWidth > vw, bubbles: bubbles.length, outside: bubbles.filter((b) => { const r = b.getBoundingClientRect(); return r.left < -1 || r.right > vw + 1; }).length, newlines: bubbles.some((b) => getComputedStyle(b).whiteSpace === "pre-wrap") };
+  });
+  ok("long unbroken text stays inside the screen", !m.overflowX && m.outside === 0 && m.bubbles >= 2, JSON.stringify(m));
+  ok("line breaks are kept", m.newlines);
+  await page.screenshot({ path: OUT + "/i-support-long.png" });
+  const max = await page.locator("form input").getAttribute("maxlength");
+  ok("input is limited to the 2000 characters the server reads", max === "2000", String(max));
+  ok("no console errors (long chat)", errors.length === 0, errors.join(" | "));
+  await ctx.close();
+}
+
 console.log(results.map((r) => (r.pass ? "PASS  " : "FAIL  ") + r.name + (r.pass ? "" : "   -> " + r.extra)).join("\n"));
 console.log(results.filter((r) => r.pass).length + "/" + results.length + " passed");
 await browser.close();

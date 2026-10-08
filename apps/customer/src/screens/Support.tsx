@@ -75,7 +75,7 @@ export default function Support() {
       )}
 
       <form onSubmit={(e) => { e.preventDefault(); send(text); }} className="sticky bottom-20 lg:bottom-4 flex items-center gap-2 rounded-2xl border border-line bg-white p-1.5 ps-4 shadow-card">
-        <input value={text} onChange={(e) => setText(e.target.value)} placeholder={t("Ask a question…")} className="h-11 flex-1 bg-transparent text-[15px] outline-none placeholder:text-ink-faint" />
+        <input value={text} maxLength={2000} onChange={(e) => setText(e.target.value)} placeholder={t("Ask a question…")} className="h-11 flex-1 bg-transparent text-[15px] outline-none placeholder:text-ink-faint" />
         <button disabled={!text.trim() || busy} className="grid h-11 w-11 place-items-center rounded-xl bg-brand text-white disabled:opacity-40" aria-label={t("Send")}><SendHorizontal className="h-5 w-5 rtl:-scale-x-100" /></button>
       </form>
     </Screen>
@@ -87,7 +87,7 @@ function Bubble({ role, content, urgent }: Msg) {
   const mine = role === "user";
   return (
     <div className={`flex flex-col ${mine ? "items-end" : "items-start"}`}>
-      <div className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-4 py-3 text-[15px] leading-relaxed ${mine ? "rounded-ee-md bg-brand text-white" : "rounded-es-md bg-muted"}`} dir="auto">{content}</div>
+      <div className={`max-w-[85%] whitespace-pre-wrap break-words rounded-2xl px-4 py-3 text-[15px] leading-relaxed ${mine ? "rounded-ee-md bg-brand text-white" : "rounded-es-md bg-muted"}`} dir="auto">{content}</div>
       {urgent && (
         <div className="mt-2 w-[85%] rounded-2xl border border-danger/30 bg-danger-soft p-3">
           <p className="flex items-center gap-1.5 text-sm font-semibold text-danger"><TriangleAlert className="h-4 w-4" /> {t("Our team has been alerted")}</p>
