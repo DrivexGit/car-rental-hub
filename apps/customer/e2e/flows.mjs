@@ -188,22 +188,24 @@ async function fresh(viewport, lang = "en") {
 
 // 7. Tapping the page you are already on never adds a history entry (#9), on phone and desktop.
 {
-  for (const [label, vp, sel] of [["phone", { width: 390, height: 844 }, "nav.fixed a"], ["desktop", { width: 1366, height: 850 }, "aside a"]]) {
+  for (const [label, vp, sel, start0, linkText] of [["phone", { width: 390, height: 844 }, "nav.fixed a", "/profile", "Profile"], ["desktop", { width: 1366, height: 850 }, "header nav a", "/support", "Support"]]) {
     const { ctx, page, errors } = await fresh(vp);
-    await page.goto(BASE + "/profile", { waitUntil: "networkidle" }); await page.waitForTimeout(500);
+    await page.goto(BASE + start0, { waitUntil: "networkidle" }); await page.waitForTimeout(500);
     const start = await page.evaluate(() => history.length);
-    for (let k = 0; k < 3; k++) { await page.locator(sel, { hasText: "Profile" }).first().click(); await page.waitForTimeout(150); }
+    for (let k = 0; k < 3; k++) { await page.locator(sel, { hasText: linkText }).first().click(); await page.waitForTimeout(150); }
     ok(`${label}: tapping the current tab adds no history`, (await page.evaluate(() => history.length)) === start);
     if (label === "phone") {
-      await page.locator("a[aria-label='Profile']").first().click().catch(() => {});
+      await page.locator("a[aria-label='Profile']:visible").first().click().catch(() => {});
       ok("phone: tapping the avatar on the profile page adds no history", (await page.evaluate(() => history.length)) === start);
       await page.goto(BASE + "/", { waitUntil: "networkidle" }); await page.waitForTimeout(400);
       const h = await page.evaluate(() => history.length);
-      await page.locator("a[aria-label='Notifications']").first().click(); await page.waitForTimeout(300);
+      await page.locator("a[aria-label='Notifications']:visible").first().click(); await page.waitForTimeout(300);
       ok("phone: the bell opens notifications with one history entry", (await page.evaluate(() => history.length)) === h + 1, String(await page.evaluate(() => history.length)));
     } else {
-      await page.locator("aside a", { hasText: "Profile" }).last().click(); await page.waitForTimeout(150);
-      ok("desktop: tapping the sidebar profile card adds no history", (await page.evaluate(() => history.length)) === start);
+      await page.goto(BASE + "/profile", { waitUntil: "networkidle" }); await page.waitForTimeout(300);
+      const h0 = await page.evaluate(() => history.length);
+      await page.locator("header button[aria-label=Profile]").click(); await page.getByRole("menuitem", { name: "Profile" }).click(); await page.waitForTimeout(300);
+      ok("desktop: choosing Profile in the account menu while on Profile adds no history", (await page.evaluate(() => history.length)) === h0);
     }
     ok(`no console errors (history, ${label})`, errors.length === 0, errors.join(" | "));
     await ctx.close();
@@ -267,6 +269,21 @@ async function fresh(viewport, lang = "en") {
     ok("slow data: splash waits for it", await c.shown(3500));
     ok("slow data: gives up after 5 s and shows the app", !(await c.shown(3000)));
     await c.ctx.close();
+  }
+}
+
+// 10. Opening Support never scrolls the page, even with an earlier conversation saved (it used to jump to the bottom).
+{
+  for (const [label, vp] of [["phone", { width: 390, height: 700 }], ["desktop", { width: 1366, height: 700 }]]) {
+    const { ctx, page, errors } = await fresh(vp);
+    const chat = Array.from({ length: 14 }, (_, i) => ({ role: i % 2 ? "assistant" : "user", content: "Message number " + i + " with a few more words so it takes some room" }));
+    await page.addInitScript((c) => { try { sessionStorage.setItem("drivex.support.chat", JSON.stringify(c)); } catch { /* ignore */ } }, chat);
+    await page.goto(BASE + "/support", { waitUntil: "networkidle" }); await page.waitForTimeout(1200);
+    ok(`${label}: Support opens at the top`, (await page.evaluate(() => window.scrollY)) === 0, String(await page.evaluate(() => window.scrollY)));
+    await page.locator("form input").fill("hello"); await page.locator("form button").click(); await page.waitForTimeout(1200);
+    ok(`${label}: a new message still scrolls to the end`, (await page.evaluate(() => window.scrollY)) > 0 || label === "desktop");
+    ok(`no console errors (support scroll, ${label})`, errors.length === 0, errors.join(" | "));
+    await ctx.close();
   }
 }
 

@@ -27,7 +27,13 @@ export default function Support() {
   const [busy, setBusy] = useState(false);
   const end = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { try { sessionStorage.setItem(KEY, JSON.stringify(msgs)); } catch { /* ignore */ } end.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs]);
+  // Follow the conversation only when a message arrives, never on opening the page (that used to jump the page to the bottom).
+  const shown = useRef(msgs.length);
+  useEffect(() => {
+    try { sessionStorage.setItem(KEY, JSON.stringify(msgs)); } catch { /* ignore */ }
+    if (msgs.length > shown.current) end.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    shown.current = msgs.length;
+  }, [msgs]);
 
 
   const send = async (content: string, urgentCall = false) => {
