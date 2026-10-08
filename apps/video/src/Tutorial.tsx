@@ -18,7 +18,7 @@ export const Tutorial: React.FC<TutorialProps> = ({ clips }) => {
     <AbsoluteFill style={{ fontFamily, background: BRAND_DARK }}>
       <Sequence durationInFrames={INTRO}><Intro /></Sequence>
       {clips.map((c, i) => {
-        const frames = Math.ceil(((c.duration - c.start) / SPEED) * FPS);
+        const frames = Math.ceil(((c.duration - c.start - 0.4) / SPEED) * FPS);
         const start = from; from += frames;
         return <Sequence key={c.id} from={start} durationInFrames={frames}><SceneView clip={c} index={i} /></Sequence>;
       })}
@@ -124,7 +124,7 @@ const SceneView: React.FC<{ clip: Clip; index: number }> = ({ clip, index }) => 
           </div>
           <div style={{ position: "relative", width: WIN_W, height: H, overflow: "hidden", background: "#f6f5f2" }}>
             <div style={{ position: "absolute", inset: 0, transform: `scale(${scale})`, transformOrigin: `${best.cx}px ${best.cy}px` }}>
-              <OffthreadVideo src={staticFile(`clips/${clip.id}.webm`)} startFrom={Math.round(clip.start * FPS)} playbackRate={SPEED} muted style={{ width: WIN_W, height: H }} />
+              <OffthreadVideo src={staticFile(`clips/${clip.id}.mp4`)} startFrom={Math.round(clip.start * FPS)} playbackRate={SPEED} muted style={{ width: WIN_W, height: H }} />
               {pts.map((m, i) => {
                 const d = t - m.t;
                 if (d < -0.15 || d > 1.5) return null;
