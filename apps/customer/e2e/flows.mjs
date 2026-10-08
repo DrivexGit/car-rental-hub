@@ -287,6 +287,39 @@ async function fresh(viewport, lang = "en") {
   }
 }
 
+// 11. Legal pages: open without signing in, translate, and the deletion request form.
+{
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+  await mock(ctx);
+  await ctx.addInitScript(() => { try { localStorage.setItem("drivex.lang", "en"); sessionStorage.setItem("drivex.splash", "1"); localStorage.setItem("drivex.onboarded", "1"); } catch { /* ignore */ } });
+  const page = await ctx.newPage();
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(e.message.slice(0, 150)));
+  for (const [path, h1, marker] of [["/terms", "Terms & conditions", "Your rental agreement"], ["/privacy", "Privacy policy", "What we collect"], ["/delete-account", "Delete my account", "What we may have to keep"]]) {
+    await page.goto(BASE + path, { waitUntil: "networkidle" }); await page.waitForTimeout(500);
+    ok(`signed out: ${path} opens without sign-in`, (await page.locator("h1").first().textContent()) === h1 && (await page.getByText(marker).count()) >= 1);
+  }
+  await page.goto(BASE + "/privacy", { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: "العربية" }).click(); await page.waitForTimeout(500);
+  ok("privacy policy switches to Arabic (RTL)", (await page.locator("h1").first().textContent()) === "سياسة الخصوصية" && (await page.evaluate(() => document.documentElement.dir)) === "rtl");
+  await page.screenshot({ path: OUT + "/i-legal-ar.png" });
+  await page.getByRole("button", { name: "English" }).click();
+  await page.goto(BASE + "/delete-account", { waitUntil: "networkidle" }); await page.waitForTimeout(400);
+  await page.getByRole("button", { name: "Send by email" }).click();
+  ok("form asks for name and phone first", (await page.getByRole("alert").textContent()) === "Please enter your name and mobile number.");
+  await page.getByLabel("Full name").fill("Emma Collins"); await page.getByLabel("Mobile number").fill("+971501234567");
+  await page.getByRole("button", { name: "Send by WhatsApp" }).click();
+  ok("form asks to confirm before sending", (await page.getByRole("alert").textContent()) === "Please confirm that you understand.");
+  await page.getByLabel(/I understand/).check();
+  const [popup] = await Promise.all([ctx.waitForEvent("page", { timeout: 4000 }).catch(() => null), page.getByRole("button", { name: "Send by WhatsApp" }).click()]);
+  const url = popup ? popup.url() : "";
+  const said = popup ? (new URL(url).searchParams.get("text") || "") : "";
+  ok("WhatsApp opens with the request filled in", /whatsapp\.com|wa\.me/.test(url) && said.includes("Emma Collins") && said.includes("+971501234567"), url.slice(0, 120));
+  ok("no page errors (legal)", errors.length === 0, errors.join(" | "));
+  await page.screenshot({ path: OUT + "/i-legal-delete.png" });
+  await ctx.close();
+}
+
 console.log(results.map((r) => (r.pass ? "PASS  " : "FAIL  ") + r.name + (r.pass ? "" : "   -> " + r.extra)).join("\n"));
 console.log(results.filter((r) => r.pass).length + "/" + results.length + " passed");
 await browser.close();
