@@ -35,8 +35,11 @@ export default function BookingDetail() {
   const insured = b.extras.includes("full_cover");
 
   return (
-    <Screen tabs={false}>
+    <Screen tabs={false} wide>
       <BackBar title={t("Booking details")} right={<StatusDot status={b.status} />} />
+
+      <div className="lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:items-start lg:gap-10">
+      <div className="lg:sticky lg:top-24">
 
       <Card className="overflow-hidden">
         <div className="bg-gradient-to-b from-tint to-white px-4 pt-3"><img src={car.image} alt="" className="mx-auto h-[150px] object-contain" /></div>
@@ -71,7 +74,9 @@ export default function BookingDetail() {
         </div>
       )}
 
-      <h2 id="invoice" className="mb-2 mt-6 scroll-mt-20 font-semibold">{t("Invoices")}</h2>
+      </div>
+      <div>
+      <h2 id="invoice" className="mb-2 mt-6 scroll-mt-24 font-semibold lg:mt-0">{t("Invoices")}</h2>
       <Card className="divide-y divide-line">
         {myInvoices.map((i) => (
           <div key={i.id} className="flex min-h-[64px] items-center gap-3 px-4 py-3">
@@ -108,6 +113,9 @@ export default function BookingDetail() {
           {active && <ListRow icon={<RefreshCw className="h-5 w-5" />} label={t("Change car")} onClick={() => window.open(whatsappLink(`Hi, I'd like to change my car (${carName(car)}, ${b.plate}).`))} />}
           <ListRow icon={<Headphones className="h-5 w-5" />} label={t("Get help with this booking")} onClick={() => nav("/support", { state: { ask: `I need help with my ${carName(car)} booking (${b.plate}).` } })} />
         </ListGroup>
+      </div>
+
+      </div>
       </div>
 
       {paying && <PayInvoiceSheet invoice={paying} open onClose={() => setPaying(null)} />}
