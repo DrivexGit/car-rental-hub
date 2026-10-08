@@ -44,13 +44,13 @@ export default function Home() {
       )}
 
       {!!carOffers.length && <SectionHead title={t("Your Offers")} to="/book?offers=1" />}
-      <div className="no-scrollbar -mx-5 flex gap-3 overflow-x-auto px-5 pb-1">
+      <div className="no-scrollbar -mx-5 flex gap-3 overflow-x-auto px-5 pb-1 lg:mx-0 lg:grid lg:grid-cols-4 lg:gap-4 lg:overflow-visible lg:px-0 xl:grid-cols-5">
         {carOffers.map(({ id, car, off }) => {
           const c = car!;
           const now = Math.round(c.daily * (1 - off / 100));
           return (
-            <Card key={id} className="w-[170px] shrink-0 overflow-hidden" onClick={() => nav(`/book/${c.id}?period=daily&off=${off}`)}>
-              <div className="relative h-[100px] bg-gradient-to-b from-tint to-white">
+            <Card key={id} className="w-[170px] shrink-0 overflow-hidden lg:w-auto" onClick={() => nav(`/book/${c.id}?period=daily&off=${off}`)}>
+              <div className="relative h-[100px] bg-gradient-to-b from-tint to-white lg:h-[150px]">
                 <Badge className="absolute start-2 top-2 bg-danger text-white">{t("{n}% off", { n: off })}</Badge>
                 <img src={c.image} alt="" className="h-full w-full object-contain p-2" loading="lazy" />
               </div>
@@ -70,10 +70,10 @@ export default function Home() {
       </div>
 
       {!!partners.length && <SectionHead title={t("Dining benefits")} />}
-      <div className="no-scrollbar -mx-5 flex gap-3 overflow-x-auto px-5 pb-1">
+      <div className="no-scrollbar -mx-5 flex gap-3 overflow-x-auto px-5 pb-1 lg:mx-0 lg:grid lg:grid-cols-4 lg:gap-4 lg:overflow-visible lg:px-0 xl:grid-cols-5">
         {partners.map((d) => (
-          <Card key={d.id} className="w-[170px] shrink-0 overflow-hidden" onClick={() => setBenefit(d)}>
-            {d.image && <img src={d.image} alt={d.title} className="h-[100px] w-full object-cover" loading="lazy" />}
+          <Card key={d.id} className="w-[170px] shrink-0 overflow-hidden lg:w-auto" onClick={() => setBenefit(d)}>
+            {d.image && <img src={d.image} alt={d.title} className="h-[100px] w-full object-cover lg:h-[150px]" loading="lazy" />}
             <div className="flex items-center justify-between p-3">
               <div><p className="text-sm font-semibold">{d.title}</p><p className="text-xs text-ink-muted">{d.subtitle}</p></div>
               <Badge className="bg-danger-soft text-danger">{t("{n}% off", { n: d.off })}</Badge>
@@ -137,9 +137,9 @@ function Carousel() {
     <div>
       <div ref={ref} onScroll={(e) => setI(indexOf(e.currentTarget))}
         onPointerDown={() => (held.current = true)} onPointerUp={() => setTimeout(() => (held.current = false), 4000)} onTouchStart={() => (held.current = true)} onTouchEnd={() => setTimeout(() => (held.current = false), 4000)}
-        className="no-scrollbar -mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-5 px-5">
+        className="no-scrollbar -mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-5 px-5 lg:mx-0 lg:scroll-px-0 lg:px-0">
         {BANNERS.map((b) => (
-          <div key={b.title} className="relative h-[190px] w-[calc(100%-12px)] shrink-0 snap-start overflow-hidden rounded-card bg-hero p-4 text-white lg:h-[340px] lg:p-10">
+          <div key={b.title} className="relative h-[190px] w-[calc(100%-12px)] shrink-0 lg:w-full snap-start overflow-hidden rounded-card bg-hero p-4 text-white lg:h-[340px] lg:p-10">
             <motion.img src={b.image} alt="" className="absolute inset-0 h-full w-full object-cover lg:object-[50%_70%]" initial={{ scale: 1.15 }} animate={{ scale: 1 }} transition={{ duration: 6, ease: "easeOut" }} />
             <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/35 to-transparent rtl:bg-gradient-to-l" />
             <p className="relative text-[10px] font-semibold uppercase tracking-[.15em] text-white/70 lg:text-xs">{t(b.kicker)}</p>

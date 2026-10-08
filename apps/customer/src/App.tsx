@@ -4,7 +4,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { api } from "@/lib/supabase";
-import { SideNav, TabBar } from "@/components/ui";
+import { TabBar } from "@/components/ui";
+import { DesktopHeader, Footer } from "@/components/DesktopShell";
 import { Splash } from "@/components/Splash";
 import { Onboarding } from "@/components/Onboarding";
 import Inbox from "@/screens/Inbox";
@@ -18,8 +19,11 @@ import Bookings from "@/screens/Bookings";
 import BookingDetail from "@/screens/BookingDetail";
 import Support from "@/screens/Support";
 import Profile from "@/screens/Profile";
+import { DeleteAccount, Privacy, Terms } from "@/screens/LegalPages";
 import { Payments, Documents, Notifications, Language, Legal, EditProfile, Security, Other } from "@/screens/ProfilePages";
 
+// Booking steps keep a fixed action bar at the bottom, so they get no footer.
+const FOCUSED = /^\/(checkout|book\/.+)$/;
 const TAB_ROUTES = ["/", "/book", "/support", "/bookings", "/profile"];
 
 export default function App() {
@@ -41,13 +45,14 @@ function Body() {
   const location = useLocation();
   const { pathname } = location;
   if (!ready) return <div className="grid h-full place-items-center"><Loader2 className="h-8 w-8 animate-spin text-brand" /></div>;
-  if (!user) return <Routes><Route path="*" element={<Login />} /></Routes>;
+  if (!user) return <Routes><Route path="/terms" element={<Terms />} /><Route path="/privacy" element={<Privacy />} /><Route path="/delete-account" element={<DeleteAccount />} /><Route path="*" element={<Login />} /></Routes>;
 
   return (
     <>
-      <SideNav />
       <Onboarding />
-      <div className="h-full lg:ps-64">
+      <div className="h-full lg:flex lg:h-auto lg:min-h-full lg:flex-col">
+      <DesktopHeader />
+      <div className="h-full lg:flex-1">
       {/* Quick fade-out of the old page before the next one slides in, so a tap never feels like a hard jump. */}
       <AnimatePresence mode="wait" initial={false}>
         <motion.div key={pathname} className="h-full" exit={{ opacity: 0, transition: { duration: 0.12 } }}>
@@ -69,11 +74,16 @@ function Body() {
         <Route path="/profile/language" element={<Language />} />
         <Route path="/profile/legal" element={<Legal />} />
         <Route path="/profile/other" element={<Other />} />
+        <Route path="/terms" element={<Terms />} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/delete-account" element={<DeleteAccount />} />
         <Route path="/notifications" element={<Inbox />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
         </motion.div>
       </AnimatePresence>
+      </div>
+      {!FOCUSED.test(pathname) && <Footer />}
       </div>
       {TAB_ROUTES.includes(pathname) && <TabBar />}
     </>

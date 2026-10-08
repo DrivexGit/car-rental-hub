@@ -1,0 +1,22 @@
+// Arabic for the desktop header and footer (DesktopShell.tsx).
+export default {
+  "Premium car rental in Dubai. Book in minutes, drive today.": "تأجير سيارات فاخرة في دبي. احجز في دقائق وانطلق اليوم.",
+  "Chat on WhatsApp": "تواصل عبر واتساب",
+  "Call us": "اتصل بنا",
+  "Explore": "استكشف",
+  "Contact": "تواصل معنا",
+  "All rights reserved.": "جميع الحقوق محفوظة.",
+  "Back to top": "العودة للأعلى",
+  "Delete my account": "حذف حسابي",
+  "Back to the app": "العودة إلى التطبيق",
+  "Your request": "طلبك",
+  "Email (optional)": "البريد الإلكتروني (اختياري)",
+  "Reason (optional)": "السبب (اختياري)",
+  "I understand that deleting my account is permanent.": "أفهم أن حذف حسابي نهائي.",
+  "Send by email": "إرسال بالبريد الإلكتروني",
+  "Send by WhatsApp": "إرسال عبر واتساب",
+  "Please enter your name and mobile number.": "يرجى إدخال اسمك ورقم جوالك.",
+  "Please confirm that you understand.": "يرجى تأكيد أنك تفهم ذلك.",
+  "This opens your email app or WhatsApp with the request ready to send. We reply from the same channel.": "يفتح هذا تطبيق البريد أو واتساب والطلب جاهز للإرسال. نرد عليك من القناة نفسها.",
+  "Dubai, United Arab Emirates": "دبي، الإمارات العربية المتحدة",
+} as Record<string, string>;

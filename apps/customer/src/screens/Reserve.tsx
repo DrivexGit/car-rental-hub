@@ -134,7 +134,7 @@ export default function Reserve() {
 
       <DateSheet open={picking} onClose={() => setPicking(false)} value={pickup} onPick={setPickup} />
 
-      <div className="pb-safe fixed inset-x-0 bottom-0 z-30 mx-auto max-w-[480px] border-t border-line bg-white px-5 pt-3 lg:start-64 lg:max-w-[1040px] lg:px-10">
+      <div className="pb-safe fixed inset-x-0 bottom-0 z-30 mx-auto max-w-[480px] border-t border-line bg-white px-5 pt-3 lg:max-w-[1320px] lg:px-10">
         <div className="mb-3 flex items-baseline justify-between">
           <span className="text-ink-muted">{t("Total · {count}", { count: periodCount(t, period, qty) })}</span>
           <span className="text-2xl font-bold"><Dirham /> {money(q.total)}</span>

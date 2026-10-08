@@ -159,8 +159,9 @@ async function fresh(viewport, lang = "en") {
   const { ctx, page, errors } = await fresh({ width: 1366, height: 850 });
   await page.goto(BASE + "/", { waitUntil: "networkidle" }); await page.waitForTimeout(500);
   ok("tab bar hidden on desktop", !(await page.locator("nav.fixed.bottom-0").isVisible().catch(() => false)));
-  await page.locator("aside a", { hasText: "Support" }).click(); await page.waitForTimeout(700);
-  ok("sidebar navigates", page.url().endsWith("/support"), page.url());
+  ok("desktop header and footer are shown", (await page.locator("header nav a").count()) === 4 && (await page.locator("footer").isVisible()));
+  await page.locator("header nav a", { hasText: "Support" }).click(); await page.waitForTimeout(700);
+  ok("header navigates", page.url().endsWith("/support"), page.url());
   await page.goto(BASE + "/profile", { waitUntil: "networkidle" });
   await page.getByText("Appearance").first().click(); await page.waitForTimeout(600);
   const box = await page.locator("h3", { hasText: "Appearance" }).locator("xpath=ancestor::div[contains(@class,'rounded-t-3xl')]").boundingBox();
@@ -182,6 +183,140 @@ async function fresh(viewport, lang = "en") {
   ok("shows car detail and unpaid stamp", !!html && html.includes("Mercedes G63") && html.includes("UNPAID"));
   if (html) { const p2 = await ctx.newPage(); await p2.setViewportSize({ width: 794, height: 1123 }); await p2.setContent(html, { waitUntil: "load" }); await p2.screenshot({ path: OUT + "/i-invoice.png" }); }
   ok("no console errors (invoice)", errors.length === 0, errors.join(" | "));
+  await ctx.close();
+}
+
+// 7. Tapping the page you are already on never adds a history entry (#9), on phone and desktop.
+{
+  for (const [label, vp, sel, start0, linkText] of [["phone", { width: 390, height: 844 }, "nav.fixed a", "/profile", "Profile"], ["desktop", { width: 1366, height: 850 }, "header nav a", "/support", "Support"]]) {
+    const { ctx, page, errors } = await fresh(vp);
+    await page.goto(BASE + start0, { waitUntil: "networkidle" }); await page.waitForTimeout(500);
+    const start = await page.evaluate(() => history.length);
+    for (let k = 0; k < 3; k++) { await page.locator(sel, { hasText: linkText }).first().click(); await page.waitForTimeout(150); }
+    ok(`${label}: tapping the current tab adds no history`, (await page.evaluate(() => history.length)) === start);
+    if (label === "phone") {
+      await page.locator("a[aria-label='Profile']:visible").first().click().catch(() => {});
+      ok("phone: tapping the avatar on the profile page adds no history", (await page.evaluate(() => history.length)) === start);
+      await page.goto(BASE + "/", { waitUntil: "networkidle" }); await page.waitForTimeout(400);
+      const h = await page.evaluate(() => history.length);
+      await page.locator("a[aria-label='Notifications']:visible").first().click(); await page.waitForTimeout(300);
+      ok("phone: the bell opens notifications with one history entry", (await page.evaluate(() => history.length)) === h + 1, String(await page.evaluate(() => history.length)));
+    } else {
+      await page.goto(BASE + "/profile", { waitUntil: "networkidle" }); await page.waitForTimeout(300);
+      const h0 = await page.evaluate(() => history.length);
+      await page.locator("header button[aria-label=Profile]").click(); await page.getByRole("menuitem", { name: "Profile" }).click(); await page.waitForTimeout(300);
+      ok("desktop: choosing Profile in the account menu while on Profile adds no history", (await page.evaluate(() => history.length)) === h0);
+    }
+    ok(`no console errors (history, ${label})`, errors.length === 0, errors.join(" | "));
+    await ctx.close();
+  }
+}
+
+// 8. Support chat shows long, multi-line and unbroken text inside the bubble (#10), phone and RTL.
+{
+  const { ctx, page, errors } = await fresh({ width: 360, height: 740 }, "ar");
+  const long = "سطر أول\nسطر ثاني مع نص طويل جداً جداً جداً جداً جداً جداً جداً جداً جداً جداً جداً جداً\n" + "https://example.com/" + "a".repeat(120) + "\n" + "x".repeat(200);
+  await ctx.route("**/api/chat", (r) => r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ reply: long, urgent: false }) }));
+  await page.goto(BASE + "/support", { waitUntil: "networkidle" }); await page.waitForTimeout(500);
+  await page.locator("form input").fill(long.slice(0, 300));
+  await page.locator("form button").click(); await page.waitForTimeout(900);
+  const m = await page.evaluate(() => {
+    const vw = document.documentElement.clientWidth;
+    const bubbles = [...document.querySelectorAll("div[dir='auto']")];
+    return { overflowX: document.documentElement.scrollWidth > vw, bubbles: bubbles.length, outside: bubbles.filter((b) => { const r = b.getBoundingClientRect(); return r.left < -1 || r.right > vw + 1; }).length, newlines: bubbles.some((b) => getComputedStyle(b).whiteSpace === "pre-wrap") };
+  });
+  ok("long unbroken text stays inside the screen", !m.overflowX && m.outside === 0 && m.bubbles >= 2, JSON.stringify(m));
+  ok("line breaks are kept", m.newlines);
+  await page.screenshot({ path: OUT + "/i-support-long.png" });
+  const max = await page.locator("form input").getAttribute("maxlength");
+  ok("input is limited to the 2000 characters the server reads", max === "2000", String(max));
+  ok("no console errors (long chat)", errors.length === 0, errors.join(" | "));
+  await ctx.close();
+}
+
+// 9. Splash (every other section skips it): shows, leaves, calms down for reduced motion, never traps the app.
+{
+  async function splashCase(opts, hang = false) {
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, ...opts });
+    await mock(ctx);
+    if (hang) await ctx.route("**/rest/v1/**", () => {}); // data never arrives, so the app is never "ready"
+    await ctx.addInitScript(([s]) => { try { if (!localStorage.getItem("drivex.customer.auth")) localStorage.setItem("drivex.customer.auth", s); localStorage.setItem("drivex.onboarded", "1"); } catch { /* ignore */ } }, [SESSION]);
+    const page = await ctx.newPage();
+    const errors = [];
+    page.on("pageerror", (e) => errors.push(e.message.slice(0, 150)));
+    await page.goto(BASE + "/", { waitUntil: "domcontentloaded" });
+    const splash = page.locator("[role=status][aria-label=Drivex]");
+    return { ctx, page, splash, errors, shown: async (ms) => { await page.waitForTimeout(ms); return (await splash.count()) > 0; } };
+  }
+  {
+    const c = await splashCase({});
+    ok("splash shows on first open", await c.shown(500));
+    ok("splash has the full animation (road lines + logo)", (await c.page.locator("[role=status] img").count()) >= 2);
+    ok("splash leaves by itself", !(await c.shown(3000)));
+    await c.page.reload({ waitUntil: "domcontentloaded" });
+    ok("not shown again in the same session", !(await c.shown(300)));
+    ok("no page errors (splash)", c.errors.length === 0, c.errors.join(" | "));
+    await c.ctx.close();
+  }
+  {
+    const c = await splashCase({ reducedMotion: "reduce" });
+    ok("reduced motion: quiet splash (single icon, no wipe)", (await c.shown(200)) && (await c.page.locator("[role=status] img").count()) === 1);
+    ok("reduced motion: leaves quickly", !(await c.shown(1500)));
+    await c.ctx.close();
+  }
+  {
+    const c = await splashCase({}, true);
+    ok("slow data: splash waits for it", await c.shown(3500));
+    ok("slow data: gives up after 5 s and shows the app", !(await c.shown(3000)));
+    await c.ctx.close();
+  }
+}
+
+// 10. Opening Support never scrolls the page, even with an earlier conversation saved (it used to jump to the bottom).
+{
+  for (const [label, vp] of [["phone", { width: 390, height: 700 }], ["desktop", { width: 1366, height: 700 }]]) {
+    const { ctx, page, errors } = await fresh(vp);
+    const chat = Array.from({ length: 14 }, (_, i) => ({ role: i % 2 ? "assistant" : "user", content: "Message number " + i + " with a few more words so it takes some room" }));
+    await page.addInitScript((c) => { try { sessionStorage.setItem("drivex.support.chat", JSON.stringify(c)); } catch { /* ignore */ } }, chat);
+    await page.goto(BASE + "/support", { waitUntil: "networkidle" }); await page.waitForTimeout(1200);
+    ok(`${label}: Support opens at the top`, (await page.evaluate(() => window.scrollY)) === 0, String(await page.evaluate(() => window.scrollY)));
+    await page.locator("form input").fill("hello"); await page.locator("form button").click(); await page.waitForTimeout(1200);
+    ok(`${label}: a new message still scrolls to the end`, (await page.evaluate(() => window.scrollY)) > 0 || label === "desktop");
+    ok(`no console errors (support scroll, ${label})`, errors.length === 0, errors.join(" | "));
+    await ctx.close();
+  }
+}
+
+// 11. Legal pages: open without signing in, translate, and the deletion request form.
+{
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+  await mock(ctx);
+  await ctx.addInitScript(() => { try { localStorage.setItem("drivex.lang", "en"); sessionStorage.setItem("drivex.splash", "1"); localStorage.setItem("drivex.onboarded", "1"); } catch { /* ignore */ } });
+  const page = await ctx.newPage();
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(e.message.slice(0, 150)));
+  for (const [path, h1, marker] of [["/terms", "Terms & conditions", "Your rental agreement"], ["/privacy", "Privacy policy", "What we collect"], ["/delete-account", "Delete my account", "What we may have to keep"]]) {
+    await page.goto(BASE + path, { waitUntil: "networkidle" }); await page.waitForTimeout(500);
+    ok(`signed out: ${path} opens without sign-in`, (await page.locator("h1").first().textContent()) === h1 && (await page.getByText(marker).count()) >= 1);
+  }
+  await page.goto(BASE + "/privacy", { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: "العربية" }).click(); await page.waitForTimeout(500);
+  ok("privacy policy switches to Arabic (RTL)", (await page.locator("h1").first().textContent()) === "سياسة الخصوصية" && (await page.evaluate(() => document.documentElement.dir)) === "rtl");
+  await page.screenshot({ path: OUT + "/i-legal-ar.png" });
+  await page.getByRole("button", { name: "English" }).click();
+  await page.goto(BASE + "/delete-account", { waitUntil: "networkidle" }); await page.waitForTimeout(400);
+  await page.getByRole("button", { name: "Send by email" }).click();
+  ok("form asks for name and phone first", (await page.getByRole("alert").textContent()) === "Please enter your name and mobile number.");
+  await page.getByLabel("Full name").fill("Emma Collins"); await page.getByLabel("Mobile number").fill("+971501234567");
+  await page.getByRole("button", { name: "Send by WhatsApp" }).click();
+  ok("form asks to confirm before sending", (await page.getByRole("alert").textContent()) === "Please confirm that you understand.");
+  await page.getByLabel(/I understand/).check();
+  const [popup] = await Promise.all([ctx.waitForEvent("page", { timeout: 4000 }).catch(() => null), page.getByRole("button", { name: "Send by WhatsApp" }).click()]);
+  const url = popup ? popup.url() : "";
+  const said = popup ? (new URL(url).searchParams.get("text") || "") : "";
+  ok("WhatsApp opens with the request filled in", /whatsapp\.com|wa\.me/.test(url) && said.includes("Emma Collins") && said.includes("+971501234567"), url.slice(0, 120));
+  ok("no page errors (legal)", errors.length === 0, errors.join(" | "));
+  await page.screenshot({ path: OUT + "/i-legal-delete.png" });
   await ctx.close();
 }
 

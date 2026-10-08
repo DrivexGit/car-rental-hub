@@ -1,22 +1,39 @@
 import { useEffect, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useI18n } from "@/lib/i18n";
 
-/** Animated launch screen: green wipe, the D mark sweeps in, the wordmark reveals, then everything lifts away. */
+/** Animated launch screen: brand wipe, the D mark sweeps in, the wordmark reveals, then everything lifts away.
+ *  Respects reduced motion (a quiet fade instead) and never blocks the app: it gives up after MAX_WAIT even if the data is slow. */
+const MAX_WAIT = 5000;
 export function Splash({ ready }: { ready: boolean }) {
   const { t } = useI18n();
+  const reduce = useReducedMotion();
   const [minDone, setMinDone] = useState(false);
+  const [gaveUp, setGaveUp] = useState(false);
   const [show] = useState(() => { try { return !sessionStorage.getItem("drivex.splash"); } catch { return true; } });
   useEffect(() => {
-    const t = setTimeout(() => { setMinDone(true); try { sessionStorage.setItem("drivex.splash", "1"); } catch { /* ignore */ } }, 1900);
-    return () => clearTimeout(t);
-  }, []);
-  const visible = show && !(minDone && ready);
+    const min = setTimeout(() => { setMinDone(true); try { sessionStorage.setItem("drivex.splash", "1"); } catch { /* ignore */ } }, reduce ? 600 : 1900);
+    const max = setTimeout(() => setGaveUp(true), MAX_WAIT);
+    return () => { clearTimeout(min); clearTimeout(max); };
+  }, [reduce]);
+  const visible = show && !(gaveUp || (minDone && ready));
+  if (reduce) {
+    return (
+      <AnimatePresence>
+        {visible && (
+          <motion.div key="splash" className="fixed inset-0 z-[100] grid place-items-center bg-brand" role="status" aria-label="Drivex"
+            initial={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0.25 } }}>
+            <img src="/icons/icon-512.png" alt="" className="h-24 w-24 rounded-[28px] shadow-2xl ring-1 ring-white/10" />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    );
+  }
 
   return (
     <AnimatePresence>
       {visible && (
-        <motion.div key="splash" className="fixed inset-0 z-[100] grid place-items-center overflow-hidden bg-brand"
+        <motion.div key="splash" className="fixed inset-0 z-[100] grid place-items-center overflow-hidden bg-brand" role="status" aria-label="Drivex"
           exit={{ clipPath: "circle(0% at 50% 46%)", transition: { duration: 0.6, ease: [0.7, 0, 0.3, 1] } }}
           initial={{ clipPath: "circle(150% at 50% 46%)" }}>
           {/* road lines rushing past */}
