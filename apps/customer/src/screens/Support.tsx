@@ -44,7 +44,7 @@ export default function Support() {
 
   return (
     <Screen className="flex min-h-full flex-col">
-      <div className="flex items-center justify-between pb-4 pt-3"><Logo /><Avatar /></div>
+      <div className="flex items-center justify-between pb-4 pt-3 lg:hidden"><Logo /><Avatar /></div>
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-[28px] font-bold tracking-tight">{t("How can we help?")}</h1>

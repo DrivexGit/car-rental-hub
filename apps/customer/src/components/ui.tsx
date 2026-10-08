@@ -45,13 +45,13 @@ export function Avatar({ size = 40 }: { size?: number }) {
 
 /** Top bar of every tab: logo left, avatar (or custom) right. */
 export const TopBar = ({ right }: { right?: ReactNode }) => (
-  <div className="flex items-center justify-between pt-3 pb-4 lg:justify-end">
-    <Logo className="h-6 lg:hidden" />
+  <div className="flex items-center justify-between pt-3 pb-4 lg:hidden">
+    <Logo className="h-6" />
     {right ?? <div className="flex items-center gap-2.5"><Bell /><Avatar /></div>}
   </div>
 );
 
-function Bell() {
+export function Bell() {
   const { notes } = useStore();
   const { t } = useI18n();
   const unread = notes.filter((n) => !n.read).length;
@@ -271,28 +271,6 @@ export function TabBar() {
   );
 }
 
-/** Desktop navigation (lg and up): replaces the bottom tab bar. */
-export function SideNav() {
-  const { user } = useStore();
-  const { t } = useI18n();
-  return (
-    <aside className="fixed inset-y-0 start-0 z-30 hidden w-64 flex-col border-e border-line bg-white p-5 lg:flex">
-      <Link to="/" className="mb-8 mt-1 px-2"><Logo className="h-7" /></Link>
-      <nav className="flex flex-1 flex-col gap-1">
-        {TABS.map(({ to, label, icon: Icon }) => (
-          <NavLink key={to} to={to} end={to === "/"} className={({ isActive }) => cx("flex h-12 items-center gap-3 rounded-xl px-3 text-[15px] font-medium transition-colors", isActive ? "bg-brand-soft text-brand" : "text-ink-muted hover:bg-bg hover:text-ink")}>
-            {({ isActive }) => (<><Icon className="h-5 w-5" strokeWidth={isActive ? 2.4 : 1.8} />{t(label)}</>)}
-          </NavLink>
-        ))}
-      </nav>
-      <Link to="/profile" className="flex items-center gap-3 rounded-xl p-2 hover:bg-bg">
-        <Face size={40} />
-        <span className="min-w-0"><span className="block truncate text-sm font-semibold">{user?.name}</span><span dir="ltr" className="block truncate text-xs text-ink-muted rtl:text-end">{user?.phone}</span></span>
-      </Link>
-    </aside>
-  );
-}
-
 /** Page wrapper for tab screens. */
 /** `wide` pages use the full desktop content width; the rest stay a readable column. */
 export function Screen({ children, tabs = true, wide, className }: { children: ReactNode; tabs?: boolean; wide?: boolean; className?: string }) {
@@ -304,7 +282,7 @@ export function Screen({ children, tabs = true, wide, className }: { children: R
     <motion.main
       initial={{ opacity: 0, x: tabs ? 0 : slide, y: tabs ? 8 : 0 }} animate={{ opacity: 1, x: 0, y: 0 }}
       transition={{ duration: 0.32, ease: [0.2, 0.8, 0.2, 1] }}
-      className={cx("pt-safe mx-auto min-h-full max-w-[480px] px-5 lg:px-10", wide ? "lg:max-w-[1040px]" : "lg:max-w-[560px]", tabs ? "pb-28 lg:pb-12" : "pb-10", className)}>
+      className={cx("pt-safe mx-auto min-h-full max-w-[480px] px-5 lg:px-10", wide ? "lg:max-w-[1320px]" : "lg:max-w-[720px]", tabs ? "pb-28 lg:pb-12" : "pb-10", "lg:!pt-12", className)}>
       {children}
     </motion.main>
   );

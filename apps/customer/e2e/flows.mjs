@@ -159,8 +159,9 @@ async function fresh(viewport, lang = "en") {
   const { ctx, page, errors } = await fresh({ width: 1366, height: 850 });
   await page.goto(BASE + "/", { waitUntil: "networkidle" }); await page.waitForTimeout(500);
   ok("tab bar hidden on desktop", !(await page.locator("nav.fixed.bottom-0").isVisible().catch(() => false)));
-  await page.locator("aside a", { hasText: "Support" }).click(); await page.waitForTimeout(700);
-  ok("sidebar navigates", page.url().endsWith("/support"), page.url());
+  ok("desktop header and footer are shown", (await page.locator("header nav a").count()) === 4 && (await page.locator("footer").isVisible()));
+  await page.locator("header nav a", { hasText: "Support" }).click(); await page.waitForTimeout(700);
+  ok("header navigates", page.url().endsWith("/support"), page.url());
   await page.goto(BASE + "/profile", { waitUntil: "networkidle" });
   await page.getByText("Appearance").first().click(); await page.waitForTimeout(600);
   const box = await page.locator("h3", { hasText: "Appearance" }).locator("xpath=ancestor::div[contains(@class,'rounded-t-3xl')]").boundingBox();

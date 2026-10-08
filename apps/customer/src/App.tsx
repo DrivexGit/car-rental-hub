@@ -4,7 +4,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { api } from "@/lib/supabase";
-import { SideNav, TabBar } from "@/components/ui";
+import { TabBar } from "@/components/ui";
+import { DesktopHeader, Footer } from "@/components/DesktopShell";
 import { Splash } from "@/components/Splash";
 import { Onboarding } from "@/components/Onboarding";
 import Inbox from "@/screens/Inbox";
@@ -20,6 +21,8 @@ import Support from "@/screens/Support";
 import Profile from "@/screens/Profile";
 import { Payments, Documents, Notifications, Language, Legal, EditProfile, Security, Other } from "@/screens/ProfilePages";
 
+// Booking steps keep a fixed action bar at the bottom, so they get no footer.
+const FOCUSED = /^\/(checkout|book\/.+)$/;
 const TAB_ROUTES = ["/", "/book", "/support", "/bookings", "/profile"];
 
 export default function App() {
@@ -45,9 +48,10 @@ function Body() {
 
   return (
     <>
-      <SideNav />
       <Onboarding />
-      <div className="h-full lg:ps-64">
+      <div className="h-full lg:flex lg:h-auto lg:min-h-full lg:flex-col">
+      <DesktopHeader />
+      <div className="h-full lg:flex-1">
       {/* Quick fade-out of the old page before the next one slides in, so a tap never feels like a hard jump. */}
       <AnimatePresence mode="wait" initial={false}>
         <motion.div key={pathname} className="h-full" exit={{ opacity: 0, transition: { duration: 0.12 } }}>
@@ -74,6 +78,8 @@ function Body() {
       </Routes>
         </motion.div>
       </AnimatePresence>
+      </div>
+      {!FOCUSED.test(pathname) && <Footer />}
       </div>
       {TAB_ROUTES.includes(pathname) && <TabBar />}
     </>

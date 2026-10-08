@@ -61,7 +61,7 @@ const PAGES = [
   ["booking-detail", "/bookings/r1"], ["support", "/support"], ["profile", "/profile"], ["profile-edit", "/profile/edit"],
   ["profile-docs", "/profile/documents"], ["profile-notif", "/profile/notifications"], ["profile-lang", "/profile/language"], ["inbox", "/notifications"],
 ];
-const ALLOW = new Set(["English", "ready", "INV-", "Drivex", "Mercedes", "G63", "Audi", "Porsche", "Test", "Customer", "Apple", "Pay", "Dubai", "DIFC", "Barsha", "INV", "ZUMA", "Dining", "Enjoy", "Terms", "apply", "Automatic", "Petrol", "Leather", "seats", "CarPlay", "Sedan", "Coupe", "V8", "WhatsApp", "Mock", "reply", "Salik", "Ziina", "Mulkiya", "Emirates", "Car", "Rental", "rental", "invoice", "Invoice", "AED"]);
+const ALLOW = new Set(["DRIVEX", "English", "ready", "INV-", "Drivex", "Mercedes", "G63", "Audi", "Porsche", "Test", "Customer", "Apple", "Pay", "Dubai", "DIFC", "Barsha", "INV", "ZUMA", "Dining", "Enjoy", "Terms", "apply", "Automatic", "Petrol", "Leather", "seats", "CarPlay", "Sedan", "Coupe", "V8", "WhatsApp", "Mock", "reply", "Salik", "Ziina", "Mulkiya", "Emirates", "Car", "Rental", "rental", "invoice", "Invoice", "AED"]);
 
 const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || "C:/Program Files/Google/Chrome/Application/chrome.exe", headless: true });
 const report = [];

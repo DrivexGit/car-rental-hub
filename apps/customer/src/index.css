@@ -44,3 +44,8 @@ img[src^="/cars/"] { mix-blend-mode: multiply; }
 .drivex-cal .rdp-month_caption { font-weight: 700; font-size: 17px; }
 .drivex-cal .rdp-day_button { transition: transform .12s ease; }
 .drivex-cal .rdp-day_button:active { transform: scale(.9); }
+
+/* Moving road markings on the desktop footer edge (echoes the splash). */
+.road-dash { background: repeating-linear-gradient(90deg, rgb(255 255 255 / .35) 0 28px, transparent 28px 56px); animation: roadDash 2.4s linear infinite; }
+@keyframes roadDash { to { background-position: 56px 0; } }
+@media (prefers-reduced-motion: reduce) { .road-dash { animation: none; } }

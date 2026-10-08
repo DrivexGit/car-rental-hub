@@ -63,7 +63,7 @@ export default function Book() {
     <Screen wide>
       <TopBar />
       <PageTitle title={t("Find your drive")} />
-      <div className="pt-safe sticky top-0 z-20 -mx-5 bg-bg/95 px-5 pb-3 pt-2 backdrop-blur lg:-mx-10 lg:px-10">
+      <div className="pt-safe sticky top-0 z-20 lg:top-[72px] -mx-5 bg-bg/95 px-5 pb-3 pt-2 backdrop-blur lg:-mx-10 lg:px-10">
 
       <Segmented value={period} onChange={setPeriod} options={[{ value: "daily", label: t("Daily") }, { value: "weekly", label: t("Weekly") }, { value: "monthly", label: t("Monthly") }]} />
 
