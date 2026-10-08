@@ -26,8 +26,6 @@
     "build": "remotion bundle",
     "upgrade": "remotion upgrade",
     "lint": "eslint src && tsc",
-    "capture": "cd ../customer && node ../video/capture/record.mjs",
-    "convert": "node capture/convert.mjs",
-    "render": "remotion render Tutorial out/drivex-tutorial-fa.mp4 --crf=20 --concurrency=4 --timeout=120000"
+    "capture": "cd ../customer && node ../video/capture/record.mjs"
   }
 }

@@ -8,7 +8,7 @@ const calculateMetadata: CalculateMetadataFunction<TutorialProps> = async () => 
     const j = await r.json();
     return { id: s.id, start: j.start as number, duration: j.duration as number, view: j.view, marks: j.marks };
   }));
-  const frames = clips.reduce((n, c) => n + Math.ceil(((c.duration - c.start - 0.4) / SPEED) * FPS), 0);
+  const frames = clips.reduce((n, c) => n + Math.ceil(((c.duration - c.start) / SPEED) * FPS), 0);
   return { durationInFrames: INTRO + frames + OUTRO, props: { clips } };
 };
 
