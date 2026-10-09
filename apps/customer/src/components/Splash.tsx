@@ -44,11 +44,12 @@ export function Splash({ ready }: { ready: boolean }) {
               transition={{ duration: 1.1, delay: 0.15 * i, repeat: Infinity, ease: "easeIn" }} />
           ))}
           <div className="relative flex flex-col items-center">
-            <motion.div className="relative" initial={{ x: -140, opacity: 0, skewX: -18 }} animate={{ x: 0, opacity: 1, skewX: 0 }}
+            {/* overflow-hidden: the shine must stay inside the icon (it used to park beside it as a blurry tile) */}
+            <motion.div className="relative overflow-hidden rounded-[28px] shadow-2xl ring-1 ring-white/10" initial={{ x: -140, opacity: 0, skewX: -18 }} animate={{ x: 0, opacity: 1, skewX: 0 }}
               transition={{ type: "spring", stiffness: 140, damping: 14, delay: 0.15 }}>
-              <img src="/icons/icon-512.png" alt="" className="h-24 w-24 rounded-[28px] shadow-2xl ring-1 ring-white/10" />
+              <img src="/icons/icon-512.png" alt="" className="h-24 w-24" />
               <motion.span className="absolute inset-0 rounded-[28px] bg-gradient-to-r from-transparent via-white/40 to-transparent"
-                initial={{ x: "-120%" }} animate={{ x: "120%" }} transition={{ duration: 0.8, delay: 0.75, ease: "easeInOut" }} />
+                initial={{ x: "-120%", opacity: 0 }} animate={{ x: "120%", opacity: [0, 1, 1, 0] }} transition={{ duration: 0.8, delay: 0.75, ease: "easeInOut" }} />
             </motion.div>
             <motion.img src="/logo.png" alt="Drivex" className="mt-6 h-9"
               initial={{ clipPath: "inset(0 100% 0 0)", opacity: 0 }} animate={{ clipPath: "inset(0 0% 0 0)", opacity: 1 }}
