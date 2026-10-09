@@ -88,7 +88,8 @@ export default function Support() {
           )}
           {msgs.map((m, i) => <Bubble key={i} {...m} />)}
           {busy && <div className="flex gap-1 px-4 py-3">{[0, 1, 2].map((d) => <span key={d} className="h-2 w-2 animate-bounce rounded-full bg-ink-faint" style={{ animationDelay: `${d * 120}ms` }} />)}</div>}
-          <div ref={end} />
+          {/* scroll-margin keeps the newest message (and the urgent card) above the fixed composer on phones */}
+          <div ref={end} className="scroll-mb-48 lg:scroll-mb-0" />
         </div>
 
         <div className="contents lg:block lg:border-t lg:border-line lg:bg-bg/60 lg:px-6 lg:py-4">
