@@ -15,9 +15,16 @@ export const addDays = (d: Date, n: number) => new Date(d.getTime() + n * 864000
 export const isoDate = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 export const daysBetween = (a: string | Date, b: string | Date) =>
   Math.max(1, Math.round((new Date(b).getTime() - new Date(a).getTime()) / 86400000));
-/** Returns an English key; translate it at the call site: t(greeting()). */
+/** UAE calendar day number (days since 1970), so "today", "tomorrow" and "days left" follow the UAE date, not the phone's. */
+const uaeDayNumber = (d: string | Date) => {
+  const [y, m, dd] = new Intl.DateTimeFormat("en-CA", { timeZone: TZ }).format(toDate(d)).split("-").map(Number);
+  return Date.UTC(y, m - 1, dd) / 86400000;
+};
+/** Whole UAE calendar days from today to that moment: 0 = today, 1 = tomorrow, negative = past. */
+export const daysUntil = (d: string | Date) => uaeDayNumber(d) - uaeDayNumber(new Date());
+/** Returns an English key; translate it at the call site: t(greeting()). Uses the hour in the UAE. */
 export const greeting = () => {
-  const h = new Date().getHours();
+  const h = Number(new Intl.DateTimeFormat("en-GB", { timeZone: TZ, hour: "numeric", hourCycle: "h23" }).format(new Date()));
   return h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
 };
 

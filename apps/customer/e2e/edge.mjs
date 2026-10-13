@@ -99,6 +99,32 @@ for (const tz of ["America/Los_Angeles", "Pacific/Auckland"]) {
   await ctx.close();
 }
 
+// G. UAE time for the greeting and the days left, from a phone set to Los Angeles time.
+{ const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, timezoneId: "America/Los_Angeles" }); await mock(ctx);
+  await ctx.addInitScript(([s]) => { localStorage.setItem("drivex.customer.auth", s); localStorage.setItem("drivex.lang", "en"); sessionStorage.setItem("drivex.splash","1"); localStorage.setItem("drivex.onboarded","1"); localStorage.setItem("drivex.push.asked","1"); }, [SESSION]);
+  const page = await ctx.newPage();
+  await page.clock.setFixedTime(new Date("2026-10-14T03:00:00Z")); // 07:00 on 14 Oct in the UAE, but 20:00 on 13 Oct in Los Angeles
+  const r1 = T.reservations[0]; const keep = [r1.start_datetime, r1.end_datetime];
+  r1.start_datetime = "2026-10-12T06:00:00.000Z"; r1.end_datetime = "2026-10-16T06:00:00.000Z"; // returns 16 Oct 10:00 UAE
+  await page.goto(BASE + "/", { waitUntil: "networkidle" }); await page.waitForTimeout(700);
+  ok("greeting follows the UAE hour (07:00 = morning, though it is evening in Los Angeles)", (await page.locator("h1").first().innerText()).startsWith("Good morning"), await page.locator("h1").first().innerText());
+  ok("Home card: return on the 16th, today is the 14th in the UAE -> 2 days left", (await page.getByTestId("booked-cars").innerText()).includes("2 days left"), (await page.getByTestId("booked-cars").innerText()).replaceAll("\n", "|"));
+  await page.goto(BASE + "/bookings/r1", { waitUntil: "networkidle" }); await page.waitForTimeout(700);
+  ok("booking details count the same 2 days left", (await page.locator("body").innerText()).includes("2 days left"));
+  [r1.start_datetime, r1.end_datetime] = keep; await ctx.close(); }
+
+// H. On a touch phone inputs are 16px, so iPhones do not zoom the page when one gets focus.
+{ const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true }); await mock(ctx);
+  await ctx.addInitScript(([s]) => { localStorage.setItem("drivex.customer.auth", s); localStorage.setItem("drivex.lang", "en"); sessionStorage.setItem("drivex.splash","1"); localStorage.setItem("drivex.onboarded","1"); localStorage.setItem("drivex.push.asked","1"); }, [SESSION]);
+  const page = await ctx.newPage();
+  const sizes = [];
+  for (const path of ["/book", "/delete-account", "/profile/edit", "/support"]) {
+    await page.goto(BASE + path, { waitUntil: "networkidle" }); await page.waitForTimeout(500);
+    sizes.push(...await page.locator("input:not([type=file]):not([type=checkbox]):not([hidden]), textarea").evaluateAll((els) => els.map((e) => parseFloat(getComputedStyle(e).fontSize))));
+  }
+  ok("every input and textarea is at least 16px on a touch phone", sizes.length >= 8 && sizes.every((s) => s >= 16), sizes.join(","));
+  await ctx.close(); }
+
 console.log(res.map(([p, n, x]) => (p ? "PASS  " : "FAIL  ") + n + (p ? "" : "  -> " + x)).join("\n"));
 console.log(res.filter((r) => r[0]).length + "/" + res.length);
 await b.close();

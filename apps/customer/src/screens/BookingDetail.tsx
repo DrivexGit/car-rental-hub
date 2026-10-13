@@ -3,7 +3,7 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { Car, CheckCircle2, FileBadge, FileText, Headphones, RefreshCw, ShieldCheck, TimerReset, TriangleAlert } from "lucide-react";
 import { useStore, type Invoice } from "@/lib/store";
 import { FULL_COVER_PCT, PERIOD_DAYS, carName, priceFor } from "@/data/catalog";
-import { day, money, shortDay } from "@/lib/format";
+import { day, daysUntil, money, shortDay } from "@/lib/format";
 import { BackBar, Badge, Button, Card, Dirham, ListGroup, ListRow, Screen, Sheet, StatusDot } from "@/components/ui";
 import { PayInvoiceSheet } from "@/screens/PaySheet";
 import { InvoiceDownload } from "@/components/InvoiceDownload";
@@ -29,7 +29,7 @@ export default function BookingDetail() {
   const myInvoices = invoices.filter((i) => i.bookingId === b.id);
   const myFines = fines.filter((f) => f.bookingId === b.id);
   const total = (new Date(b.dropoff).getTime() - new Date(b.pickup).getTime()) / 86400000;
-  const left = Math.ceil((new Date(b.dropoff).getTime() - Date.now()) / 86400000);
+  const left = daysUntil(b.dropoff); // UAE calendar days, the same count the booking cards show
   const active = b.status === "ongoing" || b.status === "overdue";
   const perDay = Math.round(priceFor(car, b.period) / PERIOD_DAYS[b.period]);
   const insured = b.extras.includes("full_cover");
