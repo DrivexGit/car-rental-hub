@@ -25,5 +25,7 @@ export default defineConfig(({ mode }) => {
     plugins: [react(), devApi()],
     resolve: { alias: { "@": path.resolve(__dirname, "src") } },
     server: { port: 9191 },
+    // loaded only when an invoice PDF is saved; listing them here stops the dev server from re-optimising mid-session
+    optimizeDeps: { include: ["jspdf", "html2canvas"] },
   };
 });

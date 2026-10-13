@@ -35,5 +35,8 @@ export default {
   "Starts tomorrow": "يبدأ غدًا",
   "Starts in {n} days": "يبدأ بعد {n} أيام",
   "Your booked cars": "سياراتك المحجوزة",
+  "View invoice": "عرض الفاتورة",
+  "Download PDF": "تنزيل PDF",
+  "Could not create the PDF. Please try again.": "تعذّر إنشاء ملف PDF. يرجى المحاولة مرة أخرى.",
   "Dubai, United Arab Emirates": "دبي، الإمارات العربية المتحدة",
 } as Record<string, string>;
