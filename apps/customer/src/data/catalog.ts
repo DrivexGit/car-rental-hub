@@ -1,10 +1,11 @@
-export type Period = "daily" | "weekly" | "monthly";
+import type { Period } from "./pricing";
+export type { Period };
+export { PERIOD_DAYS } from "./pricing"; // one definition, shared with the server
 export type Car = {
   id: string; make: string; model: string; year: number; category: string;
   daily: number; weekly: number; monthly: number; image: string; seats: number; vehicleIds: string[];
 };
 
-export const PERIOD_DAYS: Record<Period, number> = { daily: 1, weekly: 7, monthly: 30 };
 export const PERIOD_UNIT: Record<Period, string> = { daily: "day", weekly: "week", monthly: "month" };
 export const priceFor = (c: Pick<Car, "daily" | "weekly" | "monthly">, p: Period) => (p === "daily" ? c.daily : p === "weekly" ? c.weekly : c.monthly);
 export const carName = (c: Pick<Car, "make" | "model">) => `${c.make.replace("Mercedes-Benz", "Mercedes")} ${c.model}`;
