@@ -18,7 +18,11 @@ export async function POST(req: Request) {
 
   const db = admin();
   // The app already asks for the documents first; this keeps the rule even if someone calls the API directly.
-  const { data: docRows } = await db.from("customer_documents").select("document_type,verification_status").eq("lead_id", me.lead_id ?? "");
+  // A customer without a lead cannot upload documents (customer_documents.lead_id is required), so this is a set-up problem, not "no documents".
+  if (!me.lead_id) return fail("Your account is not fully set up. Please contact support.", 409);
+  const { data: docRows, error: docErr } = await db.from("customer_documents").select("document_type,verification_status")
+    .eq("lead_id", me.lead_id).eq("tenant_id", me.tenant_id);
+  if (docErr) return fail(docErr.message, 500);
   if (missingDocuments((docRows ?? []).map((d) => ({ type: d.document_type, status: d.verification_status }))).length)
     return fail("Please upload your Emirates ID or passport and your driving licence first (Profile > Documents).", 403);
   const { data: cars } = await db.from("vehicles").select("id,make,model,plate_number,daily_price,weekly_price,monthly_price,status")

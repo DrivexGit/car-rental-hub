@@ -4,10 +4,10 @@ import { createServer } from "vite";
 
 Object.assign(process.env, { SUPABASE_URL: "https://fake.supabase.co", SUPABASE_SERVICE_ROLE_KEY: "service", VITE_SUPABASE_ANON_KEY: "anon", TENANT_ID: "t1", AUTH_SECRET: "s" });
 
-const CUSTOMER = { id: "c1", tenant_id: "t1", lead_id: null, phone: "+971501234567", full_name: "Test Customer", email: null };
+const CUSTOMER = { id: "c1", tenant_id: "t1", lead_id: "lead1", phone: "+971501234567", full_name: "Test Customer", email: null };
 const CARS = [1, 2].map((i) => ({ id: `v${i}`, make: "Mercedes", model: "GLE 53", plate_number: `A ${i}`, daily_price: 1000, weekly_price: 6000, monthly_price: 20000, status: "available" }));
 const DOCS = [{ document_type: "id_card", verification_status: "approved" }, { document_type: "driving_license", verification_status: "pending" }];
-const state = { offer: null, reservations: [], invoices: [], docs: DOCS };
+const state = { offer: null, reservations: [], invoices: [], docs: DOCS, noLead: false, docsError: false, docsQuery: "" };
 const realFetch = globalThis.fetch;
 globalThis.fetch = async (input, init = {}) => {
   const req = new Request(input, init);
@@ -16,8 +16,8 @@ globalThis.fetch = async (input, init = {}) => {
   if (!u.hostname.endsWith("fake.supabase.co")) return realFetch(input, init);
   if (u.pathname === "/auth/v1/user") return req.headers.get("authorization") === "Bearer good" ? json(200, { id: "c1", aud: "authenticated" }) : json(401, { msg: "bad jwt" });
   const table = u.pathname.split("/").pop();
-  if (table === "customers") return json(200, CUSTOMER);
-  if (table === "customer_documents") return json(200, state.docs);
+  if (table === "customers") return json(200, state.noLead ? { ...CUSTOMER, lead_id: null } : CUSTOMER);
+  if (table === "customer_documents") { state.docsQuery = u.search; return state.docsError ? json(500, { message: "db is down" }) : json(200, state.docs); }
   if (table === "vehicles") return json(200, CARS);
   if (table === "offers") return state.offer ? json(200, { discount_pct: state.offer }) : json(406, { code: "PGRST116", details: "The result contains 0 rows", message: "JSON object requested, multiple (or no) rows returned" });
   if (table === "reservations" && req.method === "POST") { const row = await req.json(); state.reservations.push(row); return json(201, { id: "r1" }); }
@@ -31,8 +31,8 @@ const results = [];
 const check = (name, pass, extra = "") => results.push({ name, pass, extra });
 
 const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
-async function book(body, { token = "good", offer = null, docs = null } = {}) {
-  Object.assign(state, { offer, reservations: [], invoices: [], docs: docs ?? DOCS });
+async function book(body, { token = "good", offer = null, docs = null, noLead = false, docsError = false } = {}) {
+  Object.assign(state, { offer, reservations: [], invoices: [], docs: docs ?? DOCS, noLead, docsError });
   const r = await POST(new Request("http://local/api/book", { method: "POST", headers: { authorization: token ? `Bearer ${token}` : "" }, body: JSON.stringify({ modelId: "mercedes-gle-53", pickup: tomorrow, ...body }) }));
   return { status: r.status, body: await r.json(), row: state.reservations[0], inv: state.invoices[0] };
 }
@@ -81,6 +81,14 @@ check("no token -> 401", (await book({ period: "daily", qty: 1 }, { token: "" })
   check("passport + driving licence waiting for review -> booking allowed", r.status === 200 && !!r.row, JSON.stringify(r.body)); }
 { const r = await book({ period: "daily", qty: 1 }, { docs: [{ document_type: "visa", verification_status: "approved" }, { document_type: "other", verification_status: "approved" }] });
   check("a visa or other file alone is not enough -> 403", r.status === 403); }
+
+// A customer without a lead cannot upload documents, so that is a set-up problem (409), not "no documents"; a database error is a 500
+{ const r = await book({ period: "daily", qty: 1 }, { noLead: true });
+  check("customer without a lead -> 409 'not fully set up', not a documents error", r.status === 409 && /not fully set up/.test(r.body.error) && !r.row, JSON.stringify(r.body)); }
+{ const r = await book({ period: "daily", qty: 1 }, { docsError: true });
+  check("a database error while reading documents -> 500, not 'upload documents'", r.status === 500 && /db is down/.test(r.body.error) && !r.row, JSON.stringify(r.body)); }
+{ await book({ period: "daily", qty: 1 });
+  check("documents are read for this lead and this tenant only", /lead_id=eq\.lead1/.test(state.docsQuery) && /tenant_id=eq\.t1/.test(state.docsQuery), state.docsQuery); }
 
 const failed = results.filter((r) => !r.pass);
 for (const r of results) console.log(`${r.pass ? "PASS" : "FAIL"}  ${r.name}${r.pass ? "" : "  -> " + r.extra}`);
