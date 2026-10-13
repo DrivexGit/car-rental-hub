@@ -5,7 +5,7 @@ import { Briefcase, CalendarDays, Check, DoorOpen, Fuel, Gauge, Minus, Plus, Set
 import { DateSheet } from "@/components/DatePicker";
 import { DEPOSIT_AMOUNT, DRIVER_DAILY, DRIVER_MONTHLY, CHILD_SEAT_DAILY, EXTRAS, FULL_COVER_PCT, NO_DEPOSIT_FEE, PERIOD_DAYS, PERIOD_UNIT, carName, extraCost, priceFor, type Car, type Period } from "@/data/catalog";
 import { useStore } from "@/lib/store";
-import { addDays, day, daysBetween, isoDate, money, shortDay } from "@/lib/format";
+import { addDays, day, daysBetween, isoDate, money, shortDay, todayInUAE } from "@/lib/format";
 import { BackBar, Button, Card, Dirham, Price, Screen, Segmented } from "@/components/ui";
 
 /** `base` is the rental price after any offer; the extras are priced on top of it. */
@@ -16,7 +16,7 @@ export function quote(car: Car, period: Period, qty: number, pickup: string, ext
   const days = PERIOD_DAYS[period] * qty;
   const base = Math.round(priceFor(car, period) * qty * (1 - off / 100));
   const extrasTotal = extras.reduce((s, id) => s + extraCost(id, { base, period, qty }), 0);
-  return { carId, period, qty, pickup, dropoff: isoDate(addDays(new Date(pickup), days)), extras, discount: off, base, total: base + extrasTotal };
+  return { carId, period, qty, pickup, dropoff: isoDate(addDays(new Date(`${pickup}T12:00:00`), days)), extras, discount: off, base, total: base + extrasTotal };
 }
 
 /** "3 days" / "1 week" etc, translated. Shared with Checkout. */
@@ -38,7 +38,7 @@ export default function Reserve() {
   const off = offers.find((o) => o.kind === "car" && o.car?.id === carId)?.off ?? 0;
   const [period, setPeriod] = useState<Period>((params.get("period") as Period) || "daily");
   const from = params.get("from"), to = params.get("to");
-  const [pickup, setPickup] = useState(from || isoDate(addDays(new Date(), 1)));
+  const [pickup, setPickup] = useState(from || isoDate(addDays(new Date(`${todayInUAE()}T12:00:00`), 1)));
   const [qty, setQty] = useState(from && to ? Math.ceil(daysBetween(from, to) / PERIOD_DAYS[period]) : period === "daily" ? 3 : 1);
   const [extras, setExtras] = useState<string[]>(["full_cover"]);
   const [noDeposit, setNoDeposit] = useState(false);

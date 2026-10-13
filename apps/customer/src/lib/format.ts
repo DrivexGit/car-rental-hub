@@ -1,9 +1,15 @@
 import { currentLocale } from "@/lib/i18n";
 
 export const money = (n: number) => n.toLocaleString(currentLocale(), { maximumFractionDigits: 0 });
+// Rental dates are UAE dates. They are shown in Dubai time whatever the phone's time zone is (a customer in the USA used to see every date one day early).
+const TZ = "Asia/Dubai";
+/** "2026-10-16" (a plain date) means that day in the UAE; a timestamp stays what it is. */
+export const toDate = (d: string | Date) => (typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d) ? new Date(`${d}T12:00:00+04:00`) : new Date(d));
 export const day = (d: string | Date) =>
-  new Date(d).toLocaleDateString(currentLocale(), { day: "2-digit", month: "short", year: "numeric" });
-export const shortDay = (d: string | Date) => new Date(d).toLocaleDateString(currentLocale(), { day: "numeric", month: "short" });
+  toDate(d).toLocaleDateString(currentLocale(), { day: "2-digit", month: "short", year: "numeric", timeZone: TZ });
+export const shortDay = (d: string | Date) => toDate(d).toLocaleDateString(currentLocale(), { day: "numeric", month: "short", timeZone: TZ });
+/** Today's date in the UAE as "YYYY-MM-DD". */
+export const todayInUAE = () => new Intl.DateTimeFormat("en-CA", { timeZone: TZ }).format(new Date());
 export const addDays = (d: Date, n: number) => new Date(d.getTime() + n * 86400000);
 // Local calendar date (not UTC), so Dubai evenings don't shift a day.
 export const isoDate = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;

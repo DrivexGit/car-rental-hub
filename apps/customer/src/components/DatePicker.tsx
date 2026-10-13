@@ -2,12 +2,13 @@ import { useState } from "react";
 import { DayPicker, type DateRange } from "react-day-picker";
 import { ar, enGB } from "react-day-picker/locale";
 import "react-day-picker/style.css";
-import { addDays, daysBetween, isoDate, shortDay } from "@/lib/format";
+import { addDays, daysBetween, isoDate, shortDay, todayInUAE } from "@/lib/format";
 import { Button, Sheet } from "@/components/ui";
 import { useI18n } from "@/lib/i18n";
 
 const parse = (s?: string) => (s ? new Date(`${s}T12:00:00`) : undefined);
-const today = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
+// "today" is the UAE date, because that is the calendar the rental runs on
+const today = () => new Date(`${todayInUAE()}T00:00:00`);
 
 /** Bottom-sheet range calendar for pickup → return. */
 export function DateRangeSheet({ open, onClose, from, to, onApply, onClear }: {
@@ -19,8 +20,8 @@ export function DateRangeSheet({ open, onClose, from, to, onApply, onClear }: {
   return (
     <Sheet open={open} onClose={onClose} title={t("Rental dates")}>
       <div className="mb-3 grid grid-cols-2 gap-2 text-center">
-        <Pill label={t("Pickup")} value={range?.from ? shortDay(range.from) : t("Select")} active={!range?.from} />
-        <Pill label={t("Return")} value={range?.to ? shortDay(range.to) : t("Select")} active={!!range?.from && !range?.to} />
+        <Pill label={t("Pickup")} value={range?.from ? shortDay(isoDate(range.from)) : t("Select")} active={!range?.from} />
+        <Pill label={t("Return")} value={range?.to ? shortDay(isoDate(range.to)) : t("Select")} active={!!range?.from && !range?.to} />
       </div>
       <div className="flex justify-center">
         <DayPicker mode="range" selected={range} onSelect={setRange} min={1} disabled={{ before: today() }} startMonth={today()} endMonth={addDays(today(), 365)}

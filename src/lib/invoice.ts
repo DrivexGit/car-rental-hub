@@ -36,7 +36,7 @@ export const esc = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, (c) => ES
 const money = (n: number) => `AED ${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 /** UAE mobiles in groups: +971 50 123 4567. Anything else is shown as it is. */
 const phone = (p: string) => { const m = /^\+971(\d{2})(\d{3})(\d{4})$/.exec(p.replace(/\s/g, '')); return m ? `+971 ${m[1]} ${m[2]} ${m[3]}` : p; };
-const date = (iso?: string | null) => (iso ? new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '');
+const date = (iso?: string | null) => (iso ? new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Dubai' }) : '');
 
 export function invoiceHtml({ invoice, to, company, logoUrl }: { invoice: InvoiceData; to: BillTo; company: Company; logoUrl?: string }): string {
   const { net, vat, total } = vatSplit(invoice.amount);

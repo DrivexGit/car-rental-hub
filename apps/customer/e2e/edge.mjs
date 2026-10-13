@@ -77,6 +77,28 @@ for (const [w, h] of [[360, 740], [768, 1024], [1440, 900]]) for (const lang of 
   ok("no console errors (Arabic invoice)", errors.length === 0, errors.join("|"));
   await ctx.close(); T.customers[0].full_name = "Test Customer"; }
 
+// F. Another time zone (a customer in the USA): dates are UAE dates, so nothing may shift by a day.
+for (const tz of ["America/Los_Angeles", "Pacific/Auckland"]) {
+  const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, timezoneId: tz }); await mock(ctx);
+  await ctx.addInitScript(([s]) => { localStorage.setItem("drivex.customer.auth", s); localStorage.setItem("drivex.lang", "en"); sessionStorage.setItem("drivex.splash","1"); localStorage.setItem("drivex.onboarded","1"); localStorage.setItem("drivex.push.asked","1"); }, [SESSION]);
+  const page = await ctx.newPage();
+  await page.goto(BASE + "/book/mercedes-g63?period=monthly&from=2026-10-16&to=2026-11-15", { waitUntil: "networkidle" }); await page.waitForTimeout(700);
+  const t = await page.locator("body").innerText();
+  ok(`${tz}: pickup shows the day that was chosen (16 Oct 2026)`, t.includes("16 Oct 2026"), t.slice(t.indexOf("Pickup date"), t.indexOf("Pickup date") + 60).split("\n").join(" "));
+  ok(`${tz}: 1 month later is 15 Nov (30 days)`, /Return\s*15 Nov/.test(t), (t.match(/Return\s*\d+ \w+/) || [""])[0]);
+  await page.goto(BASE + "/book/mercedes-g63?period=daily&from=2026-12-31&to=2027-01-02", { waitUntil: "networkidle" }); await page.waitForTimeout(700);
+  const t2 = await page.locator("body").innerText();
+  ok(`${tz}: across New Year (31 Dec + 2 days = 2 Jan)`, t2.includes("31 Dec 2026") && /Return\s*02 Jan|Return\s*2 Jan/.test(t2), (t2.match(/Return\s*\d+ \w+/) || [""])[0]);
+  // a booking stored as 10:00 UAE time must show the UAE day
+  const r1 = T.reservations[0]; const keep = [r1.start_datetime, r1.end_datetime];
+  r1.start_datetime = "2026-10-16T06:00:00.000Z"; r1.end_datetime = "2026-10-19T06:00:00.000Z"; // 10:00 in the UAE
+  await page.goto(BASE + "/bookings", { waitUntil: "networkidle" }); await page.waitForTimeout(700);
+  const bt = await page.locator("body").innerText();
+  ok(`${tz}: a booking made for 10:00 UAE time shows 16 Oct and 19 Oct`, bt.includes("16 Oct 2026") && bt.includes("19 Oct 2026"), (bt.match(/Pickup\s*\d+ \w+ \d+/) || [""])[0]);
+  [r1.start_datetime, r1.end_datetime] = keep;
+  await ctx.close();
+}
+
 console.log(res.map(([p, n, x]) => (p ? "PASS  " : "FAIL  ") + n + (p ? "" : "  -> " + x)).join("\n"));
 console.log(res.filter((r) => r[0]).length + "/" + res.length);
 await b.close();
