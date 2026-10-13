@@ -26,7 +26,7 @@ export function EditProfile() {
       <BackBar title={t("Edit profile")} />
       <PhotoPicker />
       <Field label={t("Full name")} value={name} onChange={setName} />
-      <Field label={t("Email (optional)")} value={email} onChange={setEmail} type="email" ltr />
+      <Field label={t("Email")} value={email} onChange={setEmail} type="email" ltr />
       <Field label={t("Mobile number")} value={formatPhone(user!.phone)} disabled ltr />
       {error && <p className="mb-2 text-sm font-medium text-danger">{error}</p>}
       <Button size="lg" className="mt-4" disabled={name.trim().length < 2 || busy || (!!email.trim() && !/^\S+@\S+\.\S+$/.test(email.trim()))}

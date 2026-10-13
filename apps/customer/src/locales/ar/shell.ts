@@ -18,5 +18,8 @@ export default {
   "Please enter your name and mobile number.": "يرجى إدخال اسمك ورقم جوالك.",
   "Please confirm that you understand.": "يرجى تأكيد أنك تفهم ذلك.",
   "This opens your email app or WhatsApp with the request ready to send. We reply from the same channel.": "يفتح هذا تطبيق البريد أو واتساب والطلب جاهز للإرسال. نرد عليك من القناة نفسها.",
+  "Email": "البريد الإلكتروني",
+  "Add your email": "أضف بريدك الإلكتروني",
+  "Your account has no email yet. Add one so we can reach you.": "ليس لحسابك بريد إلكتروني بعد. أضف بريدًا لنتمكن من التواصل معك.",
   "Dubai, United Arab Emirates": "دبي، الإمارات العربية المتحدة",
 } as Record<string, string>;

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, CreditCard, FileText, Globe, Headphones, LogOut, Palette, Pencil, Settings2, ShieldCheck } from "lucide-react";
+import { Bell, CreditCard, Mail, FileText, Globe, Headphones, LogOut, Palette, Pencil, Settings2, ShieldCheck } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { formatPhone } from "@/lib/format";
 import { Card, Face, ListGroup, ListRow, Logo, PageTitle, Screen, Segmented, Sheet } from "@/components/ui";
@@ -31,6 +31,12 @@ export default function Profile() {
         <button onClick={() => nav("/profile/edit")} className="grid h-11 w-11 place-items-center rounded-full border border-line" aria-label={t("Edit profile")}><Pencil className="h-5 w-5" /></button>
       </Card>
 
+      {!user!.email && (
+        <button onClick={() => nav("/profile/edit")} className="-mt-2 mb-6 flex w-full items-center gap-3 rounded-card border border-warn/30 bg-warn-soft p-4 text-start">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-warn text-white"><Mail className="h-5 w-5" /></span>
+          <span className="min-w-0 flex-1"><span className="block font-semibold text-warn-text">{t("Add your email")}</span><span className="block text-sm text-ink-muted">{t("Your account has no email yet. Add one so we can reach you.")}</span></span>
+        </button>
+      )}
       <ListGroup title={t("Account")}>
         <ListRow icon={<CreditCard className="h-5 w-5" />} label={t("Payments")} to="/profile/payments" />
         <ListRow icon={<ShieldCheck className="h-5 w-5" />} label={t("Security")} to="/profile/security" />
