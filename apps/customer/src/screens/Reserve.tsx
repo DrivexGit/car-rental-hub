@@ -47,7 +47,7 @@ export default function Reserve() {
   const specs = allSpecs[car.id];
   const q = quote(car, period, qty, pickup, noDeposit ? [...extras, "no_deposit"] : extras, off);
   const unit = t(PERIOD_UNIT[period]);
-  // what each extra costs, in words (the amounts themselves come from api/_pricing.ts)
+  // what each extra costs, in words (the amounts themselves come from data/pricing.ts)
   const extraHint = (id: string) => id === "full_cover" ? t("{n}% of the rental", { n: FULL_COVER_PCT })
     : id === "extra_driver" && period === "monthly" ? <><Dirham /> {t("{n} / month", { n: DRIVER_MONTHLY })}</>
     : <><Dirham /> {t("{n} / day", { n: id === "extra_driver" ? DRIVER_DAILY : CHILD_SEAT_DAILY })}</>;

@@ -37,7 +37,7 @@ export const BANNERS = [
   { kicker: "Monthly plans", title: "Drive more, pay less.", text: "Save up to 40% with a monthly rental.", cta: "See monthly cars", to: "/book?period=monthly", image: "/img/banner-monthly.webp" },
 ];
 
-// Prices of extras come from api/_pricing.ts, the same file the server uses to price the booking.
-export { EXTRA_LABELS, DEPOSIT_AMOUNT, NO_DEPOSIT_FEE, FULL_COVER_PCT, DRIVER_DAILY, DRIVER_MONTHLY, CHILD_SEAT_DAILY, extraCost } from "../../api/_pricing";
-import { EXTRA_LABELS, PICKABLE_EXTRAS } from "../../api/_pricing";
+// Prices of extras come from pricing.ts, the same file the server (api/book.ts) uses to price the booking.
+export { EXTRA_LABELS, DEPOSIT_AMOUNT, NO_DEPOSIT_FEE, FULL_COVER_PCT, DRIVER_DAILY, DRIVER_MONTHLY, CHILD_SEAT_DAILY, extraCost } from "./pricing";
+import { EXTRA_LABELS, PICKABLE_EXTRAS } from "./pricing";
 export const EXTRAS = PICKABLE_EXTRAS.map((id) => ({ id, label: EXTRA_LABELS[id] }));

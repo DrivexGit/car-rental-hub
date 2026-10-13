@@ -1,5 +1,5 @@
 import { admin, busyIds, fail, getCustomer, json, PERIOD_DAYS, slug, type Period } from "./_lib.js";
-import { extrasTotal, isExtra } from "./_pricing.js";
+import { extrasTotal, isExtra } from "../src/data/pricing.js";
 
 // Creates a pending reservation + invoice. Price, discount and the actual car are decided here, never by the client.
 export async function POST(req: Request) {

@@ -1,5 +1,6 @@
 // Extras and their prices. One source for the server (api/book.ts decides the real price) and for the app (the quote it shows before paying),
-// so the two cannot drift apart. No imports on purpose: this file is bundled into the browser too.
+// so the two cannot drift apart. It lives in src/ (not api/) because the dev server and tests treat /api/* as server routes.
+// No imports on purpose: it is bundled into the browser as well.
 
 export const PERIOD_DAYS = { daily: 1, weekly: 7, monthly: 30 } as const;
 export type Period = keyof typeof PERIOD_DAYS;
