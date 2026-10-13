@@ -3,19 +3,20 @@ import { useI18n } from "@/lib/i18n";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Briefcase, CalendarDays, Check, DoorOpen, Fuel, Gauge, Minus, Plus, Settings2, ShieldCheck, Sparkles, Users } from "lucide-react";
 import { DateSheet } from "@/components/DatePicker";
-import { EXTRAS, PERIOD_DAYS, PERIOD_UNIT, carName, priceFor, type Car, type Period } from "@/data/catalog";
+import { DEPOSIT_AMOUNT, DRIVER_DAILY, DRIVER_MONTHLY, CHILD_SEAT_DAILY, EXTRAS, FULL_COVER_PCT, NO_DEPOSIT_FEE, PERIOD_DAYS, PERIOD_UNIT, carName, extraCost, priceFor, type Car, type Period } from "@/data/catalog";
 import { useStore } from "@/lib/store";
 import { addDays, day, daysBetween, isoDate, money, shortDay } from "@/lib/format";
 import { BackBar, Button, Card, Dirham, Price, Screen, Segmented } from "@/components/ui";
 
-export type Quote = { carId: string; period: Period; qty: number; pickup: string; dropoff: string; extras: string[]; discount: number; total: number };
+/** `base` is the rental price after any offer; the extras are priced on top of it. */
+export type Quote = { carId: string; period: Period; qty: number; pickup: string; dropoff: string; extras: string[]; discount: number; base: number; total: number };
 
 export function quote(car: Car, period: Period, qty: number, pickup: string, extras: string[], off = 0): Quote {
   const carId = car.id;
   const days = PERIOD_DAYS[period] * qty;
   const base = Math.round(priceFor(car, period) * qty * (1 - off / 100));
-  const extrasTotal = EXTRAS.filter((e) => extras.includes(e.id)).reduce((s, e) => s + e.daily * days, 0);
-  return { carId, period, qty, pickup, dropoff: isoDate(addDays(new Date(pickup), days)), extras, discount: off, total: base + extrasTotal };
+  const extrasTotal = extras.reduce((s, id) => s + extraCost(id, { base, period, qty }), 0);
+  return { carId, period, qty, pickup, dropoff: isoDate(addDays(new Date(pickup), days)), extras, discount: off, base, total: base + extrasTotal };
 }
 
 /** "3 days" / "1 week" etc, translated. Shared with Checkout. */
@@ -40,11 +41,16 @@ export default function Reserve() {
   const [pickup, setPickup] = useState(from || isoDate(addDays(new Date(), 1)));
   const [qty, setQty] = useState(from && to ? Math.ceil(daysBetween(from, to) / PERIOD_DAYS[period]) : period === "daily" ? 3 : 1);
   const [extras, setExtras] = useState<string[]>(["full_cover"]);
+  const [noDeposit, setNoDeposit] = useState(false);
 
   if (!car) return null;
   const specs = allSpecs[car.id];
-  const q = quote(car, period, qty, pickup, extras, off);
+  const q = quote(car, period, qty, pickup, noDeposit ? [...extras, "no_deposit"] : extras, off);
   const unit = t(PERIOD_UNIT[period]);
+  // what each extra costs, in words (the amounts themselves come from api/_pricing.ts)
+  const extraHint = (id: string) => id === "full_cover" ? t("{n}% of the rental", { n: FULL_COVER_PCT })
+    : id === "extra_driver" && period === "monthly" ? <><Dirham /> {t("{n} / month", { n: DRIVER_MONTHLY })}</>
+    : <><Dirham /> {t("{n} / day", { n: id === "extra_driver" ? DRIVER_DAILY : CHILD_SEAT_DAILY })}</>;
   const toggle = (id: string) => setExtras((x) => (x.includes(id) ? x.filter((i) => i !== id) : [...x, id]));
 
   return (
@@ -124,11 +130,23 @@ export default function Reserve() {
             <button key={e.id} onClick={() => toggle(e.id)} className="flex min-h-[60px] w-full items-center gap-3 px-4 text-start">
               <span className={`grid h-6 w-6 place-items-center rounded-md border-2 ${on ? "border-brand bg-brand text-white" : "border-line"}`}>{on && <Check className="h-4 w-4" />}</span>
               <span className="flex-1 font-medium">{t(e.label)}{e.id === "full_cover" && <ShieldCheck className="ms-1.5 inline h-4 w-4 text-brand" />}</span>
-              <span className="text-sm text-ink-muted"><Dirham /> {t("{n} / day", { n: e.daily })}</span>
+              <span className="text-sm text-ink-muted">{extraHint(e.id)}</span>
             </button>
           );
         })}
       </Card>
+
+      <h2 className="mb-2 mt-6 font-semibold">{t("Security deposit")}</h2>
+      <Card><div className="divide-y divide-line" role="radiogroup" aria-label={t("Security deposit")}>
+        {([[false, "Refundable deposit", "Blocked on your card at pickup and released after the return.", <><Dirham /> {money(DEPOSIT_AMOUNT)}</>],
+           [true, "No deposit", "Pay once. Nothing is blocked on your card.", <>+ <Dirham /> {money(NO_DEPOSIT_FEE)}</>]] as const).map(([none, title, text, price]) => (
+          <button key={title} role="radio" aria-checked={noDeposit === none} onClick={() => setNoDeposit(none)} className="flex min-h-[64px] w-full items-center gap-3 px-4 py-2 text-start">
+            <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-full border-2 ${noDeposit === none ? "border-brand" : "border-line"}`}>{noDeposit === none && <span className="h-3 w-3 rounded-full bg-brand" />}</span>
+            <span className="min-w-0 flex-1"><span className="block font-medium">{t(title)}</span><span className="block text-[13px] text-ink-muted">{t(text)}</span></span>
+            <span className="text-sm font-semibold">{price}</span>
+          </button>
+        ))}
+      </div></Card>
       </div>
       </div>
 

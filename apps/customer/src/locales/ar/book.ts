@@ -45,7 +45,7 @@ export default {
   "Less": "أقل",
   "More": "أكثر",
   "Extras": "إضافات",
-  "Full insurance cover": "تأمين شامل",
+  "Full coverage insurance": "تأمين شامل",
   "Additional driver": "سائق إضافي",
   "Child seat": "مقعد أطفال",
   "Total · {count}": "الإجمالي · {count}",

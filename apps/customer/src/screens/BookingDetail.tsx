@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { Car, CheckCircle2, FileBadge, FileText, Headphones, RefreshCw, ShieldCheck, TimerReset, TriangleAlert } from "lucide-react";
 import { useStore, type Invoice } from "@/lib/store";
-import { EXTRAS, PERIOD_DAYS, carName, priceFor } from "@/data/catalog";
+import { FULL_COVER_PCT, PERIOD_DAYS, carName, priceFor } from "@/data/catalog";
 import { day, money, shortDay } from "@/lib/format";
 import { BackBar, Badge, Button, Card, Dirham, ListGroup, ListRow, Screen, Sheet, StatusDot } from "@/components/ui";
 import { PayInvoiceSheet } from "@/screens/PaySheet";
@@ -141,7 +141,7 @@ export default function BookingDetail() {
 
       <Sheet open={sheet === "insurance"} onClose={() => setSheet(null)} title={t("Insurance")}>
         <DocCard icon={<ShieldCheck className="h-6 w-6" />} rows={[[t("Cover"), insured ? t("Full cover (zero excess)") : t("Basic (third party + excess)")], [t("Valid"), `${shortDay(b.pickup)} – ${shortDay(b.dropoff)}`], [t("Plate"), b.plate]]} />
-        {!insured && <p className="mt-3 text-sm text-ink-muted">{t("Upgrade to full cover for")} <Dirham /> {EXTRAS[0].daily} {t("/ day")} — {t("ask us in Support.")}</p>}
+        {!insured && <p className="mt-3 text-sm text-ink-muted">{t("Upgrade to full coverage insurance for {n}% of the rental — ask us in Support.", { n: FULL_COVER_PCT })}</p>}
       </Sheet>
     </Screen>
   );

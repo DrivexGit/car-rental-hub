@@ -9,7 +9,7 @@ import { aed, fdate, fdatetime } from '@/lib/format';
 import { markPaidManually } from '@/pages/Invoices';
 import { useToast } from '@/hooks/use-toast';
 
-const EXTRA_LABEL: Record<string, string> = { full_cover: 'Full insurance cover', extra_driver: 'Additional driver', child_seat: 'Child seat' };
+const EXTRA_LABEL: Record<string, string> = { full_cover: 'Full coverage insurance', extra_driver: 'Additional driver', child_seat: 'Child seat', no_deposit: 'No deposit' };
 
 /** Everything about one booking: customer, car, dates, money (invoices + payments), fines. */
 export function ReservationDetail({ id, onChanged }: { id: string; onChanged: () => void }) {

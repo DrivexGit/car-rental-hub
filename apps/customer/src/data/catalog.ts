@@ -37,9 +37,7 @@ export const BANNERS = [
   { kicker: "Monthly plans", title: "Drive more, pay less.", text: "Save up to 40% with a monthly rental.", cta: "See monthly cars", to: "/book?period=monthly", image: "/img/banner-monthly.webp" },
 ];
 
-// Shown for the price preview; the server (api/_lib.ts EXTRAS) is the source of truth.
-export const EXTRAS = [
-  { id: "full_cover", label: "Full insurance cover", daily: 45 },
-  { id: "extra_driver", label: "Additional driver", daily: 25 },
-  { id: "child_seat", label: "Child seat", daily: 15 },
-];
+// Prices of extras come from api/_pricing.ts, the same file the server uses to price the booking.
+export { EXTRA_LABELS, DEPOSIT_AMOUNT, NO_DEPOSIT_FEE, FULL_COVER_PCT, DRIVER_DAILY, DRIVER_MONTHLY, CHILD_SEAT_DAILY, extraCost } from "../../api/_pricing";
+import { EXTRA_LABELS, PICKABLE_EXTRAS } from "../../api/_pricing";
+export const EXTRAS = PICKABLE_EXTRAS.map((id) => ({ id, label: EXTRA_LABELS[id] }));
