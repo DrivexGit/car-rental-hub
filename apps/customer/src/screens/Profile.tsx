@@ -1,15 +1,17 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, CreditCard, Mail, FileText, Globe, Headphones, LogOut, Palette, Pencil, Settings2, ShieldCheck } from "lucide-react";
+import { Bell, CreditCard, IdCard, Mail, FileText, Globe, Headphones, LogOut, Palette, Pencil, Settings2, ShieldCheck } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { formatPhone } from "@/lib/format";
+import { missingDocuments } from "@/data/documents";
 import { Card, Face, ListGroup, ListRow, Logo, PageTitle, Screen, Segmented, Sheet } from "@/components/ui";
 import { getTheme, setTheme, THEMES, type Theme } from "@/lib/theme";
 import { Link } from "react-router-dom";
 import { LANGS, useI18n } from "@/lib/i18n";
 
 export default function Profile() {
-  const { user, signOut } = useStore();
+  const { user, signOut, documents } = useStore();
+  const missing = missingDocuments(documents);
   const { t, lang } = useI18n();
   const nav = useNavigate();
   const [themeOpen, setThemeOpen] = useState(false);
@@ -31,6 +33,12 @@ export default function Profile() {
         <button onClick={() => nav("/profile/edit")} className="grid h-11 w-11 place-items-center rounded-full border border-line" aria-label={t("Edit profile")}><Pencil className="h-5 w-5" /></button>
       </Card>
 
+      {!!missing.length && (
+        <button onClick={() => nav("/profile/documents")} className="-mt-2 mb-4 flex w-full items-center gap-3 rounded-card border border-danger/30 bg-danger-soft p-4 text-start">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-danger text-white"><IdCard className="h-5 w-5" /></span>
+          <span className="min-w-0 flex-1"><span className="block font-semibold text-danger">{t("Upload your documents")}</span><span className="block text-sm text-ink-muted">{t("You need these before you can book: {list}.", { list: missing.map((m) => t(m.label)).join(", ") })}</span></span>
+        </button>
+      )}
       {!user!.email && (
         <button onClick={() => nav("/profile/edit")} className="-mt-2 mb-6 flex w-full items-center gap-3 rounded-card border border-warn/30 bg-warn-soft p-4 text-start">
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-warn text-white"><Mail className="h-5 w-5" /></span>

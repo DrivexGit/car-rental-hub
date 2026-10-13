@@ -4,6 +4,7 @@ import { CreditCard, Info, Loader2 } from "lucide-react";
 import { EXTRA_LABELS, DEPOSIT_AMOUNT, carName, extraCost } from "@/data/catalog";
 import { day, money } from "@/lib/format";
 import { useStore } from "@/lib/store";
+import { missingDocuments } from "@/data/documents";
 import { api } from "@/lib/supabase";
 import { BackBar, Button, Card, Dirham, Screen } from "@/components/ui";
 import { periodCount, type Quote } from "@/screens/Reserve";
@@ -14,11 +15,12 @@ export default function Checkout() {
   const q = useLocation().state as (Quote & { qty: number }) | null;
   const nav = useNavigate();
   const { t } = useI18n();
-  const { carById, payInvoice, refresh } = useStore();
+  const { carById, payInvoice, refresh, documents } = useStore();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const car = q && carById(q.carId);
   if (!q || !car) return <Navigate to="/book" replace />;
+  if (missingDocuments(documents).length) return <Navigate to={`/book/${q.carId}`} replace />; // documents were removed or rejected since step 1
 
   // The amount keeps its Dirham symbol, so split the sentence around a marker.
   const deposit = t("A refundable security deposit (from {amount}) is blocked on your card at pickup.", { amount: "{amount}" }).split("{amount}");

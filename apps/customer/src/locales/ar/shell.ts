@@ -38,5 +38,9 @@ export default {
   "View invoice": "عرض الفاتورة",
   "Download PDF": "تنزيل PDF",
   "Could not create the PDF. Please try again.": "تعذّر إنشاء ملف PDF. يرجى المحاولة مرة أخرى.",
+  "Upload your documents": "ارفع مستنداتك",
+  "You need these before you can book: {list}.": "تحتاج إلى هذه المستندات قبل الحجز: {list}.",
+  "Please update your documents first: {list}.": "يرجى تحديث مستنداتك أولاً: {list}.",
+  "Update documents": "تحديث المستندات",
   "Dubai, United Arab Emirates": "دبي، الإمارات العربية المتحدة",
 } as Record<string, string>;

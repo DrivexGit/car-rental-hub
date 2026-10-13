@@ -4,6 +4,7 @@ import { BellRing, Camera, CheckCircle2, ChevronRight, FileText, IdCard, Loader2
 import { enablePush, pushSupported } from "@/lib/push";
 import { supabase } from "@/lib/supabase";
 import { useStore } from "@/lib/store";
+import { REQUIRED_DOCUMENTS } from "@/data/documents";
 import { day, formatPhone, money } from "@/lib/format";
 import { BackBar, Button, Card, Dirham, Empty, Face, ListGroup, ListRow, Screen } from "@/components/ui";
 import { compressSquare } from "@/lib/image";
@@ -97,7 +98,7 @@ export function Payments() {
   );
 }
 
-const DOC_TYPES = [["id_card", "Emirates ID or passport"], ["driving_license", "Driving licence"], ["visa", "Visa page (tourists)"]] as const;
+const DOC_TYPES = [...REQUIRED_DOCUMENTS.map((d) => [d.id, d.label] as const), ["visa", "Visa page (tourists)"] as const] as const;
 
 /** Uploads to the private customer-documents bucket ("<uid>/...") and registers the file for staff review. */
 export function Documents() {

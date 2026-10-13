@@ -1,5 +1,6 @@
 import { admin, busyIds, fail, getCustomer, json, PERIOD_DAYS, slug, type Period } from "./_lib.js";
 import { extrasTotal, isExtra } from "../src/data/pricing.js";
+import { missingDocuments } from "../src/data/documents.js";
 
 // Creates a pending reservation + invoice. Price, discount and the actual car are decided here, never by the client.
 export async function POST(req: Request) {
@@ -16,6 +17,10 @@ export async function POST(req: Request) {
   const ex = [...new Set(Array.isArray(extras) ? (extras as unknown[]).filter((e): e is string => typeof e === "string" && isExtra(e)) : [])];
 
   const db = admin();
+  // The app already asks for the documents first; this keeps the rule even if someone calls the API directly.
+  const { data: docRows } = await db.from("customer_documents").select("document_type,verification_status").eq("lead_id", me.lead_id ?? "");
+  if (missingDocuments((docRows ?? []).map((d) => ({ type: d.document_type, status: d.verification_status }))).length)
+    return fail("Please upload your Emirates ID or passport and your driving licence first (Profile > Documents).", 403);
   const { data: cars } = await db.from("vehicles").select("id,make,model,plate_number,daily_price,weekly_price,monthly_price,status")
     .eq("tenant_id", me.tenant_id).eq("is_active", true).not("status", "in", "(maintenance,unavailable)");
   const units = (cars ?? []).filter((c) => slug(c.make, c.model) === modelId);

@@ -5,6 +5,7 @@ import { Briefcase, CalendarDays, Check, DoorOpen, Fuel, Gauge, Minus, Plus, Set
 import { DateSheet } from "@/components/DatePicker";
 import { DEPOSIT_AMOUNT, DRIVER_DAILY, DRIVER_MONTHLY, CHILD_SEAT_DAILY, EXTRAS, FULL_COVER_PCT, NO_DEPOSIT_FEE, PERIOD_DAYS, PERIOD_UNIT, carName, extraCost, priceFor, type Car, type Period } from "@/data/catalog";
 import { useStore } from "@/lib/store";
+import { missingDocuments } from "@/data/documents";
 import { addDays, day, daysBetween, isoDate, money, shortDay, todayInUAE } from "@/lib/format";
 import { BackBar, Button, Card, Dirham, Price, Screen, Segmented } from "@/components/ui";
 
@@ -32,7 +33,9 @@ export default function Reserve() {
   const [params] = useSearchParams();
   const nav = useNavigate();
   const { t } = useI18n();
-  const { carById, offers, specs: allSpecs } = useStore();
+  const { carById, offers, specs: allSpecs, documents } = useStore();
+  const missing = missingDocuments(documents);
+  const [needDocs, setNeedDocs] = useState(false);
   const [picking, setPicking] = useState(false);
   const car = carById(carId);
   const off = offers.find((o) => o.kind === "car" && o.car?.id === carId)?.off ?? 0;
@@ -157,7 +160,13 @@ export default function Reserve() {
           <span className="text-ink-muted">{t("Total · {count}", { count: periodCount(t, period, qty) })}</span>
           <span className="text-2xl font-bold"><Dirham /> {money(q.total)}</span>
         </div>
-        <Button size="lg" arrow className="mb-3" onClick={() => nav("/checkout", { state: q })}>{t("Continue")}</Button>
+        {needDocs && !!missing.length && (
+          <div role="alert" className="mb-3 flex items-center gap-3 rounded-xl bg-danger-soft p-3 text-sm">
+            <p className="flex-1 font-medium text-danger">{t("Please update your documents first: {list}.", { list: missing.map((m) => t(m.label)).join(", ") })}</p>
+            <Button size="sm" onClick={() => nav("/profile/documents")}>{t("Update documents")}</Button>
+          </div>
+        )}
+        <Button size="lg" arrow className="mb-3" onClick={() => { if (missing.length) { setNeedDocs(true); return; } nav("/checkout", { state: q }); }}>{t("Continue")}</Button>
       </div>
     </Screen>
   );
