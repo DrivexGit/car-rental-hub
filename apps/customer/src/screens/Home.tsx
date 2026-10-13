@@ -22,13 +22,15 @@ export default function Home() {
   const [paying, setPaying] = useState(false);
   const [benefit, setBenefit] = useState<Offer | null>(null);
   const first = user!.name.split(" ")[0];
+  // the name is coloured, so translate the sentence around a marker and put the name back in
+  const greetingParts = t("{greeting}, {name}", { greeting: t(greeting()), name: "@@" }).split("@@");
 
   return (
     <Screen wide>
       <TopBar />
       <InstallBanner />
       <PushPrompt />
-      <PageTitle title={<motion.span initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>{t("{greeting}, {name}", { greeting: t(greeting()), name: first })}</motion.span>} sub={t("Your next journey, beautifully taken care of.")} />
+      <PageTitle title={<motion.span initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>{greetingParts[0]}<span className="text-brand">{first}</span>{greetingParts[1]}</motion.span>} sub={t("Your next journey, beautifully taken care of.")} />
 
       <Carousel />
 
