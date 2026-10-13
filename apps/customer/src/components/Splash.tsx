@@ -51,9 +51,12 @@ export function Splash({ ready }: { ready: boolean }) {
               <motion.span className="absolute inset-0 rounded-[28px] bg-gradient-to-r from-transparent via-white/40 to-transparent"
                 initial={{ x: "-120%", opacity: 0 }} animate={{ x: "120%", opacity: [0, 1, 1, 0] }} transition={{ duration: 0.8, delay: 0.75, ease: "easeInOut" }} />
             </motion.div>
-            <motion.img src="/logo.png" alt="Drivex" className="mt-6 h-9"
+            {/* plain text on purpose: the logo image already starts with the D mark, which would show the D twice next to the icon */}
+            <motion.p lang="en" className="mt-6 text-[40px] font-extrabold leading-none tracking-tight text-white"
               initial={{ clipPath: "inset(0 100% 0 0)", opacity: 0 }} animate={{ clipPath: "inset(0 0% 0 0)", opacity: 1 }}
-              transition={{ duration: 0.7, delay: 0.55, ease: [0.2, 0.8, 0.2, 1] }} />
+              transition={{ duration: 0.7, delay: 0.55, ease: [0.2, 0.8, 0.2, 1] }}>
+              Drivex
+            </motion.p>
             <motion.p className="mt-3 text-xs font-medium uppercase tracking-[.35em] text-white/60"
               initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.05 }}>
               {t("Drive. Easy.")}

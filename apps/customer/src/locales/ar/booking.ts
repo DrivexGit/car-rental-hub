@@ -48,7 +48,6 @@ export default {
   "Full cover (zero excess)": "تأمين شامل (بدون تحمّل)",
   "Basic (third party + excess)": "أساسي (ضد الغير + مبلغ تحمّل)",
   "Valid": "صالح",
-  "Upgrade to full cover for": "الترقية إلى التأمين الشامل مقابل",
   "/ day": "/ يوم",
   "ask us in Support.": "اسألنا في الدعم.",
 } as Record<string, string>;

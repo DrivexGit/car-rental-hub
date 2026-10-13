@@ -71,7 +71,7 @@ export default function Support() {
             <span className="absolute -bottom-0.5 -end-0.5 h-4 w-4 rounded-full border-2 border-white bg-[#22c55e]" />
           </span>
           <div className="lg:flex-1">
-            <h1 className="text-[28px] font-bold tracking-tight lg:text-[32px]">{t("How can we help?")}</h1>
+            <h1 className="font-display text-[30px] font-extrabold tracking-tight lg:text-[34px]">{t("How can we help?")}</h1>
             <p className="mt-1 flex items-center gap-1.5 text-sm"><Sparkles className="h-4 w-4 text-brand lg:hidden" /><b>Drivex AI</b><span className="text-ink-faint">· {t("AI assistant")}</span></p>
           </div>
           <a href={whatsappLink(`Hi Drivex, this is ${user!.name}.`)} target="_blank" rel="noreferrer" aria-label="WhatsApp"

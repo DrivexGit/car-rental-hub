@@ -4,6 +4,7 @@ import { ArrowLeft, Loader2 } from "lucide-react";
 import { api, supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui";
 import { useI18n } from "@/lib/i18n";
+import { formatPhone } from "@/lib/format";
 
 type Step = "phone" | "code" | "name";
 
@@ -80,7 +81,7 @@ export default function Login() {
       )}
 
       {step === "code" && (
-        <Panel title={t("Enter the code")} sub={<>{t("We sent a 6-digit code by SMS to")} <b dir="ltr" className="text-white">{full}</b></>}>
+        <Panel title={t("Enter the code")} sub={<>{t("We sent a 6-digit code by SMS to")} <b dir="ltr" className="text-white">{formatPhone(full)}</b></>}>
           <CodeInput value={code} onChange={(v) => { setCode(v); if (v.length === 6) verify(v); }} />
           {testMode && <p className="mt-3 rounded-lg bg-warn-soft px-3 py-2 text-sm text-warn-text">{t("Test mode: SMS is not connected yet.")} {codeHint[0]}<b>123456</b>{codeHint[1]}</p>}
           <Err msg={error} />
@@ -110,7 +111,7 @@ const Err = ({ msg }: { msg: string }) => (msg ? <p className="mt-3 text-sm font
 
 const Panel = ({ title, sub, children }: { title: string; sub: React.ReactNode; children: React.ReactNode }) => (
   <section className="pb-10">
-    <h1 className="text-[32px] font-bold leading-tight tracking-tight">{title}</h1>
+    <h1 className="font-display text-[34px] font-extrabold leading-tight tracking-tight">{title}</h1>
     <p className="mb-7 mt-2 text-[15px] text-white/75">{sub}</p>
     {children}
   </section>

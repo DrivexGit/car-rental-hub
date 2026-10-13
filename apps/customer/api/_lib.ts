@@ -27,13 +27,7 @@ export async function getCustomer(req: Request): Promise<Customer | null> {
 
 export const slug = (make: string, model: string) => `${make}-${model}`.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
-export const PERIOD_DAYS = { daily: 1, weekly: 7, monthly: 30 } as const;
-export type Period = keyof typeof PERIOD_DAYS;
-export const EXTRAS: Record<string, { label: string; daily: number }> = {
-  full_cover: { label: "Full insurance cover", daily: 45 },
-  extra_driver: { label: "Additional driver", daily: 25 },
-  child_seat: { label: "Child seat", daily: 15 },
-};
+export { PERIOD_DAYS, type Period } from "../src/data/pricing.js"; // prices of extras live in src/data/pricing.ts, shared with the app
 
 export const HOLD_MINUTES = 30;
 

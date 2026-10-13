@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { CreditCard, Info, Loader2 } from "lucide-react";
-import { EXTRAS, carName } from "@/data/catalog";
+import { EXTRA_LABELS, DEPOSIT_AMOUNT, carName, extraCost } from "@/data/catalog";
 import { day, money } from "@/lib/format";
 import { useStore } from "@/lib/store";
+import { missingDocuments } from "@/data/documents";
 import { api } from "@/lib/supabase";
 import { BackBar, Button, Card, Dirham, Screen } from "@/components/ui";
 import { periodCount, type Quote } from "@/screens/Reserve";
@@ -14,11 +15,12 @@ export default function Checkout() {
   const q = useLocation().state as (Quote & { qty: number }) | null;
   const nav = useNavigate();
   const { t } = useI18n();
-  const { carById, payInvoice, refresh } = useStore();
+  const { carById, payInvoice, refresh, documents } = useStore();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const car = q && carById(q.carId);
   if (!q || !car) return <Navigate to="/book" replace />;
+  if (missingDocuments(documents).length) return <Navigate to={`/book/${q.carId}`} replace />; // documents were removed or rejected since step 1
 
   // The amount keeps its Dirham symbol, so split the sentence around a marker.
   const deposit = t("A refundable security deposit (from {amount}) is blocked on your card at pickup.", { amount: "{amount}" }).split("{amount}");
@@ -56,14 +58,14 @@ export default function Checkout() {
 
       <h2 className="mb-2 mt-6 font-semibold">{t("Price")}</h2>
       <Card className="divide-y divide-line">
-        <Row label={q.discount ? t("Rental ({n}% off)", { n: q.discount }) : t("Rental")} value={<><Dirham /> {money(q.total - extrasCost(q))}</>} />
-        {EXTRAS.filter((e) => q.extras.includes(e.id)).map((e) => <Row key={e.id} label={t(e.label)} value={<><Dirham /> {money(e.daily * days(q))}</>} />)}
+        <Row label={q.discount ? t("Rental ({n}% off)", { n: q.discount }) : t("Rental")} value={<><Dirham /> {money(q.base)}</>} />
+        {q.extras.filter((id) => id in EXTRA_LABELS).map((id) => <Row key={id} label={t(EXTRA_LABELS[id])} value={<><Dirham /> {money(extraCost(id, q))}</>} />)}
         <Row label={<b>{t("Total")}</b>} value={<span className="text-xl font-bold"><Dirham /> {money(q.total)}</span>} />
       </Card>
 
       <div className="mt-3 flex gap-2.5 rounded-card bg-brand-soft p-3.5 text-sm text-brand">
         <Info className="mt-0.5 h-4 w-4 shrink-0" />
-        <p>{deposit[0]}<Dirham /> 1,000{deposit[1]}</p>
+        {q.extras.includes("no_deposit") ? <p>{t("No deposit is blocked on your card.")}</p> : <p>{deposit[0]}<Dirham /> {money(DEPOSIT_AMOUNT)}{deposit[1]}</p>}
       </div>
 
       <h2 className="mb-2 mt-6 font-semibold">{t("Payment")}</h2>
@@ -83,8 +85,6 @@ export default function Checkout() {
   );
 }
 
-const days = (q: Quote) => Math.round((new Date(q.dropoff).getTime() - new Date(q.pickup).getTime()) / 86400000);
-const extrasCost = (q: Quote) => EXTRAS.filter((e) => q.extras.includes(e.id)).reduce((s, e) => s + e.daily * days(q), 0);
 const Row = ({ label, value }: { label: React.ReactNode; value: React.ReactNode }) => (
   <div className="flex min-h-[52px] items-center justify-between px-4 py-2 text-[15px]"><span className="text-ink-muted">{label}</span><span className="font-medium">{value}</span></div>
 );

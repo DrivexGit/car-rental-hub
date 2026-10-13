@@ -30,7 +30,10 @@ export const T = {
     { id: "o1", kind: "car", title: "Mercedes G63", subtitle: null, discount_pct: 15, image_url: null, description: null, terms: null, location: null, redeem_code: null, sort_order: 1 },
     { id: "o2", kind: "partner", title: "ZUMA", subtitle: "Dining", discount_pct: 45, image_url: null, description: "Enjoy 45% off.", terms: "Terms apply.", location: "DIFC", redeem_code: null, sort_order: 2 },
   ],
-  customer_documents: [],
+  customer_documents: [
+    { id: "d1", document_type: "id_card", file_name: "id.jpg", verification_status: "approved", created_at: iso(-5) },
+    { id: "d2", document_type: "driving_license", file_name: "licence.jpg", verification_status: "pending", created_at: iso(-5) },
+  ],
   vehicle_model_specs: [{ make: "Mercedes", model: "G63", engine: "4.0L V8", transmission: "Automatic", fuel: "Petrol", seats: 5, doors: 5, bags: 3, features: ["Leather seats", "Apple CarPlay"], image_url: null, gallery: [] }],
   notifications: [{ id: "n1", audience: "customer", type: "invoice", title: "New invoice", body: "Invoice INV-1001 is ready.", link: "/bookings/r1", read_at: null, created_at: iso(-0.1) }],
 };

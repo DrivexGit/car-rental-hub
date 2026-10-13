@@ -34,7 +34,9 @@ const ESC: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"
 export const esc = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, (c) => ESC[c]);
 
 const money = (n: number) => `AED ${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-const date = (iso?: string | null) => (iso ? new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '');
+/** UAE mobiles in groups: +971 50 123 4567. Anything else is shown as it is. */
+const phone = (p: string) => { const m = /^\+971(\d{2})(\d{3})(\d{4})$/.exec(p.replace(/\s/g, '')); return m ? `+971 ${m[1]} ${m[2]} ${m[3]}` : p; };
+const date = (iso?: string | null) => (iso ? new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Dubai' }) : '');
 
 export function invoiceHtml({ invoice, to, company, logoUrl }: { invoice: InvoiceData; to: BillTo; company: Company; logoUrl?: string }): string {
   const { net, vat, total } = vatSplit(invoice.amount);
@@ -43,7 +45,7 @@ export function invoiceHtml({ invoice, to, company, logoUrl }: { invoice: Invoic
   const stamp = voided ? 'VOID' : paid ? 'PAID' : 'UNPAID';
   const stampColor = voided ? '#6b7280' : paid ? '#15803d' : '#b45309';
   return `<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><title>${esc(invoice.number)}</title>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(invoice.number)}</title>
 <style>
   @page { size: A4; margin: 16mm; }
   * { box-sizing: border-box; }
@@ -64,6 +66,15 @@ export function invoiceHtml({ invoice, to, company, logoUrl }: { invoice: Invoic
   .totals { width: 55%; margin: 14px 0 0 auto; }
   .totals td { border: 0; padding: 4px 6px; }
   .totals .grand td { border-top: 2px solid #141414; font-size: 15px; font-weight: 700; padding-top: 8px; }
+  @media screen and (max-width: 640px) {
+    body { padding: 14px; }
+    .top, .cols { flex-direction: column; gap: 14px; }
+    h1, .right { text-align: left; }
+    .totals { width: 100%; }
+    table { font-size: 10.5px; }
+    th, td { padding: 7px 2px; }
+    th { font-size: 8.5px; letter-spacing: 0; }
+  }
   .foot { margin-top: 36px; font-size: 11px; color: #6b6b6b; border-top: 1px solid #e5e5e5; padding-top: 10px; }
 </style></head>
 <body>
@@ -84,7 +95,7 @@ export function invoiceHtml({ invoice, to, company, logoUrl }: { invoice: Invoic
   </div>
 
   <div class="cols">
-    <div><div class="label">Billed to</div><strong>${esc(to.name)}</strong>${to.phone ? `<br><span dir="ltr">${esc(to.phone)}</span>` : ''}${to.email ? `<br>${esc(to.email)}` : ''}</div>
+    <div><div class="label">Billed to</div><strong>${esc(to.name)}</strong>${to.phone ? `<br><span dir="ltr">${esc(phone(to.phone))}</span>` : ''}${to.email ? `<br>${esc(to.email)}` : ''}</div>
   </div>
 
   <table>

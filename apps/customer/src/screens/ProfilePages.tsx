@@ -4,7 +4,8 @@ import { BellRing, Camera, CheckCircle2, ChevronRight, FileText, IdCard, Loader2
 import { enablePush, pushSupported } from "@/lib/push";
 import { supabase } from "@/lib/supabase";
 import { useStore } from "@/lib/store";
-import { day, money } from "@/lib/format";
+import { REQUIRED_DOCUMENTS } from "@/data/documents";
+import { day, formatPhone, money } from "@/lib/format";
 import { BackBar, Button, Card, Dirham, Empty, Face, ListGroup, ListRow, Screen } from "@/components/ui";
 import { compressSquare } from "@/lib/image";
 import { PayInvoiceSheet } from "@/screens/PaySheet";
@@ -26,8 +27,8 @@ export function EditProfile() {
       <BackBar title={t("Edit profile")} />
       <PhotoPicker />
       <Field label={t("Full name")} value={name} onChange={setName} />
-      <Field label={t("Email (optional)")} value={email} onChange={setEmail} type="email" ltr />
-      <Field label={t("Mobile number")} value={user!.phone} disabled ltr />
+      <Field label={t("Email")} value={email} onChange={setEmail} type="email" ltr />
+      <Field label={t("Mobile number")} value={formatPhone(user!.phone)} disabled ltr />
       {error && <p className="mb-2 text-sm font-medium text-danger">{error}</p>}
       <Button size="lg" className="mt-4" disabled={name.trim().length < 2 || busy || (!!email.trim() && !/^\S+@\S+\.\S+$/.test(email.trim()))}
         onClick={async () => { setBusy(true); setError(""); try { await updateUser({ name: name.trim(), email: email.trim() }); nav(-1); } catch (e) { setError((e as Error).message); setBusy(false); } }}>
@@ -97,7 +98,7 @@ export function Payments() {
   );
 }
 
-const DOC_TYPES = [["id_card", "Emirates ID or passport"], ["driving_license", "Driving licence"], ["visa", "Visa page (tourists)"]] as const;
+const DOC_TYPES = [...REQUIRED_DOCUMENTS.map((d) => [d.id, d.label] as const), ["visa", "Visa page (tourists)"] as const] as const;
 
 /** Uploads to the private customer-documents bucket ("<uid>/...") and registers the file for staff review. */
 export function Documents() {
@@ -149,7 +150,7 @@ export function Security() {
     <Screen tabs={false}>
       <BackBar title={t("Security")} />
       <ListGroup>
-        <ListRow icon={<Smartphone className="h-5 w-5" />} label={t("Sign-in number")} value={<span dir="ltr">{user!.phone}</span>} />
+        <ListRow icon={<Smartphone className="h-5 w-5" />} label={t("Sign-in number")} value={<span dir="ltr">{formatPhone(user!.phone)}</span>} />
       </ListGroup>
       <p className="px-1 text-sm text-ink-muted">{t("You sign in with a one-time code sent to this number. To change it, contact support.")}</p>
     </Screen>

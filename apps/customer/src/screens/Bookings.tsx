@@ -4,6 +4,7 @@ import { ArrowUpDown, ChevronDown, ChevronRight, ClipboardList, FileText, Slider
 import { useStore, type Booking } from "@/lib/store";
 import { PERIOD_DAYS, PERIOD_UNIT, carName, priceFor } from "@/data/catalog";
 import { day } from "@/lib/format";
+import { timeLabel } from "@/lib/bookingTime";
 import { useI18n } from "@/lib/i18n";
 import { Button, Card, Chip, Empty, PageTitle, Price, Screen, Sheet, StatusDot, TopBar } from "@/components/ui";
 
@@ -57,14 +58,18 @@ function BookingCard({ b }: { b: Booking }) {
   const { t } = useI18n();
   const car = b.car;
   const perDay = Math.round(priceFor(car, b.period) / PERIOD_DAYS[b.period]);
+  const time = timeLabel(b, t);
   return (
-    <Card className="p-4">
+    <Card className="p-4" onClick={() => nav(`/bookings/${b.id}`)}>
       <div className="flex items-start justify-between">
         <div>
           <p className="text-lg font-bold leading-tight">{carName(car)}</p>
           <p className="text-sm text-ink-muted">{car.year} · {t(car.category)}</p>
         </div>
-        <StatusDot status={b.status} />
+        <div className="flex flex-col items-end gap-1">
+          <StatusDot status={b.status} />
+          {time && <span className={`rounded-md px-2 py-0.5 text-xs font-semibold ${time.late ? "bg-danger-soft text-danger" : "bg-brand-soft text-brand"}`}>{time.text}</span>}
+        </div>
       </div>
       <div className="mt-2 flex items-center gap-3">
         <img src={car.image} alt="" className="h-[96px] w-[48%] object-contain" loading="lazy" />
@@ -75,8 +80,8 @@ function BookingCard({ b }: { b: Booking }) {
         </div>
       </div>
       <div className="mt-3 flex items-center justify-between border-t border-line pt-3">
-        <button onClick={() => nav(`/bookings/${b.id}#invoice`)} className="inline-flex items-center gap-2 text-sm font-medium"><FileText className="h-4 w-4" /> {t("Invoice")}</button>
-        <Button size="sm" variant="soft" onClick={() => nav(`/bookings/${b.id}`)}>{t("View details")} <ChevronRight className="h-4 w-4 rtl:-scale-x-100" /></Button>
+        <button onClick={(e) => { e.stopPropagation(); nav(`/bookings/${b.id}#invoice`); }} className="inline-flex items-center gap-2 text-sm font-medium"><FileText className="h-4 w-4" /> {t("Invoice")}</button>
+        <Button size="sm" variant="soft" onClick={(e) => { e.stopPropagation(); nav(`/bookings/${b.id}`); }}>{t("View details")} <ChevronRight className="h-4 w-4 rtl:-scale-x-100" /></Button>
       </div>
     </Card>
   );

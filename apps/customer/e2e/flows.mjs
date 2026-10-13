@@ -2,7 +2,7 @@
 import { chromium } from "playwright-core";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { deflateSync } from "node:zlib";
-import { BASE, OUT, UID, SESSION, mock, chromePath } from "./lib.mjs";
+import { BASE, OUT, UID, SESSION, T, mock, chromePath } from "./lib.mjs";
 
 // A real 64x64 PNG for the upload test.
 function makePng() {
@@ -171,17 +171,27 @@ async function fresh(viewport, lang = "en") {
   await ctx.close();
 }
 
-// 6. Invoice download: the tax invoice document is built with the right VAT split and customer.
+// 6. Invoice: View shows the tax invoice on screen, Download saves a real PDF file straight to the device (no print dialog).
 {
   const { ctx, page, errors } = await fresh({ width: 390, height: 844 });
   await page.goto(BASE + "/bookings/r1", { waitUntil: "networkidle" }); await page.waitForTimeout(600);
-  await page.getByRole("button", { name: "Download invoice" }).first().click();
+  await page.getByRole("button", { name: "View invoice" }).first().click();
   let html = null;
   for (let k = 0; k < 20 && !html; k++) { await page.waitForTimeout(150); const f = page.frames().find((fr) => fr !== page.mainFrame()); html = f ? await f.content().catch(() => null) : null; }
-  ok("invoice document opened for printing", !!html && html.includes("TAX INVOICE"));
+  ok("View opens the invoice on screen", !!html && html.includes("TAX INVOICE"));
   ok("shows number, customer and amounts", !!html && html.includes("INV-1001") && html.includes("Test Customer") && html.includes("AED 3,571.43") && html.includes("AED 178.57") && html.includes("AED 3,750.00"), html ? "" : "no iframe");
   ok("shows car detail and unpaid stamp", !!html && html.includes("Mercedes G63") && html.includes("UNPAID"));
-  if (html) { const p2 = await ctx.newPage(); await p2.setViewportSize({ width: 794, height: 1123 }); await p2.setContent(html, { waitUntil: "load" }); await p2.screenshot({ path: OUT + "/i-invoice.png" }); }
+  await page.screenshot({ path: OUT + "/i-invoice-view.png" });
+  const fits = await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
+  ok("the invoice view fits the phone width", fits);
+  await page.getByRole("button", { name: "Close" }).first().click(); await page.waitForTimeout(500);
+  const [dl] = await Promise.all([page.waitForEvent("download", { timeout: 20000 }), page.getByRole("button", { name: "Download invoice" }).first().click()]);
+  const file = OUT + "/invoice-test.pdf"; await dl.saveAs(file);
+  const { readFileSync } = await import("node:fs");
+  const pdf = readFileSync(file);
+  ok("Download saves a PDF named after the invoice", dl.suggestedFilename() === "INV-1001.pdf", dl.suggestedFilename());
+  ok("the file is a real PDF with a page image of reasonable size", pdf.subarray(0, 5).toString() === "%PDF-" && pdf.length > 30000, String(pdf.length));
+  ok("no print dialog frame is left behind", page.frames().length === 1);
   ok("no console errors (invoice)", errors.length === 0, errors.join(" | "));
   await ctx.close();
 }
@@ -251,7 +261,7 @@ async function fresh(viewport, lang = "en") {
   {
     const c = await splashCase({});
     ok("splash shows on first open", await c.shown(500));
-    ok("splash has the full animation (road lines + logo)", (await c.page.locator("[role=status] img").count()) >= 2);
+    ok("splash has the full animation (road lines, icon, plain-text name)", (await c.page.locator("[role=status] img").count()) === 1 && (await c.page.locator("[role=status] p", { hasText: /^Drivex$/ }).count()) === 1);
     ok("splash leaves by itself", !(await c.shown(3000)));
     await c.page.reload({ waitUntil: "domcontentloaded" });
     ok("not shown again in the same session", !(await c.shown(300)));
@@ -311,6 +321,7 @@ async function fresh(viewport, lang = "en") {
   await page.getByRole("button", { name: "Send by WhatsApp" }).click();
   ok("form asks to confirm before sending", (await page.getByRole("alert").textContent()) === "Please confirm that you understand.");
   await page.getByLabel(/I understand/).check();
+  await ctx.route(/wa\.me|whatsapp\.com/, (r) => r.fulfill({ status: 200, contentType: "text/html", body: "ok" })); // the check is about the link we open, not about WhatsApp being reachable
   const [popup] = await Promise.all([ctx.waitForEvent("page", { timeout: 4000 }).catch(() => null), page.getByRole("button", { name: "Send by WhatsApp" }).click()]);
   const url = popup ? popup.url() : "";
   const said = popup ? (new URL(url).searchParams.get("text") || "") : "";
@@ -318,6 +329,105 @@ async function fresh(viewport, lang = "en") {
   ok("no page errors (legal)", errors.length === 0, errors.join(" | "));
   await page.screenshot({ path: OUT + "/i-legal-delete.png" });
   await ctx.close();
+}
+
+// 9. Client tasks: no zoom, grouped phone number, coloured name, booked cars on Home, clickable booking cards with days left, email warning, new prices.
+{
+  const { ctx, page, errors } = await fresh({ width: 390, height: 844 });
+  await page.goto(BASE + "/", { waitUntil: "networkidle" }); await page.waitForTimeout(800);
+  const vp = await page.locator("meta[name=viewport]").getAttribute("content");
+  ok("pinch zoom stays available (no zoom lock in the viewport)", !/user-scalable|maximum-scale/.test(vp || ""), vp || "");
+  ok("double-tap zoom is off", (await page.evaluate(() => getComputedStyle(document.body).touchAction)) === "manipulation");
+  ok("first name in the greeting uses the brand colour", (await page.locator("h1 span.text-brand").first().textContent()) === "Test");
+  const booked = page.getByTestId("booked-cars");
+  ok("Home lists the booked cars (overdue, ongoing, upcoming)", (await booked.locator(":scope > div").count()) === 3, String(await booked.locator(":scope > div").count()));
+  const bt = await booked.innerText();
+  ok("Home cards show days left and days until pickup", /25 days overdue/.test(bt) && /3 days left/.test(bt) && /Starts in 10 days/.test(bt), bt.split("\n").join(" | "));
+  await page.screenshot({ path: OUT + "/i-home-booked.png" });
+  await booked.getByText("Mercedes G63").click(); await page.waitForTimeout(600);
+  ok("a booked car card opens its booking", new URL(page.url()).pathname === "/bookings/r1", page.url());
+
+  await page.goto(BASE + "/bookings", { waitUntil: "networkidle" }); await page.waitForTimeout(600);
+  ok("booking cards show days left", (await page.getByText("3 days left").count()) >= 1);
+  await page.screenshot({ path: OUT + "/i-bookings-days.png" });
+  await page.getByText("Mercedes G63").first().click(); await page.waitForTimeout(600);
+  ok("tapping anywhere on a booking card opens the details", new URL(page.url()).pathname === "/bookings/r1", page.url());
+  const hist = await page.evaluate(() => history.length);
+  await page.goto(BASE + "/bookings", { waitUntil: "networkidle" }); await page.waitForTimeout(500);
+  await page.locator("div.rounded-card", { hasText: "Mercedes G63" }).getByRole("button", { name: /^Invoice$/ }).first().click(); await page.waitForTimeout(600);
+  ok("the Invoice button on a card goes to the invoice, not twice", page.url().endsWith("/bookings/r1#invoice"), page.url());
+
+  await page.goto(BASE + "/profile", { waitUntil: "networkidle" }); await page.waitForTimeout(600);
+  ok("profile warns when there is no email", (await page.getByText("Add your email").count()) === 1);
+  await page.screenshot({ path: OUT + "/i-profile-email.png" });
+  await page.getByText("Add your email").click(); await page.waitForTimeout(600);
+  ok("the warning opens the edit page", new URL(page.url()).pathname === "/profile/edit");
+  ok("the email field no longer says (optional)", (await page.getByText("(optional)").count()) === 0 && (await page.getByText("Email", { exact: true }).count()) === 1);
+  ok("mobile number is shown in groups", (await page.locator("input[disabled]").inputValue()) === "+971 50 123 4567");
+  ok("no console errors (client tasks)", errors.length === 0, errors.join(" | "));
+  await ctx.close();
+}
+
+// 10. Prices on the reserve and checkout pages: insurance in percent, driver per day / per month, deposit choice.
+{
+  const { ctx, page, errors } = await fresh({ width: 390, height: 844 });
+  const total = async () => (await page.locator(".fixed.inset-x-0.bottom-0 .text-2xl").innerText()).replace(/\D/g, "");
+  await page.goto(BASE + "/book/mercedes-g63?period=monthly", { waitUntil: "networkidle" }); await page.waitForTimeout(800);
+  ok("monthly: rental 16,500 less the 15% offer = 14,025, plus insurance 15% = 16,129", (await total()) === "16129", await total());
+  ok("insurance is called Full coverage insurance and shows its percentage", (await page.getByText("Full coverage insurance").count()) === 1 && (await page.getByText("15% of the rental").count()) === 1);
+  ok("driver shows the monthly price on a monthly plan", (await page.getByText(/300 \/ month/).count()) === 1);
+  await page.getByText("Additional driver").click(); await page.waitForTimeout(200);
+  ok("monthly: additional driver adds a flat 300", (await total()) === "16429", await total());
+  await page.getByText("Pay once. Nothing is blocked on your card.").click(); await page.waitForTimeout(200);
+  ok("no deposit adds a flat 200", (await total()) === "16629", await total());
+  await page.screenshot({ path: OUT + "/i-reserve-extras.png", fullPage: true });
+  await page.getByRole("button", { name: /Continue/ }).click(); await page.waitForTimeout(800);
+  const co = await page.locator("main, body").first().innerText();
+  ok("checkout lists insurance, driver and no-deposit rows with the total", /Full coverage insurance/.test(co) && /Additional driver/.test(co) && /No deposit/.test(co) && /16,629/.test(co));
+  ok("checkout says no deposit is blocked", /No deposit is blocked on your card/.test(co) && !/refundable security deposit/.test(co));
+  await page.screenshot({ path: OUT + "/i-checkout-nodeposit.png", fullPage: true });
+  await page.goto(BASE + "/book/mercedes-g63?period=daily", { waitUntil: "networkidle" }); await page.waitForTimeout(800);
+  ok("daily: 3 x 750 less 15% = 1,913, plus insurance 15% = 2,200", (await total()) === "2200", await total());
+  ok("driver shows the daily price on a daily plan", (await page.getByText(/25 \/ day/).count()) === 1);
+  await page.getByText("Additional driver").click(); await page.waitForTimeout(200);
+  ok("daily: additional driver is 25 x 3 days", (await total()) === "2275", await total());
+  await page.getByRole("button", { name: /Continue/ }).click(); await page.waitForTimeout(800);
+  ok("checkout keeps the refundable 1,000 deposit by default", /refundable security deposit/.test(await page.locator("body").innerText()) && /1,000/.test(await page.locator("body").innerText()));
+  ok("no console errors (prices)", errors.length === 0, errors.join(" | "));
+  await ctx.close();
+}
+
+// 11. Documents are needed before booking (the profile warns, the reserve page stops and points to Documents).
+{
+  const keep = T.customer_documents; T.customer_documents = [];
+  const { ctx, page, errors } = await fresh({ width: 390, height: 844 });
+  await page.goto(BASE + "/profile", { waitUntil: "networkidle" }); await page.waitForTimeout(600);
+  ok("profile warns that documents are missing", (await page.getByText("Upload your documents").count()) === 1);
+  await page.screenshot({ path: OUT + "/i-profile-docs.png" });
+  await page.getByText("Upload your documents").click(); await page.waitForTimeout(500);
+  ok("the warning opens Documents", new URL(page.url()).pathname === "/profile/documents");
+  await page.goto(BASE + "/book/mercedes-g63?period=daily", { waitUntil: "networkidle" }); await page.waitForTimeout(600);
+  await page.getByRole("button", { name: /Continue/ }).click(); await page.waitForTimeout(500);
+  const alert = await page.getByRole("alert").first().innerText().catch(() => "");
+  ok("Continue stops with an error naming the missing documents", /update your documents first/i.test(alert) && /Emirates ID or passport/.test(alert) && /Driving licence/.test(alert), alert);
+  ok("and stays on the reserve page", /\/book\/mercedes-g63/.test(page.url()), page.url());
+  await page.screenshot({ path: OUT + "/i-reserve-docs.png" });
+  await page.getByRole("button", { name: "Update documents" }).click(); await page.waitForTimeout(500);
+  ok("Update documents goes to the Documents page", new URL(page.url()).pathname === "/profile/documents");
+  ok("no console errors (documents rule)", errors.length === 0, errors.join(" | "));
+  await ctx.close();
+  // one rejected file counts as missing
+  T.customer_documents = [{ id: "d1", document_type: "id_card", file_name: "id.jpg", verification_status: "rejected", created_at: new Date().toISOString() }, { id: "d2", document_type: "driving_license", file_name: "l.jpg", verification_status: "approved", created_at: new Date().toISOString() }];
+  const c2 = await fresh({ width: 390, height: 844 });
+  await c2.page.goto(BASE + "/profile", { waitUntil: "networkidle" }); await c2.page.waitForTimeout(600);
+  const warn = await c2.page.getByText(/You need these before you can book/).innerText().catch(() => "");
+  ok("a rejected ID is listed as missing, the approved licence is not", /Emirates ID or passport/.test(warn) && !/Driving licence/.test(warn), warn);
+  await c2.ctx.close();
+  T.customer_documents = keep;
+  const c3 = await fresh({ width: 390, height: 844 });
+  await c3.page.goto(BASE + "/profile", { waitUntil: "networkidle" }); await c3.page.waitForTimeout(600);
+  ok("with both documents there is no warning", (await c3.page.getByText("Upload your documents").count()) === 0);
+  await c3.ctx.close();
 }
 
 console.log(results.map((r) => (r.pass ? "PASS  " : "FAIL  ") + r.name + (r.pass ? "" : "   -> " + r.extra)).join("\n"));
