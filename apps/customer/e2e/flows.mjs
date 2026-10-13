@@ -2,7 +2,7 @@
 import { chromium } from "playwright-core";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { deflateSync } from "node:zlib";
-import { BASE, OUT, UID, SESSION, mock, chromePath } from "./lib.mjs";
+import { BASE, OUT, UID, SESSION, T, mock, chromePath } from "./lib.mjs";
 
 // A real 64x64 PNG for the upload test.
 function makePng() {
@@ -394,6 +394,39 @@ async function fresh(viewport, lang = "en") {
   ok("checkout keeps the refundable 1,000 deposit by default", /refundable security deposit/.test(await page.locator("body").innerText()) && /1,000/.test(await page.locator("body").innerText()));
   ok("no console errors (prices)", errors.length === 0, errors.join(" | "));
   await ctx.close();
+}
+
+// 11. Documents are needed before booking (the profile warns, the reserve page stops and points to Documents).
+{
+  const keep = T.customer_documents; T.customer_documents = [];
+  const { ctx, page, errors } = await fresh({ width: 390, height: 844 });
+  await page.goto(BASE + "/profile", { waitUntil: "networkidle" }); await page.waitForTimeout(600);
+  ok("profile warns that documents are missing", (await page.getByText("Upload your documents").count()) === 1);
+  await page.screenshot({ path: OUT + "/i-profile-docs.png" });
+  await page.getByText("Upload your documents").click(); await page.waitForTimeout(500);
+  ok("the warning opens Documents", new URL(page.url()).pathname === "/profile/documents");
+  await page.goto(BASE + "/book/mercedes-g63?period=daily", { waitUntil: "networkidle" }); await page.waitForTimeout(600);
+  await page.getByRole("button", { name: /Continue/ }).click(); await page.waitForTimeout(500);
+  const alert = await page.getByRole("alert").first().innerText().catch(() => "");
+  ok("Continue stops with an error naming the missing documents", /update your documents first/i.test(alert) && /Emirates ID or passport/.test(alert) && /Driving licence/.test(alert), alert);
+  ok("and stays on the reserve page", /\/book\/mercedes-g63/.test(page.url()), page.url());
+  await page.screenshot({ path: OUT + "/i-reserve-docs.png" });
+  await page.getByRole("button", { name: "Update documents" }).click(); await page.waitForTimeout(500);
+  ok("Update documents goes to the Documents page", new URL(page.url()).pathname === "/profile/documents");
+  ok("no console errors (documents rule)", errors.length === 0, errors.join(" | "));
+  await ctx.close();
+  // one rejected file counts as missing
+  T.customer_documents = [{ id: "d1", document_type: "id_card", file_name: "id.jpg", verification_status: "rejected", created_at: new Date().toISOString() }, { id: "d2", document_type: "driving_license", file_name: "l.jpg", verification_status: "approved", created_at: new Date().toISOString() }];
+  const c2 = await fresh({ width: 390, height: 844 });
+  await c2.page.goto(BASE + "/profile", { waitUntil: "networkidle" }); await c2.page.waitForTimeout(600);
+  const warn = await c2.page.getByText(/You need these before you can book/).innerText().catch(() => "");
+  ok("a rejected ID is listed as missing, the approved licence is not", /Emirates ID or passport/.test(warn) && !/Driving licence/.test(warn), warn);
+  await c2.ctx.close();
+  T.customer_documents = keep;
+  const c3 = await fresh({ width: 390, height: 844 });
+  await c3.page.goto(BASE + "/profile", { waitUntil: "networkidle" }); await c3.page.waitForTimeout(600);
+  ok("with both documents there is no warning", (await c3.page.getByText("Upload your documents").count()) === 0);
+  await c3.ctx.close();
 }
 
 console.log(results.map((r) => (r.pass ? "PASS  " : "FAIL  ") + r.name + (r.pass ? "" : "   -> " + r.extra)).join("\n"));

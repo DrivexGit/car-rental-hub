@@ -6,7 +6,8 @@ Object.assign(process.env, { SUPABASE_URL: "https://fake.supabase.co", SUPABASE_
 
 const CUSTOMER = { id: "c1", tenant_id: "t1", lead_id: null, phone: "+971501234567", full_name: "Test Customer", email: null };
 const CARS = [1, 2].map((i) => ({ id: `v${i}`, make: "Mercedes", model: "GLE 53", plate_number: `A ${i}`, daily_price: 1000, weekly_price: 6000, monthly_price: 20000, status: "available" }));
-const state = { offer: null, reservations: [], invoices: [] };
+const DOCS = [{ document_type: "id_card", verification_status: "approved" }, { document_type: "driving_license", verification_status: "pending" }];
+const state = { offer: null, reservations: [], invoices: [], docs: DOCS };
 const realFetch = globalThis.fetch;
 globalThis.fetch = async (input, init = {}) => {
   const req = new Request(input, init);
@@ -16,6 +17,7 @@ globalThis.fetch = async (input, init = {}) => {
   if (u.pathname === "/auth/v1/user") return req.headers.get("authorization") === "Bearer good" ? json(200, { id: "c1", aud: "authenticated" }) : json(401, { msg: "bad jwt" });
   const table = u.pathname.split("/").pop();
   if (table === "customers") return json(200, CUSTOMER);
+  if (table === "customer_documents") return json(200, state.docs);
   if (table === "vehicles") return json(200, CARS);
   if (table === "offers") return state.offer ? json(200, { discount_pct: state.offer }) : json(406, { code: "PGRST116", details: "The result contains 0 rows", message: "JSON object requested, multiple (or no) rows returned" });
   if (table === "reservations" && req.method === "POST") { const row = await req.json(); state.reservations.push(row); return json(201, { id: "r1" }); }
@@ -29,8 +31,8 @@ const results = [];
 const check = (name, pass, extra = "") => results.push({ name, pass, extra });
 
 const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
-async function book(body, { token = "good", offer = null } = {}) {
-  Object.assign(state, { offer, reservations: [], invoices: [] });
+async function book(body, { token = "good", offer = null, docs = null } = {}) {
+  Object.assign(state, { offer, reservations: [], invoices: [], docs: docs ?? DOCS });
   const r = await POST(new Request("http://local/api/book", { method: "POST", headers: { authorization: token ? `Bearer ${token}` : "" }, body: JSON.stringify({ modelId: "mercedes-gle-53", pickup: tomorrow, ...body }) }));
   return { status: r.status, body: await r.json(), row: state.reservations[0], inv: state.invoices[0] };
 }
@@ -65,6 +67,20 @@ check("no token -> 401", (await book({ period: "daily", qty: 1 }, { token: "" })
   check("extras that is not a list is ignored, not a crash", r.status === 200 && r.body.total === 3000, JSON.stringify(r.body)); }
 { const r = await book({ period: "daily", qty: 3, extras: ["full_cover"], total: 1 });
   check("a total sent by the client is ignored", r.body.total === 3450); }
+
+// Documents are required before a booking is created
+{ const none = await book({ period: "daily", qty: 1 }, { docs: [] });
+  check("no documents -> 403 and nothing is created", none.status === 403 && !none.row && !none.inv, JSON.stringify(none.body)); }
+{ const r = await book({ period: "daily", qty: 1 }, { docs: [{ document_type: "id_card", verification_status: "approved" }] });
+  check("only an ID, no driving licence -> 403", r.status === 403 && !r.row); }
+{ const r = await book({ period: "daily", qty: 1 }, { docs: [{ document_type: "driving_license", verification_status: "approved" }] });
+  check("only a driving licence, no ID -> 403", r.status === 403 && !r.row); }
+{ const r = await book({ period: "daily", qty: 1 }, { docs: [{ document_type: "id_card", verification_status: "rejected" }, { document_type: "driving_license", verification_status: "approved" }] });
+  check("a rejected ID counts as missing -> 403", r.status === 403 && !r.row); }
+{ const r = await book({ period: "daily", qty: 1 }, { docs: [{ document_type: "passport", verification_status: "pending" }, { document_type: "driving_license", verification_status: "pending" }] });
+  check("passport + driving licence waiting for review -> booking allowed", r.status === 200 && !!r.row, JSON.stringify(r.body)); }
+{ const r = await book({ period: "daily", qty: 1 }, { docs: [{ document_type: "visa", verification_status: "approved" }, { document_type: "other", verification_status: "approved" }] });
+  check("a visa or other file alone is not enough -> 403", r.status === 403); }
 
 const failed = results.filter((r) => !r.pass);
 for (const r of results) console.log(`${r.pass ? "PASS" : "FAIL"}  ${r.name}${r.pass ? "" : "  -> " + r.extra}`);
