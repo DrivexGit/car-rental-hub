@@ -90,9 +90,12 @@ export function BackBar({ title, right }: { title?: string; right?: ReactNode })
 export const Card = ({ children, className, onClick, delay = 0 }: { children: ReactNode; className?: string; onClick?: () => void; delay?: number }) => (
   <motion.div
     onClick={onClick ? () => { tap(); onClick(); } : undefined}
+    // a clickable card can also be reached and opened with the keyboard (only when the card itself has focus, not a button inside it)
+    tabIndex={onClick ? 0 : undefined}
+    onKeyDown={onClick ? (e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); tap(); onClick(); } } : undefined}
     initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay, ease: [0.2, 0.8, 0.2, 1] }}
     whileTap={onClick ? { scale: 0.975 } : undefined}
-    className={cx("rounded-card border border-line bg-white shadow-card", onClick && "cursor-pointer", className)}>
+    className={cx("rounded-card border border-line bg-white shadow-card", onClick && "cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand", className)}>
     {children}
   </motion.div>
 );

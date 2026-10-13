@@ -30,5 +30,10 @@ export default {
   "Pay once. Nothing is blocked on your card.": "تدفع مرة واحدة ولا يُحجز أي مبلغ على بطاقتك.",
   "No deposit is blocked on your card.": "لن يُحجز أي مبلغ تأمين على بطاقتك.",
   "Upgrade to full coverage insurance for {n}% of the rental — ask us in Support.": "يمكنك الترقية إلى التأمين الشامل مقابل {n}٪ من الإيجار — اسألنا في الدعم.",
+  "Due today": "موعد الإرجاع اليوم",
+  "Starts today": "يبدأ اليوم",
+  "Starts tomorrow": "يبدأ غدًا",
+  "Starts in {n} days": "يبدأ بعد {n} أيام",
+  "Your booked cars": "سياراتك المحجوزة",
   "Dubai, United Arab Emirates": "دبي، الإمارات العربية المتحدة",
 } as Record<string, string>;
