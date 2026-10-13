@@ -20,7 +20,7 @@ export default {
         hero: token("hero"),
         night: token("night"),
       },
-      fontFamily: { sans: ["Inter", "system-ui", "sans-serif"] },
+      fontFamily: { sans: ["Inter", "system-ui", "sans-serif"], display: ["Playfair Display", "Georgia", "serif"] }, // display: the serif used for page headings, like the logo
       borderRadius: { card: "14px" },
       boxShadow: { card: "0 1px 2px rgb(var(--ink) / .04)", tabbar: "0 -6px 24px rgb(var(--ink) / .08)" },
     },

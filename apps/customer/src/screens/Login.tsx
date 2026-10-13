@@ -111,7 +111,7 @@ const Err = ({ msg }: { msg: string }) => (msg ? <p className="mt-3 text-sm font
 
 const Panel = ({ title, sub, children }: { title: string; sub: React.ReactNode; children: React.ReactNode }) => (
   <section className="pb-10">
-    <h1 className="text-[32px] font-bold leading-tight tracking-tight">{title}</h1>
+    <h1 className="font-display text-[34px] font-extrabold leading-tight tracking-tight">{title}</h1>
     <p className="mb-7 mt-2 text-[15px] text-white/75">{sub}</p>
     {children}
   </section>

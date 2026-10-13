@@ -18,7 +18,7 @@ export default function Confirmed() {
   return (
     <Screen tabs={false} className="flex flex-col justify-center text-center">
       <CheckCircle2 className="mx-auto mt-16 h-20 w-20 text-brand" />
-      <h1 className="mt-4 text-[28px] font-bold">{unpaid ? t("Booking saved") : t("You're all set!")}</h1>
+      <h1 className="mt-4 font-display text-[30px] font-extrabold">{unpaid ? t("Booking saved") : t("You're all set!")}</h1>
       <p className="mt-1 text-ink-muted">{unpaid ? t("Your car is held. Pay the invoice to confirm it.") : t("Your booking is confirmed. We'll message you before pickup.")}</p>
       <Card className="mt-8 p-4 text-start">
         <img src={car.image} alt="" className="mx-auto h-28 object-contain" />

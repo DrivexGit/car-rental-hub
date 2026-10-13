@@ -35,7 +35,7 @@ function Frame({ title, children }: { title: string; children: ReactNode }) {
         </div>
       </header>
       <main className="mx-auto max-w-3xl px-5 pb-16">
-        <h1 className="mb-4 text-3xl font-bold tracking-tight">{title}</h1>
+        <h1 className="mb-4 font-display text-3xl font-extrabold tracking-tight">{title}</h1>
         {children}
       </main>
       <footer className="border-t border-line py-6 text-center text-sm text-ink-muted">

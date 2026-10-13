@@ -67,7 +67,7 @@ export function Bell() {
 
 export const PageTitle = ({ title, sub }: { title: ReactNode; sub?: ReactNode }) => (
   <div className="mb-5">
-    <h1 className="text-[28px] leading-tight font-bold tracking-tight">{title}</h1>
+    <h1 className="font-display text-[32px] leading-tight font-extrabold tracking-tight">{title}</h1>
     {sub && <p className="mt-1 text-[15px] text-ink-muted">{sub}</p>}
   </div>
 );
