@@ -336,7 +336,8 @@ async function fresh(viewport, lang = "en") {
   const { ctx, page, errors } = await fresh({ width: 390, height: 844 });
   await page.goto(BASE + "/", { waitUntil: "networkidle" }); await page.waitForTimeout(800);
   const vp = await page.locator("meta[name=viewport]").getAttribute("content");
-  ok("page zoom is switched off", /user-scalable=no/.test(vp || "") && /maximum-scale=1/.test(vp || ""), vp || "");
+  ok("pinch zoom stays available (no zoom lock in the viewport)", !/user-scalable|maximum-scale/.test(vp || ""), vp || "");
+  ok("double-tap zoom is off", (await page.evaluate(() => getComputedStyle(document.body).touchAction)) === "manipulation");
   ok("first name in the greeting uses the brand colour", (await page.locator("h1 span.text-brand").first().textContent()) === "Test");
   const booked = page.getByTestId("booked-cars");
   ok("Home lists the booked cars (overdue, ongoing, upcoming)", (await booked.locator(":scope > div").count()) === 3, String(await booked.locator(":scope > div").count()));
