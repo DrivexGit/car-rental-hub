@@ -4,17 +4,21 @@ import { ArrowRight, Check, ChevronRight, Copy, FileText, Loader2 } from "lucide
 import { supabase } from "@/lib/supabase";
 import { motion } from "framer-motion";
 import { useStore, type Offer } from "@/lib/store";
+import { timeLabel } from "@/lib/bookingTime";
 import { InstallBanner } from "@/components/InstallBanner";
 import { PushPrompt } from "@/components/PushPrompt";
 import { BANNERS, carName } from "@/data/catalog";
 import { day, greeting } from "@/lib/format";
-import { Badge, Button, Card, Dirham, PageTitle, Price, Screen, SectionHead, Sheet, TopBar } from "@/components/ui";
+import { Badge, Button, Card, Dirham, PageTitle, Price, Screen, SectionHead, Sheet, StatusDot, TopBar } from "@/components/ui";
 import { PayInvoiceSheet } from "@/screens/PaySheet";
 import { useI18n } from "@/lib/i18n";
 
 export default function Home() {
   const { t } = useI18n();
-  const { user, invoices, offers } = useStore();
+  const { user, invoices, offers, bookings } = useStore();
+  // cars the customer has booked and not yet returned, most urgent first
+  const ORDER = { overdue: 0, ongoing: 1, upcoming: 2, pending: 3 } as const;
+  const booked = bookings.filter((b) => b.status in ORDER).sort((a, b) => ORDER[a.status as keyof typeof ORDER] - ORDER[b.status as keyof typeof ORDER] || a.pickup.localeCompare(b.pickup));
   const carOffers = offers.filter((o) => o.kind === "car");
   const partners = offers.filter((o) => o.kind === "partner");
   const nav = useNavigate();
@@ -33,6 +37,28 @@ export default function Home() {
       <PageTitle title={<motion.span initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>{greetingParts[0]}<span className="text-brand">{first}</span>{greetingParts[1]}</motion.span>} sub={t("Your next journey, beautifully taken care of.")} />
 
       <Carousel />
+
+      {!!booked.length && <SectionHead title={t("Your booked cars")} to="/bookings" />}
+      {!!booked.length && (
+        <div data-testid="booked-cars" className="no-scrollbar -mx-5 flex gap-3 overflow-x-auto px-5 pb-1 lg:mx-0 lg:grid lg:grid-cols-4 lg:gap-4 lg:overflow-visible lg:px-0 xl:grid-cols-5">
+          {booked.map((b) => {
+            const time = timeLabel(b, t);
+            return (
+              <Card key={b.id} className="w-[190px] shrink-0 overflow-hidden lg:w-auto" onClick={() => nav(`/bookings/${b.id}`)}>
+                <div className="relative h-[100px] bg-gradient-to-b from-tint to-white lg:h-[150px]">
+                  <span className="absolute start-2 top-2 rounded-full bg-white/90 px-2 py-0.5 shadow-sm"><StatusDot status={b.status} /></span>
+                  <img src={b.car.image} alt="" className="h-full w-full object-contain p-2" loading="lazy" />
+                </div>
+                <div className="p-3">
+                  <p className="text-sm font-semibold leading-tight">{carName(b.car)}</p>
+                  <p className="text-xs text-ink-muted">{day(b.pickup)} – {day(b.dropoff)}</p>
+                  {time && <span className={`mt-2 inline-block rounded-md px-2 py-0.5 text-xs font-semibold ${time.late ? "bg-danger-soft text-danger" : "bg-brand-soft text-brand"}`}>{time.text}</span>}
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
 
       {pending && (
         <div className="mt-4 flex items-center gap-3 rounded-card bg-danger-soft p-4">
