@@ -3,6 +3,7 @@ import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion, useMotionValueEvent, useReducedMotion, useScroll, useSpring } from "framer-motion";
 import { ArrowUp, Check, ChevronDown, CreditCard, FileText, Globe, Headphones, LogOut, MapPin, Phone, ShieldCheck, User } from "lucide-react";
 import { useStore } from "@/lib/store";
+import { formatPhone } from "@/lib/format";
 import { LANGS, useI18n } from "@/lib/i18n";
 import { THEMES, getTheme, setTheme } from "@/lib/theme";
 import { COMPANY, SUPPORT_PHONE, whatsappLink } from "@/config";
@@ -109,7 +110,7 @@ function AccountMenu() {
             className="absolute end-0 top-full z-50 mt-3 w-72 origin-top-right overflow-hidden rounded-2xl border border-line bg-white p-2 shadow-[0_24px_60px_-20px_rgb(var(--ink)/.35)] rtl:origin-top-left">
             <div className="mb-1 flex items-center gap-3 rounded-xl bg-brand-soft p-3">
               <Face size={44} />
-              <div className="min-w-0"><p className="truncate font-semibold">{user?.name}</p><p dir="ltr" className="truncate text-xs text-ink-muted rtl:text-end">{user?.phone}</p></div>
+              <div className="min-w-0"><p className="truncate font-semibold">{user?.name}</p><p dir="ltr" className="truncate text-xs text-ink-muted rtl:text-end">{formatPhone(user?.phone)}</p></div>
             </div>
             {items.map(({ to, icon: Icon, label }) => (
               <Link key={to} to={to} role="menuitem" className="flex h-11 items-center gap-3 rounded-xl px-3 text-[15px] text-ink-muted transition hover:bg-bg hover:text-ink">

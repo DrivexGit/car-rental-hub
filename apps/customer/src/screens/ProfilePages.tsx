@@ -4,7 +4,7 @@ import { BellRing, Camera, CheckCircle2, ChevronRight, FileText, IdCard, Loader2
 import { enablePush, pushSupported } from "@/lib/push";
 import { supabase } from "@/lib/supabase";
 import { useStore } from "@/lib/store";
-import { day, money } from "@/lib/format";
+import { day, formatPhone, money } from "@/lib/format";
 import { BackBar, Button, Card, Dirham, Empty, Face, ListGroup, ListRow, Screen } from "@/components/ui";
 import { compressSquare } from "@/lib/image";
 import { PayInvoiceSheet } from "@/screens/PaySheet";
@@ -27,7 +27,7 @@ export function EditProfile() {
       <PhotoPicker />
       <Field label={t("Full name")} value={name} onChange={setName} />
       <Field label={t("Email (optional)")} value={email} onChange={setEmail} type="email" ltr />
-      <Field label={t("Mobile number")} value={user!.phone} disabled ltr />
+      <Field label={t("Mobile number")} value={formatPhone(user!.phone)} disabled ltr />
       {error && <p className="mb-2 text-sm font-medium text-danger">{error}</p>}
       <Button size="lg" className="mt-4" disabled={name.trim().length < 2 || busy || (!!email.trim() && !/^\S+@\S+\.\S+$/.test(email.trim()))}
         onClick={async () => { setBusy(true); setError(""); try { await updateUser({ name: name.trim(), email: email.trim() }); nav(-1); } catch (e) { setError((e as Error).message); setBusy(false); } }}>
@@ -149,7 +149,7 @@ export function Security() {
     <Screen tabs={false}>
       <BackBar title={t("Security")} />
       <ListGroup>
-        <ListRow icon={<Smartphone className="h-5 w-5" />} label={t("Sign-in number")} value={<span dir="ltr">{user!.phone}</span>} />
+        <ListRow icon={<Smartphone className="h-5 w-5" />} label={t("Sign-in number")} value={<span dir="ltr">{formatPhone(user!.phone)}</span>} />
       </ListGroup>
       <p className="px-1 text-sm text-ink-muted">{t("You sign in with a one-time code sent to this number. To change it, contact support.")}</p>
     </Screen>

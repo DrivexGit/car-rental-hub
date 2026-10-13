@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bell, CreditCard, FileText, Globe, Headphones, LogOut, Palette, Pencil, Settings2, ShieldCheck } from "lucide-react";
 import { useStore } from "@/lib/store";
+import { formatPhone } from "@/lib/format";
 import { Card, Face, ListGroup, ListRow, Logo, PageTitle, Screen, Segmented, Sheet } from "@/components/ui";
 import { getTheme, setTheme, THEMES, type Theme } from "@/lib/theme";
 import { Link } from "react-router-dom";
@@ -25,7 +26,7 @@ export default function Profile() {
         <Face size={64} />
         <div className="min-w-0 flex-1">
           <p className="truncate text-lg font-bold">{user!.name}</p>
-          <p className="truncate text-sm text-ink-muted"><span dir="ltr" className="inline-block max-w-full truncate align-bottom">{user!.email || user!.phone}</span></p>
+          <p className="truncate text-sm text-ink-muted"><span dir="ltr" className="inline-block max-w-full truncate align-bottom">{user!.email || formatPhone(user!.phone)}</span></p>
         </div>
         <button onClick={() => nav("/profile/edit")} className="grid h-11 w-11 place-items-center rounded-full border border-line" aria-label={t("Edit profile")}><Pencil className="h-5 w-5" /></button>
       </Card>

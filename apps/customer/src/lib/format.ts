@@ -14,3 +14,9 @@ export const greeting = () => {
   const h = new Date().getHours();
   return h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
 };
+
+/** "+971501234567" -> "+971 50 123 4567" (UAE mobiles). Anything else is returned as it came. */
+export const formatPhone = (p?: string | null) => {
+  const m = /^\+971(\d{2})(\d{3})(\d{4})$/.exec((p ?? "").replace(/\s/g, ""));
+  return m ? `+971 ${m[1]} ${m[2]} ${m[3]}` : p ?? "";
+};
