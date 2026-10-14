@@ -76,9 +76,11 @@ export const PageTitle = ({ title, sub }: { title: ReactNode; sub?: ReactNode })
 export function BackBar({ title, right }: { title?: string; right?: ReactNode }) {
   const nav = useNavigate();
   const { t } = useI18n();
+  // opened straight from a push alert or a link, there is no earlier page of the app to go back to: go home instead
+  const back = () => ((window.history.state?.idx ?? 0) > 0 ? nav(-1) : nav("/", { replace: true }));
   return (
     <div className="sticky top-0 z-20 -mx-5 mb-3 flex items-center gap-3 bg-bg/90 px-5 py-3 backdrop-blur lg:-mx-10 lg:px-10">
-      <button onClick={() => nav(-1)} className="grid h-10 w-10 place-items-center rounded-full bg-white shadow-card border border-line" aria-label={t("Back")}>
+      <button onClick={back} className="grid h-10 w-10 place-items-center rounded-full bg-white shadow-card border border-line" aria-label={t("Back")}>
         <ArrowLeft className="h-5 w-5 rtl:-scale-x-100" />
       </button>
       <h1 className="flex-1 text-lg font-semibold">{title}</h1>
