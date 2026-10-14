@@ -28,6 +28,7 @@ Screenshots and `report.json` go to `e2e/.out/` (git-ignored). Look at them: the
 | `api-chat.mjs` | `api/chat.ts` (AI support) with Supabase, the AI provider and the staff webhook faked: auth, urgent detection in English/Persian/Arabic, no false alarms on ordinary questions, urgent row + staff alert contents, model-raised urgency, AI outage fallback, own-data-only context, input hygiene. |
 | `panel-carphotos.mjs` | Panel **Car photos** page (not part of `npm run e2e`: it needs the panel dev server on a fake backend, see the header of the file). Upload/replace/remove studio photo, gallery add/remove, file type and size checks, search, remove button usable on touch. |
 | `login.mjs` | Login screen × viewport × language × theme, phone validation (Persian digits accepted, non-UAE number rejected). |
+| `push.mjs` | Web push with the app closed (`npm run e2e:push`, not part of `npm run e2e`: it needs a network connection and the VAPID keys in `.env.local`, opens a Chrome window and the alerts pop up on your screen). Turn on in Profile > Notifications, close the app, send through the real `api/push-hook.ts` and the real push service; the alert shows, a tap opens the right booking at its fines/invoices, alert preferences are respected, expired devices are removed, Log out unsubscribes the phone. |
 
 Also run `npm run i18n:check`: every `t("…")` key must have an Arabic translation. It cannot see keys passed as variables (`t(label)`); add those to `src/locales/ar` by hand.
 
