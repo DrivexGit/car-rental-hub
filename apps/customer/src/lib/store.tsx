@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { translate } from "@/lib/i18n";
 import { api, supabase } from "@/lib/supabase";
+import { disablePush } from "@/lib/push";
 import { carImage, slug, toFleet, type Car, type Period } from "@/data/catalog";
 
 export type User = { id: string; phone: string; name: string; email?: string; avatarUrl?: string; notify: { bookings: boolean; invoices: boolean; offers: boolean } };
@@ -130,7 +131,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       await supabase.from("notifications").update({ read_at: new Date().toISOString() }).eq("audience", "customer").is("read_at", null);
       setData((d) => ({ ...d, notes: d.notes.map((n) => ({ ...n, read: true })) }));
     },
-    signOut: async () => { await supabase.auth.signOut(); },
+    signOut: async () => { await disablePush().catch(() => {}); await supabase.auth.signOut(); },
     updateUser: async (u) => {
       const patch: Record<string, unknown> = {};
       if (u.name !== undefined) patch.full_name = u.name;
