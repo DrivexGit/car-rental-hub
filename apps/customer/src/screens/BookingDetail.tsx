@@ -93,7 +93,7 @@ export default function BookingDetail() {
         {!myInvoices.length && <p className="px-4 py-4 text-sm text-ink-muted">{t("No invoices yet.")}</p>}
       </Card>
 
-      <h2 className="mb-2 mt-6 font-semibold">{t("Salik & fines")}</h2>
+      <h2 id="fines" className="mb-2 mt-6 scroll-mt-24 font-semibold">{t("Salik & fines")}</h2>
       <Card className="divide-y divide-line">
         {myFines.map((f) => (
           <div key={f.id} className="flex min-h-[60px] items-center gap-3 px-4 py-3">

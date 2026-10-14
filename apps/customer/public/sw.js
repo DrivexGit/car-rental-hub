@@ -14,18 +14,23 @@ self.addEventListener("fetch", (e) => {
   })));
 });
 
-// Web push: show the notification and open its link when tapped.
+// Web push: show the notification (also when the app is closed) and open its link when tapped.
 self.addEventListener("push", (e) => {
-  const d = e.data ? e.data.json() : {};
+  let d = {};
+  try { d = e.data ? e.data.json() : {}; } catch { d = { body: e.data ? e.data.text() : "" }; } // a plain-text push still shows
+  // links are paths, so a tap opens this app on the domain it was installed from
+  const url = new URL(d.url || "/", self.location.origin).href;
   e.waitUntil(self.registration.showNotification(d.title || "Drivex", {
-    body: d.body || "", icon: "/icons/icon-192.png", badge: "/icons/icon-192.png", tag: d.tag, data: { url: d.url || "/" },
+    body: d.body || "", icon: "/icons/icon-192.png", badge: "/icons/icon-192.png", tag: d.tag, renotify: !!d.tag, data: { url },
   }));
 });
 self.addEventListener("notificationclick", (e) => {
   e.notification.close();
   const url = e.notification.data?.url || "/";
-  e.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((ws) => {
+  e.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(async (ws) => {
     const w = ws.find((c) => c.url.startsWith(self.location.origin));
-    return w ? w.navigate(url).then((c) => c && c.focus()) : self.clients.openWindow(url);
+    if (!w) return self.clients.openWindow(url);
+    await w.focus();
+    return w.navigate(url).catch(() => self.clients.openWindow(url)); // navigate() only works on a page this worker controls
   }));
 });

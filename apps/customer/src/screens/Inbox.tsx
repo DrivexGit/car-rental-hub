@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bell, CalendarCheck, FileText, Receipt } from "lucide-react";
 import { useStore } from "@/lib/store";
+import { noteLink } from "@/data/notifications";
 import { BackBar, Card, Empty, Screen } from "@/components/ui";
 import { useI18n } from "@/lib/i18n";
 
@@ -24,7 +25,7 @@ export default function Inbox() {
         {notes.map((n, i) => {
           const Icon = ICON[n.type] ?? Bell;
           return (
-            <Card key={n.id} delay={i * 0.04} onClick={n.link ? () => nav(n.link!) : undefined} className="flex gap-3 p-4">
+            <Card key={n.id} delay={i * 0.04} onClick={n.link ? () => nav(noteLink(n.type, n.link)) : undefined} className="flex gap-3 p-4">
               <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${n.type === "fine" ? "bg-danger-soft text-danger" : "bg-brand-soft text-brand"}`}><Icon className="h-5 w-5" /></div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between gap-2">

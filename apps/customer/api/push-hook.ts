@@ -1,11 +1,11 @@
 import webpush from "web-push";
 import { admin, fail, json } from "./_lib.js";
+import { noteLink } from "../src/data/notifications.js";
 
 // Called by the database (pg_net trigger on public.notifications) for every new notification.
 // Sends a web-push to all staff devices, or to the customer's devices if their preference allows it.
 
 const PREF: Record<string, string> = { booking_confirmed: "notify_bookings", invoice: "notify_invoices", fine: "notify_invoices", offer: "notify_offers" };
-const APP_URL = "https://drivex-customer.vercel.app";
 const PANEL_URL = process.env.PANEL_URL || "https://car-rental-hub-kappa.vercel.app";
 
 export async function POST(req: Request) {
@@ -29,8 +29,10 @@ export async function POST(req: Request) {
   if (!userIds.length) return json({ sent: 0 });
 
   const { data: subs } = await db.from("push_subscriptions").select("*").in("user_id", userIds).eq("kind", n.audience);
-  const url = (n.audience === "staff" ? PANEL_URL : APP_URL) + (n.link || "/");
-  const payload = JSON.stringify({ title: n.title, body: n.body || "", url, tag: n.type });
+  // Customers get a path: the app's service worker opens it on the domain the app was installed from.
+  const url = n.audience === "staff" ? PANEL_URL + (n.link || "/") : noteLink(n.type, n.link);
+  // one alert per notification: two fines in a row are two alerts, not one replacing the other
+  const payload = JSON.stringify({ title: n.title, body: n.body || "", url, tag: n.id || n.type });
   let sent = 0;
   await Promise.all((subs ?? []).map(async (s) => {
     try {
