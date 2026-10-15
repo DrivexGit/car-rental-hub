@@ -73,7 +73,7 @@ const Field = ({ label, value, onChange, type = "text", disabled, ltr }: { label
 
 export function Payments() {
   const { t } = useI18n();
-  const { invoices } = useStore();
+  const { invoices, fines } = useStore();
   const [paying, setPaying] = useState<Invoice | null>(null);
   return (
     <Screen tabs={false}>
@@ -94,6 +94,19 @@ export function Payments() {
           ))}
         </Card>
       ) : <Empty icon={<FileText />} title={t("No payments yet")} />}
+      {!!fines.length && (
+        <>
+          <h2 className="mb-2 mt-6 font-semibold">{t("Salik & fines")}</h2>
+          <Card className="divide-y divide-line">
+            {fines.map((f) => (
+              <div key={f.id} className="flex min-h-[56px] items-center gap-3 px-4 py-3">
+                <div className="flex-1"><p className="font-medium">{f.title ? t(f.title) : t(f.type === "traffic" ? "Fine" : "Salik")}</p><p className="text-xs text-ink-muted">{f.place ? `${f.place} · ` : ""}{day(f.date)}</p></div>
+                <p className="font-semibold"><Dirham /> {money(f.amount)}</p>
+              </div>
+            ))}
+          </Card>
+        </>
+      )}
       {paying && <PayInvoiceSheet invoice={paying} open onClose={() => setPaying(null)} />}
     </Screen>
   );

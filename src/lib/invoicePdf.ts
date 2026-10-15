@@ -4,7 +4,13 @@
 
 const A4_W = 794; // A4 at 96 dpi, in CSS pixels: the width the invoice is laid out for
 
-export async function downloadInvoicePdf(html: string, fileName: string): Promise<void> {
+/** A file that belongs to the invoice (a Salik or fine screenshot). Images are placed on the pages after the invoice; other files are listed. */
+export type InvoiceAttachment = { title: string; name: string; url: string };
+
+const readAsDataUrl = (blob: Blob) => new Promise<string>((resolve, reject) => { const r = new FileReader(); r.onload = () => resolve(String(r.result)); r.onerror = () => reject(r.error); r.readAsDataURL(blob); });
+const imageSize = (src: string) => new Promise<{ w: number; h: number }>((resolve, reject) => { const i = new Image(); i.onload = () => resolve({ w: i.naturalWidth, h: i.naturalHeight }); i.onerror = () => reject(new Error("image")); i.src = src; });
+
+export async function downloadInvoicePdf(html: string, fileName: string, attachments: InvoiceAttachment[] = []): Promise<void> {
   const frame = document.createElement("iframe");
   frame.setAttribute("aria-hidden", "true");
   frame.tabIndex = -1;
@@ -35,6 +41,24 @@ export async function downloadInvoicePdf(html: string, fileName: string): Promis
       part.getContext("2d")!.drawImage(canvas, 0, y, canvas.width, h, 0, 0, canvas.width, h);
       if (page) pdf.addPage();
       pdf.addImage(part.toDataURL("image/jpeg", 0.92), "JPEG", margin, margin, imgW, h / pxPerMm);
+    }
+    // attachments: one page each, after the invoice
+    for (const a of attachments) {
+      pdf.addPage();
+      pdf.setFontSize(12);
+      pdf.text(a.title, margin, margin + 6);
+      const blob = await (await fetch(a.url)).blob();
+      const isImage = blob.type.startsWith("image/");
+      if (isImage) {
+        const src = await readAsDataUrl(blob);
+        const { w, h } = await imageSize(src);
+        const maxH = pageH - margin * 2 - 14;
+        const height = Math.min((imgW * h) / w, maxH);
+        pdf.addImage(src, blob.type.includes("png") ? "PNG" : "JPEG", margin, margin + 10, (height * w) / h, height);
+      } else {
+        pdf.setFontSize(10);
+        pdf.text(`Attached file: ${a.name}. Open it from the Fines page in the panel.`, margin, margin + 14);
+      }
     }
     pdf.save(fileName);
   } finally {

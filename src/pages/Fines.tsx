@@ -66,7 +66,9 @@ export default function Fines() {
       }
       const label = `${title}${form.location ? ` — ${form.location}` : ''}`;
       let invoice_id: string | null = null;
-      if (form.invoice && amount > 0) {
+      // Salik and parking are billed once a month, with the other Salik of that month (see the monthly job)
+      const monthly = form.type === 'salik' || form.type === 'salik_parking';
+      if (form.invoice && !monthly && amount > 0) {
         const { data, error } = await supabase.from('invoices' as any).insert({ tenant_id: tenantId, customer_id: form.customer_id, reservation_id: form.reservation_id || null, amount, description: label }).select('id').single();
         if (error) throw error;
         invoice_id = (data as any).id;
@@ -155,7 +157,9 @@ export default function Fines() {
             </div>
             <div><Label>{form.type === 'salik' || form.type === 'salik_parking' ? 'Gate or zone' : 'Location / reason'}</Label><Input placeholder={form.type === 'salik' ? 'e.g. Al Barsha' : 'e.g. Sheikh Zayed Rd — speeding'} value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} /></div>
             <div><Label>Attachment (screenshot or PDF)</Label><Input type="file" accept="image/*,application/pdf" onChange={(e) => setForm({ ...form, file: e.target.files?.[0] ?? null })} /></div>
-            <label className="flex items-center gap-2 text-sm"><Checkbox checked={form.invoice} onCheckedChange={(v) => setForm({ ...form, invoice: !!v })} /> Create an invoice so the customer can pay it in the app</label>
+            {form.type === 'salik' || form.type === 'salik_parking'
+              ? <p className="text-sm text-muted-foreground">Salik is billed once a month, on the first day of the next month, in one invoice per customer.</p>
+              : <label className="flex items-center gap-2 text-sm"><Checkbox checked={form.invoice} onCheckedChange={(v) => setForm({ ...form, invoice: !!v })} /> Create an invoice so the customer can pay it in the app</label>}
           </div>
           <DialogFooter><Button onClick={create} disabled={saving}>Save</Button></DialogFooter>
         </DialogContent>

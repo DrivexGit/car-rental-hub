@@ -14,7 +14,7 @@ import { aed, fdate } from '@/lib/format';
 import { Download, Plus } from 'lucide-react';
 import { COMPANY } from '@/lib/company';
 import { invoiceHtml } from '@/lib/invoice';
-import { downloadInvoicePdf } from '@/lib/invoicePdf';
+import { downloadInvoicePdf, type InvoiceAttachment } from '@/lib/invoicePdf';
 
 const STATUS_STYLE: Record<string, string> = { pending: 'bg-amber-100 text-amber-800', paid: 'bg-emerald-100 text-emerald-800', void: 'bg-muted text-muted-foreground' };
 
@@ -29,11 +29,17 @@ export async function markPaidManually(inv: any) {
 async function downloadInvoice(r: any, onError: (message: string) => void) {
   const v = r.reservations?.vehicles;
   try {
+    // Salik and fine screenshots that belong to this invoice go after it, one page each
+    const { data: fines } = await supabase.from('fines' as any).select('title, attachment_path').eq('invoice_id', r.id).not('attachment_path', 'is', null);
+    const attachments: InvoiceAttachment[] = await Promise.all(((fines ?? []) as any[]).map(async (f) => {
+      const { data } = await supabase.storage.from('fine-attachments').createSignedUrl(f.attachment_path, 300);
+      return { title: f.title || 'Attachment', name: String(f.attachment_path).split('/').pop() || 'file', url: data?.signedUrl ?? '' };
+    }));
     await downloadInvoicePdf(invoiceHtml({
     invoice: { number: r.number, issued: r.issued_at, status: r.status, paidAt: r.paid_at, description: r.description, detail: v ? `${v.make} ${v.model} · ${v.plate_number}` : undefined, amount: Number(r.amount) },
     to: { name: r.customers?.full_name || 'Customer', phone: r.customers?.phone, email: r.customers?.email },
     company: COMPANY, logoUrl: `${location.origin}/logo-dark.png`,
-    }), `${r.number}.pdf`);
+    }), `${r.number}.pdf`, attachments.filter((x) => x.url));
   } catch (err: any) {
     onError(err?.message || 'Could not create the PDF');
   }

@@ -49,7 +49,7 @@ async function loadAll(): Promise<{ user: User; data: Data } | null> {
     supabase.from("customers").select("*").eq("id", uid).maybeSingle(),
     supabase.from("vehicles").select("id,make,model,year,categories,daily_price,weekly_price,monthly_price").neq("status", "unavailable"),
     supabase.from("reservations").select("id,status,start_datetime,end_datetime,rental_period,extras,total_amount,vehicles(id,make,model,year,categories,plate_number,daily_price,weekly_price,monthly_price)").eq("customer_id", uid).order("start_datetime", { ascending: false }),
-    supabase.from("invoices").select("*").order("issued_at", { ascending: false }),
+    supabase.from("invoices").select("*").is("consolidated_into", null).order("issued_at", { ascending: false }), // invoices folded into a monthly one are shown through that one
     supabase.from("fines").select("*").order("occurred_at", { ascending: false }),
     supabase.from("offers").select("*").order("sort_order"),
     supabase.from("customer_documents").select("id,document_type,file_name,verification_status,created_at").order("created_at", { ascending: false }),
