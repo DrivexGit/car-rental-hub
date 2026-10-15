@@ -30,7 +30,7 @@ export function EditProfile() {
       <Field label={t("Email")} value={email} onChange={setEmail} type="email" ltr />
       <Field label={t("Mobile number")} value={formatPhone(user!.phone)} disabled ltr />
       {error && <p className="mb-2 text-sm font-medium text-danger">{error}</p>}
-      <Button size="lg" className="mt-4" disabled={name.trim().length < 2 || busy || (!!email.trim() && !/^\S+@\S+\.\S+$/.test(email.trim()))}
+      <Button size="lg" className="mt-4" disabled={name.trim().length < 2 || busy || !/^\S+@\S+\.\S+$/.test(email.trim())}
         onClick={async () => { setBusy(true); setError(""); try { await updateUser({ name: name.trim(), email: email.trim() }); nav(-1); } catch (e) { setError((e as Error).message); setBusy(false); } }}>
         {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : t("Save")}
       </Button>

@@ -12,7 +12,7 @@ const iso = (d) => new Date(Date.now() + d * 86400000).toISOString();
 const veh = (id, make, model, year, cat, daily, plate) => ({ id, make, model, year, categories: [cat], daily_price: daily, weekly_price: daily * 6, monthly_price: daily * 22, plate_number: plate, status: "available" });
 const V = [veh("v-g63", "Mercedes", "G63", 2023, "SUV", 750, "A 1234"), veh("v-a6", "Audi", "A6", 2024, "Sedan", 250, "B 2345"), veh("v-911", "Porsche", "911", 2024, "Coupe", 950, "C 3456"), veh("v-a6b", "Audi", "A6", 2024, "Sedan", 250, "B 9999")];
 const T = {
-  customers: [{ id: UID, tenant_id: "t", phone: "+971501234567", full_name: "Test Customer", email: null, avatar_url: null, notify_bookings: true, notify_invoices: true, notify_offers: true }],
+  customers: [{ id: UID, tenant_id: "t", phone: "+971501234567", full_name: "Test Customer", email: "test.customer@example.com", avatar_url: null, notify_bookings: true, notify_invoices: true, notify_offers: true }],
   vehicles: V,
   reservations: [
     { id: "r1", status: "confirmed", start_datetime: iso(-2), end_datetime: iso(3), rental_period: "daily", extras: ["full_cover"], total_amount: 3750, vehicles: V[0] },

@@ -33,9 +33,10 @@ export default function Reserve() {
   const [params] = useSearchParams();
   const nav = useNavigate();
   const { t } = useI18n();
-  const { carById, offers, specs: allSpecs, documents } = useStore();
+  const { carById, offers, specs: allSpecs, documents, user } = useStore();
   const missing = missingDocuments(documents);
   const [needDocs, setNeedDocs] = useState(false);
+  const [needEmail, setNeedEmail] = useState(false);
   const [picking, setPicking] = useState(false);
   const car = carById(carId);
   const off = offers.find((o) => o.kind === "car" && o.car?.id === carId)?.off ?? 0;
@@ -166,7 +167,13 @@ export default function Reserve() {
             <Button size="sm" onClick={() => nav("/profile/documents")}>{t("Update documents")}</Button>
           </div>
         )}
-        <Button size="lg" arrow className="mb-3" onClick={() => { if (missing.length) { setNeedDocs(true); return; } nav("/checkout", { state: q }); }}>{t("Continue")}</Button>
+        {needEmail && !user?.email && (
+          <div role="alert" className="mb-3 flex items-center gap-3 rounded-xl bg-danger-soft p-3 text-sm">
+            <p className="flex-1 font-medium text-danger">{t("Add your email before you book. We send the booking details there.")}</p>
+            <Button size="sm" onClick={() => nav("/profile/edit")}>{t("Add your email")}</Button>
+          </div>
+        )}
+        <Button size="lg" arrow className="mb-3" onClick={() => { if (missing.length) { setNeedDocs(true); return; } if (!user?.email) { setNeedEmail(true); return; } nav("/checkout", { state: q }); }}>{t("Continue")}</Button>
       </div>
     </Screen>
   );

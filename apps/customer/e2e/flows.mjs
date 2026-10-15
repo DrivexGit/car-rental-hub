@@ -357,6 +357,7 @@ async function fresh(viewport, lang = "en") {
   await page.locator("div.rounded-card", { hasText: "Mercedes G63" }).getByRole("button", { name: /^Invoice$/ }).first().click(); await page.waitForTimeout(600);
   ok("the Invoice button on a card goes to the invoice, not twice", page.url().endsWith("/bookings/r1#invoice"), page.url());
 
+  T.customers[0].email = null; // the warning only shows without an email
   await page.goto(BASE + "/profile", { waitUntil: "networkidle" }); await page.waitForTimeout(600);
   ok("profile warns when there is no email", (await page.getByText("Add your email").count()) === 1);
   await page.screenshot({ path: OUT + "/i-profile-email.png" });
@@ -364,6 +365,7 @@ async function fresh(viewport, lang = "en") {
   ok("the warning opens the edit page", new URL(page.url()).pathname === "/profile/edit");
   ok("the email field no longer says (optional)", (await page.getByText("(optional)").count()) === 0 && (await page.getByText("Email", { exact: true }).count()) === 1);
   ok("mobile number is shown in groups", (await page.locator("input[disabled]").inputValue()) === "(+971) 50 123 4567");
+  T.customers[0].email = "test.customer@example.com";
   ok("no console errors (client tasks)", errors.length === 0, errors.join(" | "));
   await ctx.close();
 }

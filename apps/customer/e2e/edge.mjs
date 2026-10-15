@@ -33,7 +33,7 @@ for (const [w, h] of [[360, 740], [768, 1024], [1440, 900]]) for (const lang of 
   await page.goto(BASE + "/profile", { waitUntil: "networkidle" }); await page.waitForTimeout(500);
   ok("with an email there is no warning", (await page.getByText("Add your email").count()) === 0);
   ok("profile shows the email", (await page.getByText("a@b.com").count()) >= 1);
-  await ctx.close(); T.customers[0].email = null; }
+  await ctx.close(); T.customers[0].email = "test.customer@example.com"; }
 
 // C. keyboard: focus a booking card and press Enter
 { const { ctx, page } = await fresh({ width: 1200, height: 800 });
