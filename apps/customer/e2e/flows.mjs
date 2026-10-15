@@ -363,7 +363,7 @@ async function fresh(viewport, lang = "en") {
   await page.getByText("Add your email").click(); await page.waitForTimeout(600);
   ok("the warning opens the edit page", new URL(page.url()).pathname === "/profile/edit");
   ok("the email field no longer says (optional)", (await page.getByText("(optional)").count()) === 0 && (await page.getByText("Email", { exact: true }).count()) === 1);
-  ok("mobile number is shown in groups", (await page.locator("input[disabled]").inputValue()) === "+971 50 123 4567");
+  ok("mobile number is shown in groups", (await page.locator("input[disabled]").inputValue()) === "(+971) 50 123 4567");
   ok("no console errors (client tasks)", errors.length === 0, errors.join(" | "));
   await ctx.close();
 }
