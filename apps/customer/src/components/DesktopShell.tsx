@@ -4,7 +4,7 @@ import { AnimatePresence, motion, useMotionValueEvent, useReducedMotion, useScro
 import { ArrowUp, Check, ChevronDown, CreditCard, FileText, Globe, Headphones, LogOut, MapPin, Phone, ShieldCheck, User } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { formatPhone } from "@/lib/format";
-import { LANGS, useI18n } from "@/lib/i18n";
+import { LANGS, nextLang, useI18n } from "@/lib/i18n";
 import { THEMES, getTheme, setTheme } from "@/lib/theme";
 import { COMPANY, SUPPORT_PHONE, whatsappLink } from "@/config";
 import { Bell, Face } from "@/components/ui";
@@ -57,9 +57,9 @@ export function DesktopHeader() {
         </nav>
 
         <div className="ms-auto flex items-center gap-3">
-          <button onClick={() => setLang(lang === "en" ? "ar" : "en")} aria-label={t("Change language")}
+          <button onClick={() => setLang(nextLang(lang))} aria-label={t("Change language")}
             className="inline-flex h-10 items-center gap-1.5 rounded-full border border-line bg-white px-3.5 text-sm font-medium text-ink-muted transition hover:border-brand/40 hover:text-brand">
-            <Globe className="h-4 w-4" />{lang === "en" ? "العربية" : "English"}
+            <Globe className="h-4 w-4" />{LANGS.find((l) => l.value === nextLang(lang))?.label}
           </button>
           <Bell />
           <AccountMenu />

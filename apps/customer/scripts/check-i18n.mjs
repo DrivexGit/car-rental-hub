@@ -35,4 +35,16 @@ for (const k of missing) console.log(`MISSING  ${JSON.stringify(k)}  (${used.get
 for (const k of badVars) console.log(`PLACEHOLDER MISMATCH  ${JSON.stringify(k)}`);
 for (const k of empty) console.log(`EMPTY  ${JSON.stringify(k)}`);
 for (const k of unused) console.log(`unused   ${JSON.stringify(k)}`);
-process.exit(missing.length || badVars.length || empty.length ? 1 : 0);
+// The Persian dictionary has to cover the same keys, with the same placeholders
+const fa = {};
+for (const f of readdirSync("src/locales/fa").filter((x) => x !== "index.ts")) {
+  const body = readFileSync(join("src/locales/fa", f), "utf8");
+  Object.assign(fa, new Function("return " + body.slice(body.indexOf("{"), body.lastIndexOf("}") + 1))());
+}
+const faMissing = [...used.keys()].filter((k) => !(k in fa));
+const faBad = Object.keys(fa).filter((k) => placeholders(k) !== placeholders(fa[k]) || !fa[k].trim());
+console.log(`[fa] translated: ${Object.keys(fa).length}`);
+for (const k of faMissing) console.log(`MISSING IN FA  ${JSON.stringify(k)}  (${used.get(k)})`);
+for (const k of faBad) console.log(`FA PLACEHOLDER OR EMPTY  ${JSON.stringify(k)}`);
+
+process.exit(missing.length || badVars.length || empty.length || faMissing.length || faBad.length ? 1 : 0);

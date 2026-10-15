@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { DayPicker, type DateRange } from "react-day-picker";
-import { ar, enGB } from "react-day-picker/locale";
+import { ar, enGB, faIR } from "react-day-picker/locale";
 import "react-day-picker/style.css";
 import { addDays, daysBetween, isoDate, shortDay, todayInUAE } from "@/lib/format";
 import { Button, Sheet } from "@/components/ui";
@@ -25,7 +25,7 @@ export function DateRangeSheet({ open, onClose, from, to, onApply, onClear }: {
       </div>
       <div className="flex justify-center">
         <DayPicker mode="range" selected={range} onSelect={setRange} min={1} disabled={{ before: today() }} startMonth={today()} endMonth={addDays(today(), 365)}
-          excludeDisabled weekStartsOn={1} className="drivex-cal" dir={dir} locale={lang === "ar" ? ar : enGB} />
+          excludeDisabled weekStartsOn={1} className="drivex-cal" dir={dir} locale={lang === "ar" ? ar : lang === "fa" ? faIR : enGB} />
       </div>
       <div className="mt-4 flex gap-2">
         {onClear && <Button variant="ghost" className="flex-1" onClick={() => { setRange(undefined); onClear(); onClose(); }}>{t("Clear")}</Button>}
@@ -44,7 +44,7 @@ export function DateSheet({ open, onClose, value, onPick, title }: { open: boole
     <Sheet open={open} onClose={onClose} title={title ?? t("Pickup date")}>
       <div className="flex justify-center">
         <DayPicker mode="single" selected={parse(value)} onSelect={(d) => { if (d) { onPick(isoDate(d)); onClose(); } }}
-          disabled={{ before: today() }} startMonth={today()} endMonth={addDays(today(), 365)} weekStartsOn={1} className="drivex-cal" dir={dir} locale={lang === "ar" ? ar : enGB} />
+          disabled={{ before: today() }} startMonth={today()} endMonth={addDays(today(), 365)} weekStartsOn={1} className="drivex-cal" dir={dir} locale={lang === "ar" ? ar : lang === "fa" ? faIR : enGB} />
       </div>
     </Sheet>
   );

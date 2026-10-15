@@ -8,7 +8,8 @@ export type DocId = "terms" | "privacy" | "delete";
 
 const EMAIL = "info@drivex.ae";
 
-export const LEGAL: Record<DocId, Record<Lang, Doc>> = {
+/** Persian falls back to English for now: the legal wording needs a lawyer to check a translation before it is shown. */
+export const LEGAL: Record<DocId, Partial<Record<Lang, Doc>> & Pick<Record<Lang, Doc>, "en">> = {
   terms: {
     en: {
       title: "Terms & conditions",
