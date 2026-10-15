@@ -33,7 +33,7 @@ const check = (name, pass, extra = "") => results.push({ name, pass, extra });
 const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
 async function book(body, { token = "good", offer = null, docs = null, noLead = false, noEmail = false, docsError = false } = {}) {
   Object.assign(state, { offer, reservations: [], invoices: [], docs: docs ?? DOCS, noLead, noEmail, docsError });
-  const r = await POST(new Request("http://local/api/book", { method: "POST", headers: { authorization: token ? `Bearer ${token}` : "" }, body: JSON.stringify({ modelId: "mercedes-gle-53", pickup: tomorrow, ...body }) }));
+  const r = await POST(new Request("http://local/api/book", { method: "POST", headers: { authorization: token ? `Bearer ${token}` : "" }, body: JSON.stringify({ modelId: "mercedes-gle-53", pickup: tomorrow, terms: true, ...body }) }));
   return { status: r.status, body: await r.json(), row: state.reservations[0], inv: state.invoices[0] };
 }
 
@@ -81,6 +81,12 @@ check("no token -> 401", (await book({ period: "daily", qty: 1 }, { token: "" })
   check("passport + driving licence waiting for review -> booking allowed", r.status === 200 && !!r.row, JSON.stringify(r.body)); }
 { const r = await book({ period: "daily", qty: 1 }, { docs: [{ document_type: "visa", verification_status: "approved" }, { document_type: "other", verification_status: "approved" }] });
   check("a visa or other file alone is not enough -> 403", r.status === 403); }
+
+// The customer must tick the Terms at checkout: without it there is no booking, and with it the version and time are kept
+{ const r = await book({ period: "daily", qty: 1, terms: false });
+  check("terms not accepted -> 400, nothing created", r.status === 400 && /accept the terms/i.test(r.body.error) && !r.row, JSON.stringify(r.body)); }
+{ const r = await book({ period: "daily", qty: 1 });
+  check("accepted terms are stored with their version and time", r.status === 200 && r.row?.terms_version === "2026-10" && !!r.row?.terms_accepted_at, JSON.stringify(r.row)); }
 
 // No email on the account -> 409 asking for one, before any car is picked
 { const r = await book({ period: "daily", qty: 1 }, { noEmail: true });

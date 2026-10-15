@@ -388,6 +388,9 @@ async function fresh(viewport, lang = "en") {
   ok("checkout lists insurance, driver and no-deposit rows with the total", /Full coverage insurance/.test(co) && /Additional driver/.test(co) && /No deposit/.test(co) && /16,629/.test(co));
   ok("checkout says no deposit is blocked", /No deposit is blocked on your card/.test(co) && !/refundable security deposit/.test(co));
   await page.screenshot({ path: OUT + "/i-checkout-nodeposit.png", fullPage: true });
+  ok("Pay stays disabled until the terms are accepted", await page.getByRole("button", { name: /^Pay/ }).isDisabled());
+  await page.getByRole("checkbox").check();
+  ok("accepting the terms enables Pay", await page.getByRole("button", { name: /^Pay/ }).isEnabled());
   await page.goto(BASE + "/book/mercedes-g63?period=daily", { waitUntil: "networkidle" }); await page.waitForTimeout(800);
   ok("daily: 3 x 750 less 15% = 1,913, plus insurance 15% = 2,200", (await total()) === "2200", await total());
   ok("driver shows the daily price on a daily plan", (await page.getByText(/25 \/ day/).count()) === 1);

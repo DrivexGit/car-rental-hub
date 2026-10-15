@@ -1,12 +1,13 @@
 import { admin, busyIds, fail, getCustomer, json, PERIOD_DAYS, slug, type Period } from "./_lib.js";
 import { extrasTotal, isExtra } from "../src/data/pricing.js";
 import { missingDocuments } from "../src/data/documents.js";
+import { TERMS_VERSION } from "../src/data/terms.js";
 
 // Creates a pending reservation + invoice. Price, discount and the actual car are decided here, never by the client.
 export async function POST(req: Request) {
   const me = await getCustomer(req);
   if (!me) return fail("Please sign in again.", 401);
-  const { modelId, period, qty, pickup, extras = [] } = await req.json().catch(() => ({}));
+  const { modelId, period, qty, pickup, extras = [], terms } = await req.json().catch(() => ({}));
   if (!(period in PERIOD_DAYS)) return fail("Choose daily, weekly or monthly.");
   const n = Number(qty);
   if (!Number.isInteger(n) || n < 1 || n > (period === "daily" ? 29 : 12)) return fail("Invalid rental length.");
@@ -15,6 +16,8 @@ export async function POST(req: Request) {
   const days = PERIOD_DAYS[period as Period] * n;
   const end = new Date(start.getTime() + days * 86400000);
   const ex = [...new Set(Array.isArray(extras) ? (extras as unknown[]).filter((e): e is string => typeof e === "string" && isExtra(e)) : [])];
+
+  if (terms !== true) return fail("Please accept the Terms & Rental rules to book.");
 
   const db = admin();
   // The app already asks for the documents first; this keeps the rule even if someone calls the API directly.
@@ -44,6 +47,7 @@ export async function POST(req: Request) {
 
   const { data: r, error } = await db.from("reservations").insert({
     tenant_id: me.tenant_id, vehicle_id: car.id, lead_id: me.lead_id, customer_id: me.id, source: "app",
+    terms_accepted_at: new Date().toISOString(), terms_version: TERMS_VERSION,
     status: "pending", reservation_type: "booking", start_datetime: start.toISOString(), end_datetime: end.toISOString(),
     pickup_location: "Drivex, Dubai", return_location: "Drivex, Dubai", customer_name_snapshot: me.full_name,
     customer_phone_snapshot: me.phone, rental_period: period, extras: ex, total_amount: total,
