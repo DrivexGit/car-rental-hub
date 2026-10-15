@@ -26,3 +26,6 @@ createRoot(document.getElementById("root")!).render(
 );
 
 if ("serviceWorker" in navigator && import.meta.env.PROD) navigator.serviceWorker.register("/sw.js");
+
+// iOS Safari still pinch-zooms the page unless the gesture is cancelled, even with user-scalable=no.
+["gesturestart", "gesturechange", "gestureend"].forEach((type) => document.addEventListener(type, (e) => e.preventDefault()));
