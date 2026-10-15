@@ -7,7 +7,7 @@ Object.assign(process.env, { SUPABASE_URL: "https://fake.supabase.co", SUPABASE_
 const CUSTOMER = { id: "c1", tenant_id: "t1", lead_id: "lead1", phone: "+971501234567", full_name: "Test Customer", email: "test.customer@example.com" };
 const CARS = [1, 2].map((i) => ({ id: `v${i}`, make: "Mercedes", model: "GLE 53", plate_number: `A ${i}`, daily_price: 1000, weekly_price: 6000, monthly_price: 20000, status: "available" }));
 const DOCS = [{ document_type: "id_card", verification_status: "approved" }, { document_type: "driving_license", verification_status: "pending" }];
-const state = { offer: null, reservations: [], invoices: [], docs: DOCS, noLead: false, noEmail: false, docsError: false, docsQuery: "" };
+const state = { offer: null, reservations: [], invoices: [], docs: DOCS, noLead: false, noEmail: false, payMonthly: false, docsError: false, docsQuery: "" };
 const realFetch = globalThis.fetch;
 globalThis.fetch = async (input, init = {}) => {
   const req = new Request(input, init);
@@ -16,7 +16,7 @@ globalThis.fetch = async (input, init = {}) => {
   if (!u.hostname.endsWith("fake.supabase.co")) return realFetch(input, init);
   if (u.pathname === "/auth/v1/user") return req.headers.get("authorization") === "Bearer good" ? json(200, { id: "c1", aud: "authenticated" }) : json(401, { msg: "bad jwt" });
   const table = u.pathname.split("/").pop();
-  if (table === "customers") return json(200, state.noLead ? { ...CUSTOMER, lead_id: null } : state.noEmail ? { ...CUSTOMER, email: null } : CUSTOMER);
+  if (table === "customers") return json(200, state.noLead ? { ...CUSTOMER, lead_id: null } : state.noEmail ? { ...CUSTOMER, email: null } : state.payMonthly ? { ...CUSTOMER, pay_monthly: true } : CUSTOMER);
   if (table === "customer_documents") { state.docsQuery = u.search; return state.docsError ? json(500, { message: "db is down" }) : json(200, state.docs); }
   if (table === "vehicles") return json(200, CARS);
   if (table === "offers") return state.offer ? json(200, { discount_pct: state.offer }) : json(406, { code: "PGRST116", details: "The result contains 0 rows", message: "JSON object requested, multiple (or no) rows returned" });
@@ -31,8 +31,8 @@ const results = [];
 const check = (name, pass, extra = "") => results.push({ name, pass, extra });
 
 const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
-async function book(body, { token = "good", offer = null, docs = null, noLead = false, noEmail = false, docsError = false } = {}) {
-  Object.assign(state, { offer, reservations: [], invoices: [], docs: docs ?? DOCS, noLead, noEmail, docsError });
+async function book(body, { token = "good", offer = null, docs = null, noLead = false, noEmail = false, payMonthly = false, docsError = false } = {}) {
+  Object.assign(state, { offer, reservations: [], invoices: [], docs: docs ?? DOCS, noLead, noEmail, payMonthly, docsError });
   const r = await POST(new Request("http://local/api/book", { method: "POST", headers: { authorization: token ? `Bearer ${token}` : "" }, body: JSON.stringify({ modelId: "mercedes-gle-53", pickup: tomorrow, terms: true, ...body }) }));
   return { status: r.status, body: await r.json(), row: state.reservations[0], inv: state.invoices[0] };
 }
@@ -87,6 +87,12 @@ check("no token -> 401", (await book({ period: "daily", qty: 1 }, { token: "" })
   check("terms not accepted -> 400, nothing created", r.status === 400 && /accept the terms/i.test(r.body.error) && !r.row, JSON.stringify(r.body)); }
 { const r = await book({ period: "daily", qty: 1 });
   check("accepted terms are stored with their version and time", r.status === 200 && r.row?.terms_version === "2026-10" && !!r.row?.terms_accepted_at, JSON.stringify(r.row)); }
+
+// "Pay at month end": the booking is confirmed straight away and the response says there is no payment step
+{ const r = await book({ period: "daily", qty: 1 }, { payMonthly: true });
+  check("pay-at-month-end customer -> confirmed booking with payLater", r.status === 200 && r.row?.status === "confirmed" && r.body.payLater === true, JSON.stringify(r.body)); }
+{ const r = await book({ period: "daily", qty: 1 });
+  check("normal customer -> pending booking, payLater false", r.status === 200 && r.row?.status === "pending" && r.body.payLater === false, JSON.stringify(r.body)); }
 
 // No email on the account -> 409 asking for one, before any car is picked
 { const r = await book({ period: "daily", qty: 1 }, { noEmail: true });

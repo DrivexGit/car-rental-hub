@@ -29,8 +29,10 @@ export default function Checkout() {
   const pay = async () => {
     setBusy(true); setError("");
     try {
-      const b = await api<{ reservationId: string; invoiceId: string }>("book", { modelId: q.carId, period: q.period, qty: q.qty, pickup: q.pickup, extras: q.extras, terms: agreed });
+      const b = await api<{ reservationId: string; invoiceId: string; payLater?: boolean }>("book", { modelId: q.carId, period: q.period, qty: q.qty, pickup: q.pickup, extras: q.extras, terms: agreed });
       await refresh();
+      // "Pay at month end" customers: the booking is confirmed now and the invoice is collected later
+      if (b.payLater) { nav(`/confirmed/${b.reservationId}`, { replace: true }); return; }
       try {
         const { redirected } = await payInvoice(b.invoiceId, `/confirmed/${b.reservationId}`);
         if (redirected) return;

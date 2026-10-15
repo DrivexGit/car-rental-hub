@@ -6,6 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Switch } from '@/components/ui/switch';
+import { useToast } from '@/hooks/use-toast';
 import { aed, fdate } from '@/lib/format';
 
 const initials = (name?: string) => (name || '?').split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
@@ -62,6 +64,28 @@ export default function Customers() {
   );
 }
 
+/** When on, the customer's bookings are confirmed without paying at checkout (the app skips the payment step). */
+function PayMonthly({ c, onSaved }: { c: any; onSaved: (v: boolean) => void }) {
+  const [saving, setSaving] = useState(false);
+  const { toast } = useToast();
+  const change = async (v: boolean) => {
+    setSaving(true);
+    const { error } = await supabase.from('customers' as any).update({ pay_monthly: v }).eq('id', c.id);
+    setSaving(false);
+    if (error) { toast({ title: 'Could not save', description: error.message, variant: 'destructive' }); return; }
+    onSaved(v);
+  };
+  return (
+    <div className="flex items-center justify-between gap-4 rounded-md border p-3 text-sm">
+      <div>
+        <p className="font-medium">Pay at month end</p>
+        <p className="text-xs text-muted-foreground">Bookings are confirmed without paying at checkout. The invoices are collected at month end.</p>
+      </div>
+      <Switch checked={!!c.pay_monthly} disabled={saving} onCheckedChange={change} aria-label="Pay at month end" />
+    </div>
+  );
+}
+
 function CustomerDetail({ id }: { id: string }) {
   const [d, setD] = useState<any>(null);
   useEffect(() => {
@@ -86,6 +110,7 @@ function CustomerDetail({ id }: { id: string }) {
         <Info label="Joined" value={fdate(d.c.created_at)} />
         <Info label="WhatsApp" value={<a className="underline" target="_blank" rel="noreferrer" href={`https://wa.me/${d.c.phone.replace(/\D/g, '')}`}>Open chat</a>} />
       </div>
+      <PayMonthly c={d.c} onSaved={(v) => setD({ ...d, c: { ...d.c, pay_monthly: v } })} />
       <Section title={`Bookings (${d.r.length})`}>
         {d.r.map((r: any) => (
           <a key={r.id} href={`/reservations?id=${r.id}`} className="flex items-center justify-between rounded-md border p-3 text-sm hover:bg-muted/40">

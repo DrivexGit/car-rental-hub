@@ -19,6 +19,8 @@ export async function POST(req: Request) {
 
   if (terms !== true) return fail("Please accept the Terms & Rental rules to book.");
 
+  // Customers on "pay at month end" are confirmed now and pay later (the invoice stays open until it is collected).
+  const payLater = !!me.pay_monthly;
   const db = admin();
   // The app already asks for the documents first; this keeps the rule even if someone calls the API directly.
   // A customer without a lead cannot upload documents (customer_documents.lead_id is required), so this is a set-up problem, not "no documents".
@@ -48,7 +50,7 @@ export async function POST(req: Request) {
   const { data: r, error } = await db.from("reservations").insert({
     tenant_id: me.tenant_id, vehicle_id: car.id, lead_id: me.lead_id, customer_id: me.id, source: "app",
     terms_accepted_at: new Date().toISOString(), terms_version: TERMS_VERSION,
-    status: "pending", reservation_type: "booking", start_datetime: start.toISOString(), end_datetime: end.toISOString(),
+    status: payLater ? "confirmed" : "pending", reservation_type: "booking", start_datetime: start.toISOString(), end_datetime: end.toISOString(),
     pickup_location: "Drivex, Dubai", return_location: "Drivex, Dubai", customer_name_snapshot: me.full_name,
     customer_phone_snapshot: me.phone, rental_period: period, extras: ex, total_amount: total,
     price_note: `${n} × ${period} @ ${unit}${off ? ` −${off}%` : ""} + extras ${extrasCost}`,
@@ -59,5 +61,5 @@ export async function POST(req: Request) {
     tenant_id: me.tenant_id, customer_id: me.id, reservation_id: r.id, amount: total,
     description: `Rental ${car.make} ${car.model} (${n} ${period})`,
   }).select("id").single();
-  return json({ reservationId: r.id, invoiceId: inv!.id, total });
+  return json({ reservationId: r.id, invoiceId: inv!.id, total, payLater });
 }
