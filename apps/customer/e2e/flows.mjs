@@ -67,13 +67,15 @@ async function fresh(viewport, lang = "en") {
 {
   const { ctx, page, errors } = await fresh({ width: 390, height: 844 });
   await page.goto(BASE + "/profile/language", { waitUntil: "networkidle" }); await page.waitForTimeout(500);
-  ok("language is a dropdown with English, Arabic and Persian", (await page.locator("select:visible").first().locator("option").allTextContents()).join("|") === "English|العربية|فارسی");
-  await page.locator("select:visible").first().selectOption("ar"); await page.waitForTimeout(500);
+  await page.locator("[aria-haspopup=listbox]:visible").first().click();
+  ok("language is a dropdown with English, Arabic and Persian", (await page.locator("[role=option] button:visible").allTextContents()).join("|") === "English|العربية|فارسی");
+  await page.keyboard.press("Escape");
+  await page.locator("[aria-haspopup=listbox]:visible").first().click(); await page.locator("[role=option] button:visible", { hasText: "العربية" }).click(); await page.waitForTimeout(500);
   ok("language switch -> rtl", (await page.evaluate(() => document.documentElement.dir)) === "rtl");
   ok("title translated live", (await page.locator("h1").first().textContent()) === "اللغة");
   await page.reload({ waitUntil: "networkidle" }); await page.waitForTimeout(500);
   ok("language persists after reload", (await page.evaluate(() => document.documentElement.dir)) === "rtl");
-  await page.locator("select:visible").first().selectOption("en"); await page.waitForTimeout(400);
+  await page.locator("[aria-haspopup=listbox]:visible").first().click(); await page.locator("[role=option] button:visible", { hasText: "English" }).click(); await page.waitForTimeout(400);
   ok("switch back -> ltr", (await page.evaluate(() => document.documentElement.dir)) === "ltr");
   await page.goto(BASE + "/profile", { waitUntil: "networkidle" }); await page.waitForTimeout(500);
   await page.getByText("Appearance").first().click(); await page.waitForTimeout(500);
@@ -311,10 +313,10 @@ async function fresh(viewport, lang = "en") {
     ok(`signed out: ${path} opens without sign-in`, (await page.locator("h1").first().textContent()) === h1 && (await page.getByText(marker).count()) >= 1);
   }
   await page.goto(BASE + "/privacy", { waitUntil: "networkidle" });
-  await page.locator("select:visible").first().selectOption("ar"); await page.waitForTimeout(500);
+  await page.locator("[aria-haspopup=listbox]:visible").first().click(); await page.locator("[role=option] button:visible", { hasText: "العربية" }).click(); await page.waitForTimeout(500);
   ok("privacy policy switches to Arabic (RTL)", (await page.locator("h1").first().textContent()) === "سياسة الخصوصية" && (await page.evaluate(() => document.documentElement.dir)) === "rtl");
   await page.screenshot({ path: OUT + "/i-legal-ar.png" });
-  await page.locator("select:visible").first().selectOption("en");
+  await page.locator("[aria-haspopup=listbox]:visible").first().click(); await page.locator("[role=option] button:visible", { hasText: "English" }).click();
   await page.goto(BASE + "/delete-account", { waitUntil: "networkidle" }); await page.waitForTimeout(400);
   await page.getByRole("button", { name: "Send by email" }).click();
   ok("form asks for name and phone first", (await page.getByRole("alert").textContent()) === "Please enter your name and mobile number.");
