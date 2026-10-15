@@ -13,7 +13,8 @@ import { CustomerSelect, ReservationSelect } from '@/components/CustomerSelect';
 import { aed, fdate } from '@/lib/format';
 import { Download, Plus } from 'lucide-react';
 import { COMPANY } from '@/lib/company';
-import { invoiceHtml, printInvoice } from '@/lib/invoice';
+import { invoiceHtml } from '@/lib/invoice';
+import { downloadInvoicePdf } from '@/lib/invoicePdf';
 
 const STATUS_STYLE: Record<string, string> = { pending: 'bg-amber-100 text-amber-800', paid: 'bg-emerald-100 text-emerald-800', void: 'bg-muted text-muted-foreground' };
 
@@ -24,14 +25,18 @@ export async function markPaidManually(inv: any) {
   if (inv.reservation_id) await supabase.from('reservations').update({ status: 'confirmed' }).eq('id', inv.reservation_id).eq('status', 'pending');
 }
 
-/** Opens the tax invoice in the print dialog; "Save as PDF" downloads it. */
-function downloadInvoice(r: any) {
+/** Saves the tax invoice straight to the device as a PDF file (no print dialog). */
+async function downloadInvoice(r: any, onError: (message: string) => void) {
   const v = r.reservations?.vehicles;
-  return printInvoice(invoiceHtml({
+  try {
+    await downloadInvoicePdf(invoiceHtml({
     invoice: { number: r.number, issued: r.issued_at, status: r.status, paidAt: r.paid_at, description: r.description, detail: v ? `${v.make} ${v.model} · ${v.plate_number}` : undefined, amount: Number(r.amount) },
     to: { name: r.customers?.full_name || 'Customer', phone: r.customers?.phone, email: r.customers?.email },
     company: COMPANY, logoUrl: `${location.origin}/logo-dark.png`,
-  }));
+    }), `${r.number}.pdf`);
+  } catch (err: any) {
+    onError(err?.message || 'Could not create the PDF');
+  }
 }
 
 export default function Invoices() {
@@ -92,7 +97,7 @@ export default function Invoices() {
               <TableCell className="text-right font-medium">{aed(r.amount)}</TableCell>
               <TableCell><Badge className={STATUS_STYLE[r.status]}>{r.status === 'pending' ? 'unpaid' : r.status}</Badge></TableCell>
               <TableCell className="whitespace-nowrap text-right">
-                <Button size="sm" variant="ghost" aria-label={`Download invoice ${r.number}`} title="Download invoice (Save as PDF)" onClick={() => downloadInvoice(r)}><Download className="h-4 w-4" /></Button>
+                <Button size="sm" variant="ghost" aria-label={`Download invoice ${r.number}`} title="Download invoice (PDF)" onClick={() => downloadInvoice(r, (message) => toast({ title: 'Could not create the PDF', description: message, variant: 'destructive' }))}><Download className="h-4 w-4" /></Button>
                 {r.status === 'pending' && <>
                   <Button size="sm" variant="ghost" onClick={async () => { await markPaidManually(r); toast({ title: 'Marked as paid' }); load(); }}>Mark paid</Button>
                   <Button size="sm" variant="ghost" onClick={async () => { await supabase.from('invoices' as any).update({ status: 'void' }).eq('id', r.id); load(); }}>Void</Button>
