@@ -28,7 +28,7 @@ function Frame({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="min-h-full bg-bg">
       <header className="mx-auto flex max-w-3xl items-center justify-between px-5 py-5">
-        <Link to="/" aria-label="Drivex"><Logo className="h-8" /></Link>
+        <Link to="/" aria-label="Drivex"><Logo className="text-[28px]" /></Link>
         <div className="flex items-center gap-3">
           <button onClick={() => setLang(lang === "en" ? "ar" : "en")} className="h-9 rounded-full border border-line bg-white px-3.5 text-sm font-medium text-ink-muted">{lang === "en" ? "العربية" : "English"}</button>
           <Link to="/" className="text-sm font-semibold text-brand">{t("Back to the app")}</Link>
