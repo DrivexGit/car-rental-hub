@@ -6,8 +6,6 @@ import fa from "@/locales/fa";
 // Dynamic values use {name} placeholders: t("{n} days left", { n }).
 export type Lang = "en" | "ar" | "fa";
 export const LANGS: { value: Lang; label: string }[] = [{ value: "en", label: "English" }, { value: "ar", label: "العربية" }, { value: "fa", label: "فارسی" }];
-/** The language after the current one (the header and footer switch cycles through all of them). */
-export const nextLang = (l: Lang): Lang => LANGS[(LANGS.findIndex((x) => x.value === l) + 1) % LANGS.length].value;
 /** Languages written right to left. */
 const RTL: Lang[] = ["ar", "fa"];
 

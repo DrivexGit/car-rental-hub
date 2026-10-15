@@ -12,7 +12,8 @@ import { PayInvoiceSheet } from "@/screens/PaySheet";
 import { InvoiceDownload } from "@/components/InvoiceDownload";
 import { whatsappLink } from "@/config";
 import type { Invoice } from "@/lib/store";
-import { LANGS, useI18n } from "@/lib/i18n";
+import { useI18n } from "@/lib/i18n";
+import { LangSelect } from "@/components/LangSelect";
 
 export function EditProfile() {
   const { t } = useI18n();
@@ -193,17 +194,12 @@ export function Notifications() {
 }
 
 export function Language() {
-  const { t, lang, setLang } = useI18n();
+  const { t } = useI18n();
   return (
     <Screen tabs={false}>
       <BackBar title={t("Language")} />
-      <Card className="divide-y divide-line">
-        {LANGS.map((l) => (
-          <button key={l.value} type="button" onClick={() => setLang(l.value)} className="flex h-16 w-full items-center justify-between px-4 text-start">
-            <span className="font-medium">{l.label}</span>
-            {lang === l.value && <CheckCircle2 className="h-5 w-5 text-brand" />}
-          </button>
-        ))}
+      <Card className="p-4">
+        <LangSelect className="h-12 w-full px-4 text-base" />
       </Card>
     </Screen>
   );

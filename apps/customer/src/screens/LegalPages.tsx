@@ -3,7 +3,8 @@ import { Link } from "react-router-dom";
 import { Mail } from "lucide-react";
 import { motion } from "framer-motion";
 import { useStore } from "@/lib/store";
-import { LANGS, nextLang, useI18n } from "@/lib/i18n";
+import { useI18n } from "@/lib/i18n";
+import { LangSelect } from "@/components/LangSelect";
 import { COMPANY, whatsappLink } from "@/config";
 import { LEGAL, type DocId } from "@/content/legal";
 import { BackBar, Button, Logo, Screen } from "@/components/ui";
@@ -23,14 +24,14 @@ const LINKS: { id: DocId; to: string; label: string }[] = [
 /** Signed-in users get the normal app page; visitors get a plain page with the logo and the same links. */
 function Frame({ title, children }: { title: string; children: ReactNode }) {
   const { user } = useStore();
-  const { t, lang, setLang } = useI18n();
+  const { t, lang } = useI18n();
   if (user) return <Screen tabs={false}><BackBar title={title} />{children}</Screen>;
   return (
     <div className="min-h-full bg-bg">
       <header className="mx-auto flex max-w-3xl items-center justify-between px-5 py-5">
         <Link to="/" aria-label="Drivex"><Logo className="text-[28px]" /></Link>
         <div className="flex items-center gap-3">
-          <button onClick={() => setLang(nextLang(lang))} className="h-9 rounded-full border border-line bg-white px-3.5 text-sm font-medium text-ink-muted">{LANGS.find((l) => l.value === nextLang(lang))?.label}</button>
+          <LangSelect />
           <Link to="/" className="text-sm font-semibold text-brand">{t("Back to the app")}</Link>
         </div>
       </header>
