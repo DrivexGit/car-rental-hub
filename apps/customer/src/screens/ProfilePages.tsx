@@ -199,7 +199,7 @@ export function Language() {
     <Screen tabs={false}>
       <BackBar title={t("Language")} />
       <Card className="p-4">
-        <LangSelect className="h-12 w-full px-4 text-base" />
+        <LangSelect block />
       </Card>
     </Screen>
   );
