@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { BellRing, Camera, CheckCircle2, ChevronRight, FileText, IdCard, Loader2, Smartphone, Upload } from "lucide-react";
 import { enablePush, pushSupported } from "@/lib/push";
-import { supabase } from "@/lib/supabase";
+import { api, supabase } from "@/lib/supabase";
 import { useStore } from "@/lib/store";
 import { REQUIRED_DOCUMENTS } from "@/data/documents";
 import { day, formatPhone, money } from "@/lib/format";
@@ -113,11 +113,16 @@ export function Documents() {
     const up = await supabase.storage.from("customer-documents").upload(path, file, { contentType: file.type });
     if (up.error) { setError(up.error.message); setBusy(null); return; }
     const { data: me } = await supabase.from("customers").select("lead_id, tenant_id").eq("id", user!.id).single();
-    const { error: e } = await supabase.from("customer_documents").insert({
+    const { data: row, error: e } = await supabase.from("customer_documents").insert({
       lead_id: me!.lead_id, tenant_id: me!.tenant_id, document_type: type, storage_bucket: "customer-documents", storage_path: path,
       file_name: file.name, mime_type: file.type, file_size: file.size, uploaded_by: "customer", verification_status: "pending",
-    });
+    }).select("id").single();
     if (e) setError(e.message);
+    // The AI check reads the picture and rejects it at once if it is unreadable, the wrong document or expired
+    if (row) {
+      const check = await api<{ status: string; reason?: string }>("doc-check", { documentId: row.id }).catch(() => null);
+      if (check?.status === "rejected" && check.reason) setError(check.reason);
+    }
     await refresh(); setBusy(null);
   };
   return (
