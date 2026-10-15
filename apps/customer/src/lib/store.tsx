@@ -10,7 +10,7 @@ export type Booking = {
   total: number; extras: string[]; status: BookingStatus; rawStatus: string;
 };
 export type Invoice = { id: string; number: string; bookingId: string | null; amount: number; issued: string; status: "pending" | "paid" | "void"; paidAt?: string; description?: string };
-export type Fine = { id: string; bookingId: string | null; type: "salik" | "traffic"; amount: number; date: string; place: string };
+export type Fine = { id: string; bookingId: string | null; type: string; title: string | null; amount: number; date: string; place: string };
 export type Offer = { id: string; kind: "car" | "partner"; title: string; subtitle?: string; off: number; image?: string; car?: Car; description?: string; terms?: string; location?: string; code?: string };
 export type Specs = { engine?: string; transmission: string; fuel: string; seats: number; doors: number; bags: number; features: string[]; image?: string; gallery: string[] };
 export type Note = { id: string; type: string; title: string; body?: string; link?: string; read: boolean; created: string };
@@ -84,7 +84,7 @@ async function loadAll(): Promise<{ user: User; data: Data } | null> {
     data: {
       fleet, bookings,
       invoices: (i.data ?? []).map((x: any) => ({ id: x.id, number: x.number, bookingId: x.reservation_id, amount: Number(x.amount), issued: x.issued_at, status: x.status, paidAt: x.paid_at ?? undefined, description: x.description ?? undefined })),
-      fines: (f.data ?? []).map((x: any) => ({ id: x.id, bookingId: x.reservation_id, type: x.type, amount: Number(x.amount), date: x.occurred_at, place: x.location ?? "" })),
+      fines: (f.data ?? []).map((x: any) => ({ id: x.id, bookingId: x.reservation_id, type: x.type, title: x.title ?? null, amount: Number(x.amount), date: x.occurred_at, place: x.location ?? "" })),
       offers: (o.data ?? []).map((x: any) => ({ id: x.id, kind: x.kind, title: x.title, subtitle: x.subtitle ?? undefined, off: x.discount_pct, image: x.image_url ?? undefined, car: x.kind === "car" ? byTitle(x.title) : undefined, description: x.description ?? undefined, terms: x.terms ?? undefined, location: x.location ?? undefined, code: x.redeem_code ?? undefined }))
         .filter((x: Offer) => x.kind === "partner" || x.car),
       specs,
