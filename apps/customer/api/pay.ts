@@ -23,6 +23,7 @@ export async function POST(req: Request) {
   const { data: inv } = await db.from("invoices").select("*").eq("id", invoiceId).eq("customer_id", me.id).maybeSingle();
   if (!inv) return fail("Invoice not found.", 404);
   if (inv.status !== "pending") return fail("This invoice is already paid.");
+  if (inv.consolidated_into) return fail("This invoice is billed in your monthly invoice.");
 
   if (!key) {
     await db.from("payments").insert({ tenant_id: me.tenant_id, invoice_id: inv.id, customer_id: me.id, amount: inv.amount, provider: "test", status: "succeeded" });

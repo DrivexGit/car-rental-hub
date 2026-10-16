@@ -46,6 +46,8 @@ export async function busyIds(from: string, to: string, exceptReservation?: stri
 export async function markInvoicePaid(invoiceId: string) {
   const { data: inv } = await admin().from("invoices").update({ status: "paid", paid_at: new Date().toISOString() })
     .eq("id", invoiceId).eq("status", "pending").select("reservation_id").maybeSingle();
+  // invoices folded into this monthly one are paid with it
+  await admin().from("invoices").update({ status: "paid", paid_at: new Date().toISOString() }).eq("consolidated_into", invoiceId).eq("status", "pending");
   if (inv?.reservation_id)
     await admin().from("reservations").update({ status: "confirmed" }).eq("id", inv.reservation_id).eq("status", "pending");
 }

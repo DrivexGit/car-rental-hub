@@ -53,7 +53,7 @@ export async function POST(req: Request) {
   const today = new Date(Date.now() + 4 * 3600_000).toISOString().slice(0, 10); // UAE date
   const expiry = typeof ai.expiry === "string" && DATE.test(ai.expiry) ? ai.expiry : null;
   const problems: string[] = [];
-  if (ai.readable !== true) problems.push("The picture is not clear enough to read. Please upload a clearer photo.");
+  if (ai.readable === false) problems.push("The picture is not clear enough to read. Please upload a clearer photo.");
   if (ai.matches_expected === false) problems.push(`This does not look like your ${expected}. Please upload the right document.`);
   if (expiry && expiry < today) problems.push(`This document expired on ${expiry}. Please upload a valid one.`);
   const status = problems.length ? "rejected" : "pending";

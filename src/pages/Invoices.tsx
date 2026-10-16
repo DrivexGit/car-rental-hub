@@ -23,6 +23,8 @@ export async function markPaidManually(inv: any) {
   await supabase.from('invoices' as any).update({ status: 'paid', paid_at: new Date().toISOString() }).eq('id', inv.id);
   await supabase.from('payments' as any).insert({ tenant_id: inv.tenant_id, invoice_id: inv.id, customer_id: inv.customer_id, amount: inv.amount, provider: 'manual', status: 'succeeded' });
   if (inv.reservation_id) await supabase.from('reservations').update({ status: 'confirmed' }).eq('id', inv.reservation_id).eq('status', 'pending');
+  // invoices folded into this monthly one are paid with it
+  await supabase.from('invoices' as any).update({ status: 'paid', paid_at: new Date().toISOString() }).eq('consolidated_into', inv.id).eq('status', 'pending');
 }
 
 /** Saves the tax invoice straight to the device as a PDF file (no print dialog). */
@@ -55,7 +57,7 @@ export default function Invoices() {
   const { toast } = useToast();
 
   const load = async () => {
-    let query = supabase.from('invoices' as any).select('*, customers(full_name, phone, email), reservations(vehicles(make, model, plate_number))').order('issued_at', { ascending: false });
+    let query = supabase.from('invoices' as any).select('*, customers(full_name, phone, email), reservations(vehicles(make, model, plate_number))').is('consolidated_into', null).order('issued_at', { ascending: false }); // folded invoices show through their monthly one
     if (status !== 'all') query = query.eq('status', status);
     const { data } = await query;
     setRows((data as any) || []);

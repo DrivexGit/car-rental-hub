@@ -9,13 +9,13 @@ export async function GET(req: Request) {
   if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) return fail("Not allowed.", 401);
 
   const db = admin();
-  const { start, end, label } = previousMonth(new Date());
+  const { end, label } = previousMonth(new Date());
 
   const { data: fines, error: fineError } = await db.from("fines").select("id,tenant_id,customer_id,type,amount,occurred_at")
-    .is("invoice_id", null).in("type", ["salik", "salik_parking"]).gte("occurred_at", start).lt("occurred_at", end);
+    .is("invoice_id", null).in("type", ["salik", "salik_parking"]).lt("occurred_at", end); // older unbilled ones too, if they were entered late
   if (fineError) return fail(fineError.message, 500);
   const salik = planSalik(fines ?? [], label);
-  for (const p of salik) await createInvoice(db, p, "fines");
+  for (const p of salik) await createInvoice(db, p, "fines").catch((e) => console.error("salik invoice", p.customer_id, e));
 
   const { data: monthly, error: custError } = await db.from("customers").select("id").eq("pay_monthly", true);
   if (custError) return fail(custError.message, 500);
@@ -24,10 +24,10 @@ export async function GET(req: Request) {
   if (payMonthly.size) {
     const { data: invoices, error: invError } = await db.from("invoices").select("id,tenant_id,customer_id,amount,issued_at,consolidated_into,status")
       .in("customer_id", [...payMonthly]).eq("status", "pending").is("consolidated_into", null).not("reservation_id", "is", null)
-      .gte("issued_at", start).lt("issued_at", end);
+      .lt("issued_at", end);
     if (invError) return fail(invError.message, 500);
     rentals = planConsolidation((invoices ?? []) as any, payMonthly, label);
-    for (const p of rentals) await createInvoice(db, p, "invoices");
+    for (const p of rentals) await createInvoice(db, p, "invoices").catch((e) => console.error("monthly invoice", p.customer_id, e));
   }
   return json({ month: label, salikInvoices: salik.length, monthlyRentalInvoices: rentals.length });
 }
