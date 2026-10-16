@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { CreditCard, Info, Loader2 } from "lucide-react";
 import { EXTRA_LABELS, DEPOSIT_AMOUNT, carName, extraCost } from "@/data/catalog";
 import { day, money } from "@/lib/format";
@@ -18,6 +18,7 @@ export default function Checkout() {
   const { carById, payInvoice, refresh, documents } = useStore();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [agreed, setAgreed] = useState(false);
   const car = q && carById(q.carId);
   if (!q || !car) return <Navigate to="/book" replace />;
   if (missingDocuments(documents).length) return <Navigate to={`/book/${q.carId}`} replace />; // documents were removed or rejected since step 1
@@ -28,8 +29,10 @@ export default function Checkout() {
   const pay = async () => {
     setBusy(true); setError("");
     try {
-      const b = await api<{ reservationId: string; invoiceId: string }>("book", { modelId: q.carId, period: q.period, qty: q.qty, pickup: q.pickup, extras: q.extras });
+      const b = await api<{ reservationId: string; invoiceId: string; payLater?: boolean }>("book", { modelId: q.carId, period: q.period, qty: q.qty, pickup: q.pickup, extras: q.extras, terms: agreed });
       await refresh();
+      // "Pay at month end" customers: the booking is confirmed now and the invoice is collected later
+      if (b.payLater) { nav(`/confirmed/${b.reservationId}`, { replace: true }); return; }
       try {
         const { redirected } = await payInvoice(b.invoiceId, `/confirmed/${b.reservationId}`);
         if (redirected) return;
@@ -68,6 +71,11 @@ export default function Checkout() {
         {q.extras.includes("no_deposit") ? <p>{t("No deposit is blocked on your card.")}</p> : <p>{deposit[0]}<Dirham /> {money(DEPOSIT_AMOUNT)}{deposit[1]}</p>}
       </div>
 
+      <label className="mt-6 flex cursor-pointer items-start gap-3 rounded-card border border-line bg-white p-4 text-[15px]">
+        <input type="checkbox" className="mt-0.5 h-5 w-5 shrink-0 accent-brand" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />
+        <span className="flex-1">{t("I agree to the Terms & Rental rules")} <Link to="/terms" className="font-semibold text-brand underline">{t("Read the terms")}</Link></span>
+      </label>
+
       <h2 className="mb-2 mt-6 font-semibold">{t("Payment")}</h2>
       <Card className="flex items-center gap-3 border-brand p-4">
         <CreditCard className="h-6 w-6 text-brand" />
@@ -77,7 +85,7 @@ export default function Checkout() {
       {error && <p className="mt-4 rounded-card bg-danger-soft p-3 text-sm font-medium text-danger">{error}</p>}
 
       <div className="pb-safe fixed inset-x-0 bottom-0 z-30 mx-auto max-w-[480px] border-t border-line bg-white px-5 pt-3 lg:max-w-[720px] lg:px-10">
-        <Button size="lg" className="mb-3" disabled={busy} onClick={pay}>
+        <Button size="lg" className="mb-3" disabled={busy || !agreed} onClick={pay}>
           {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <>{t("Pay")} <Dirham /> {money(q.total)}</>}
         </Button>
       </div>

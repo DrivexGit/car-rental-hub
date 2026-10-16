@@ -50,4 +50,7 @@ export default {
   "Valid": "صالح",
   "/ day": "/ يوم",
   "ask us in Support.": "اسألنا في الدعم.",
+  "Salik Parking": "موقف سالك",
+  "Car damage": "ضرر بالسيارة",
+  "Traffic fine": "مخالفة مرورية",
 } as Record<string, string>;

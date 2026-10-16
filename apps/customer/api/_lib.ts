@@ -13,7 +13,7 @@ export const anonClient = () => createClient(process.env.SUPABASE_URL!, process.
 export const json = (data: unknown, status = 200) => Response.json(data, { status });
 export const fail = (message: string, status = 400) => json({ error: message }, status);
 
-export type Customer = { id: string; tenant_id: string; lead_id: string | null; phone: string; full_name: string; email: string | null };
+export type Customer = { id: string; tenant_id: string; lead_id: string | null; phone: string; full_name: string; email: string | null; pay_monthly?: boolean };
 
 /** Resolves the signed-in customer from the Bearer token, or null. */
 export async function getCustomer(req: Request): Promise<Customer | null> {

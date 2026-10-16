@@ -11,7 +11,7 @@ export type Booking = {
   total: number; extras: string[]; status: BookingStatus; rawStatus: string;
 };
 export type Invoice = { id: string; number: string; bookingId: string | null; amount: number; issued: string; status: "pending" | "paid" | "void"; paidAt?: string; description?: string };
-export type Fine = { id: string; bookingId: string | null; type: "salik" | "traffic"; amount: number; date: string; place: string };
+export type Fine = { id: string; bookingId: string | null; type: string; title: string | null; amount: number; date: string; place: string };
 export type Offer = { id: string; kind: "car" | "partner"; title: string; subtitle?: string; off: number; image?: string; car?: Car; description?: string; terms?: string; location?: string; code?: string };
 export type Specs = { engine?: string; transmission: string; fuel: string; seats: number; doors: number; bags: number; features: string[]; image?: string; gallery: string[] };
 export type Note = { id: string; type: string; title: string; body?: string; link?: string; read: boolean; created: string };
@@ -50,7 +50,7 @@ async function loadAll(): Promise<{ user: User; data: Data } | null> {
     supabase.from("customers").select("*").eq("id", uid).maybeSingle(),
     supabase.from("vehicles").select("id,make,model,year,categories,daily_price,weekly_price,monthly_price").neq("status", "unavailable"),
     supabase.from("reservations").select("id,status,start_datetime,end_datetime,rental_period,extras,total_amount,vehicles(id,make,model,year,categories,plate_number,daily_price,weekly_price,monthly_price)").eq("customer_id", uid).order("start_datetime", { ascending: false }),
-    supabase.from("invoices").select("*").order("issued_at", { ascending: false }),
+    supabase.from("invoices").select("*").is("consolidated_into", null).order("issued_at", { ascending: false }), // invoices folded into a monthly one are shown through that one
     supabase.from("fines").select("*").order("occurred_at", { ascending: false }),
     supabase.from("offers").select("*").order("sort_order"),
     supabase.from("customer_documents").select("id,document_type,file_name,verification_status,created_at").order("created_at", { ascending: false }),
@@ -85,7 +85,7 @@ async function loadAll(): Promise<{ user: User; data: Data } | null> {
     data: {
       fleet, bookings,
       invoices: (i.data ?? []).map((x: any) => ({ id: x.id, number: x.number, bookingId: x.reservation_id, amount: Number(x.amount), issued: x.issued_at, status: x.status, paidAt: x.paid_at ?? undefined, description: x.description ?? undefined })),
-      fines: (f.data ?? []).map((x: any) => ({ id: x.id, bookingId: x.reservation_id, type: x.type, amount: Number(x.amount), date: x.occurred_at, place: x.location ?? "" })),
+      fines: (f.data ?? []).map((x: any) => ({ id: x.id, bookingId: x.reservation_id, type: x.type, title: x.title ?? null, amount: Number(x.amount), date: x.occurred_at, place: x.location ?? "" })),
       offers: (o.data ?? []).map((x: any) => ({ id: x.id, kind: x.kind, title: x.title, subtitle: x.subtitle ?? undefined, off: x.discount_pct, image: x.image_url ?? undefined, car: x.kind === "car" ? byTitle(x.title) : undefined, description: x.description ?? undefined, terms: x.terms ?? undefined, location: x.location ?? undefined, code: x.redeem_code ?? undefined }))
         .filter((x: Offer) => x.kind === "partner" || x.car),
       specs,

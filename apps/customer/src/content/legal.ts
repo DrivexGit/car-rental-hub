@@ -1,6 +1,7 @@
 // Text of the three public legal pages (English and Arabic). First drafts written for the app: DriveX must read them
 // and have them checked by their legal adviser before the app opens to real customers. Lines that start with "• " render as bullets.
 import type { Lang } from "@/lib/i18n";
+import { LEGAL_FA } from "@/content/legal-fa";
 
 export type Section = { h: string; p: string[] };
 export type Doc = { title: string; updated: string; intro: string; sections: Section[] };
@@ -8,7 +9,7 @@ export type DocId = "terms" | "privacy" | "delete";
 
 const EMAIL = "info@drivex.ae";
 
-export const LEGAL: Record<DocId, Record<Lang, Doc>> = {
+export const LEGAL: Record<DocId, Partial<Record<Lang, Doc>> & Pick<Record<Lang, Doc>, "en">> = {
   terms: {
     en: {
       title: "Terms & conditions",
@@ -32,17 +33,26 @@ export const LEGAL: Record<DocId, Record<Lang, Doc>> = {
           "• Salik tolls, traffic fines, parking charges and similar costs that happen during your rental are yours. We add them to your account and invoice them to you, and we may share your details with the authority that issues them.",
           "• Please return the car on time. A late return can lead to extra charges.",
         ] },
-        { h: "6. Insurance, accidents and damage", p: [
+        { h: "6. Car use rules", p: [
+          "• No smoking, vaping or shisha inside the car. The smell of smoke, ash, burn marks or a damaged seat are charged as cleaning and repair.",
+          "• Do not use the car's lighter or any flame inside the car.",
+          "• The car is for private use only. Do not use it for business or commercial purposes, such as a taxi, ride-hailing, delivery, or renting it to someone else.",
+          "• Only the driver named in the booking and an additional driver you have paid for may drive.",
+          "• Do not take the car out of the UAE, off the paved roads, or into races or track days without written permission.",
+          "• Do not carry more passengers than there are seats. No pets without our permission.",
+          "• Return the car with the same fuel level as at pick-up, and clean it if it is dirtier than normal use.",
+        ] },
+        { h: "7. Insurance, accidents and damage", p: [
           "• Your cover (basic or full) is shown in your booking. Excess and exclusions are in your rental agreement.",
           "• After an accident, a breakdown or a theft, stay safe, call 999 if anyone is hurt, and tell us at once through the Urgent call button in Support or by phone. Do not repair or move the car without speaking to us.",
         ] },
-        { h: "7. Using the app", p: [
+        { h: "8. Using the app", p: [
           "• Use the app only for your own bookings and do not try to break, copy or misuse it.",
           "• The Drivex AI assistant gives general help from our information and your own bookings. It can make mistakes and it does not replace our team or your rental agreement. For urgent help, call us.",
         ] },
-        { h: "8. Our responsibility", p: ["We do our best to keep the app available and correct. As far as UAE law allows, we are not responsible for losses that come from things outside our control, such as network problems, or for indirect losses. Nothing here limits rights you have by law."] },
-        { h: "9. Changes to these terms", p: ["We may update these terms. The date at the top shows the latest version. If you keep using the app after a change, you accept the new version."] },
-        { h: "10. Law and contact", p: [
+        { h: "9. Our responsibility", p: ["We do our best to keep the app available and correct. As far as UAE law allows, we are not responsible for losses that come from things outside our control, such as network problems, or for indirect losses. Nothing here limits rights you have by law."] },
+        { h: "10. Changes to these terms", p: ["We may update these terms. The date at the top shows the latest version. If you keep using the app after a change, you accept the new version."] },
+        { h: "11. Law and contact", p: [
           "These terms are governed by the laws of the United Arab Emirates as applied in the Emirate of Dubai, and the Dubai courts can decide disputes, unless the law says otherwise.",
           `Questions? Contact us at ${EMAIL} or through Support in the app.`,
         ] },
@@ -70,17 +80,26 @@ export const LEGAL: Record<DocId, Record<Lang, Doc>> = {
           "• رسوم سالك والمخالفات المرورية ورسوم المواقف وما شابهها خلال مدة إيجارك تقع عليك. نضيفها إلى حسابك ونحاسبك عليها، ويحق لنا مشاركة بياناتك مع الجهة المصدرة لها.",
           "• يرجى إرجاع السيارة في الموعد، فقد يترتب على التأخير رسوم إضافية.",
         ] },
-        { h: "6. التأمين والحوادث والأضرار", p: [
+        { h: "6. قواعد استخدام السيارة", p: [
+          "• يُمنع التدخين أو التدخين الإلكتروني أو الشيشة داخل السيارة. رائحة الدخان أو الرماد أو آثار الحروق أو تلف المقعد تُحتسب كرسوم تنظيف وإصلاح.",
+          "• لا تستخدم ولاعة السيارة أو أي لهب داخلها.",
+          "• السيارة للاستخدام الشخصي فقط. لا تستخدمها لأغراض تجارية، مثل سيارات الأجرة أو خدمات توصيل الركاب أو الطرود، أو تؤجّرها لغيرك.",
+          "• يحق القيادة لمن هو مذكور في الحجز وللسائق الإضافي الذي دفعت رسومه فقط.",
+          "• لا تُخرج السيارة من الإمارات، ولا تقُدها خارج الطرق المعبّدة، ولا تشارك بها في السباقات دون إذن كتابي.",
+          "• لا تنقل ركّاباً أكثر من عدد المقاعد. لا حيوانات أليفة إلا بإذننا.",
+          "• أعد السيارة بنفس مستوى الوقود الذي استلمتها به، ونظّفها إذا تجاوزت اتساخها الاستخدام العادي.",
+        ] },
+        { h: "7. التأمين والحوادث والأضرار", p: [
           "• يظهر نوع التغطية (أساسية أو شاملة) في حجزك، وتجد مبلغ التحمل والاستثناءات في عقد الإيجار.",
           "• عند وقوع حادث أو عطل أو سرقة، حافظ على سلامتك واتصل بالرقم 999 إذا كان هناك مصابون، وأبلغنا فوراً عبر زر «اتصال عاجل» في الدعم أو هاتفياً. لا تصلح السيارة ولا تنقلها قبل التواصل معنا.",
         ] },
-        { h: "7. استخدام التطبيق", p: [
+        { h: "8. استخدام التطبيق", p: [
           "• استخدم التطبيق لحجوزاتك أنت فقط، ولا تحاول اختراقه أو نسخه أو إساءة استخدامه.",
           "• يقدم مساعد درايفكس الذكي مساعدة عامة من معلوماتنا وحجوزاتك. وقد يخطئ ولا يغني عن فريقنا أو عن عقد الإيجار. للمساعدة العاجلة اتصل بنا.",
         ] },
-        { h: "8. مسؤوليتنا", p: ["نبذل جهدنا ليبقى التطبيق متاحاً وصحيحاً. وبالقدر الذي يسمح به القانون الإماراتي، لا نتحمل الخسائر الناتجة عن أمور خارجة عن سيطرتنا مثل مشاكل الشبكة، ولا الخسائر غير المباشرة. ولا يحد شيء هنا من حقوقك التي يقررها القانون."] },
-        { h: "9. تعديل الشروط", p: ["قد نحدّث هذه الشروط، ويبين التاريخ في الأعلى آخر نسخة. باستمرارك في استخدام التطبيق بعد التعديل فإنك تقبل النسخة الجديدة."] },
-        { h: "10. القانون والتواصل", p: [
+        { h: "9. مسؤوليتنا", p: ["نبذل جهدنا ليبقى التطبيق متاحاً وصحيحاً. وبالقدر الذي يسمح به القانون الإماراتي، لا نتحمل الخسائر الناتجة عن أمور خارجة عن سيطرتنا مثل مشاكل الشبكة، ولا الخسائر غير المباشرة. ولا يحد شيء هنا من حقوقك التي يقررها القانون."] },
+        { h: "10. تعديل الشروط", p: ["قد نحدّث هذه الشروط، ويبين التاريخ في الأعلى آخر نسخة. باستمرارك في استخدام التطبيق بعد التعديل فإنك تقبل النسخة الجديدة."] },
+        { h: "11. القانون والتواصل", p: [
           "تخضع هذه الشروط لقوانين دولة الإمارات العربية المتحدة كما تطبق في إمارة دبي، وتختص محاكم دبي بالنظر في النزاعات ما لم ينص القانون على غير ذلك.",
           `لديك سؤال؟ تواصل معنا عبر ${EMAIL} أو من خلال الدعم في التطبيق.`,
         ] },
@@ -212,3 +231,6 @@ export const LEGAL: Record<DocId, Record<Lang, Doc>> = {
     },
   },
 };
+
+// Persian drafts (src/content/legal-fa.ts). Still to be checked by the legal adviser.
+for (const id of ["terms", "privacy", "delete"] as const) LEGAL[id].fa = LEGAL_FA[id];

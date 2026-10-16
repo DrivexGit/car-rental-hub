@@ -97,7 +97,7 @@ export default function Home() {
         })}
       </div>
 
-      {!!partners.length && <SectionHead title={t("Dining benefits")} />}
+      {!!partners.length && <SectionHead title={t("Community")} />}
       <div className="no-scrollbar -mx-5 flex gap-3 overflow-x-auto px-5 pb-1 lg:mx-0 lg:grid lg:grid-cols-4 lg:gap-4 lg:overflow-visible lg:px-0 xl:grid-cols-5">
         {partners.map((d) => (
           <Card key={d.id} className="w-[170px] shrink-0 overflow-hidden lg:w-auto" onClick={() => setBenefit(d)}>

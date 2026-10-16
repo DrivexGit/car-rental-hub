@@ -67,12 +67,15 @@ async function fresh(viewport, lang = "en") {
 {
   const { ctx, page, errors } = await fresh({ width: 390, height: 844 });
   await page.goto(BASE + "/profile/language", { waitUntil: "networkidle" }); await page.waitForTimeout(500);
-  await page.getByRole("button", { name: "العربية" }).click(); await page.waitForTimeout(500);
+  await page.locator("[aria-haspopup=listbox]:visible").first().click();
+  ok("language is a dropdown with English, Arabic and Persian", (await page.locator("[role=option] button:visible").allTextContents()).join("|") === "English|العربية|فارسی");
+  await page.keyboard.press("Escape");
+  await page.locator("[aria-haspopup=listbox]:visible").first().click(); await page.locator("[role=option] button:visible", { hasText: "العربية" }).click(); await page.waitForTimeout(500);
   ok("language switch -> rtl", (await page.evaluate(() => document.documentElement.dir)) === "rtl");
   ok("title translated live", (await page.locator("h1").first().textContent()) === "اللغة");
   await page.reload({ waitUntil: "networkidle" }); await page.waitForTimeout(500);
   ok("language persists after reload", (await page.evaluate(() => document.documentElement.dir)) === "rtl");
-  await page.getByRole("button", { name: "English" }).click(); await page.waitForTimeout(400);
+  await page.locator("[aria-haspopup=listbox]:visible").first().click(); await page.locator("[role=option] button:visible", { hasText: "English" }).click(); await page.waitForTimeout(400);
   ok("switch back -> ltr", (await page.evaluate(() => document.documentElement.dir)) === "ltr");
   await page.goto(BASE + "/profile", { waitUntil: "networkidle" }); await page.waitForTimeout(500);
   await page.getByText("Appearance").first().click(); await page.waitForTimeout(500);
@@ -310,10 +313,10 @@ async function fresh(viewport, lang = "en") {
     ok(`signed out: ${path} opens without sign-in`, (await page.locator("h1").first().textContent()) === h1 && (await page.getByText(marker).count()) >= 1);
   }
   await page.goto(BASE + "/privacy", { waitUntil: "networkidle" });
-  await page.getByRole("button", { name: "العربية" }).click(); await page.waitForTimeout(500);
+  await page.locator("[aria-haspopup=listbox]:visible").first().click(); await page.locator("[role=option] button:visible", { hasText: "العربية" }).click(); await page.waitForTimeout(500);
   ok("privacy policy switches to Arabic (RTL)", (await page.locator("h1").first().textContent()) === "سياسة الخصوصية" && (await page.evaluate(() => document.documentElement.dir)) === "rtl");
   await page.screenshot({ path: OUT + "/i-legal-ar.png" });
-  await page.getByRole("button", { name: "English" }).click();
+  await page.locator("[aria-haspopup=listbox]:visible").first().click(); await page.locator("[role=option] button:visible", { hasText: "English" }).click();
   await page.goto(BASE + "/delete-account", { waitUntil: "networkidle" }); await page.waitForTimeout(400);
   await page.getByRole("button", { name: "Send by email" }).click();
   ok("form asks for name and phone first", (await page.getByRole("alert").textContent()) === "Please enter your name and mobile number.");
@@ -336,7 +339,7 @@ async function fresh(viewport, lang = "en") {
   const { ctx, page, errors } = await fresh({ width: 390, height: 844 });
   await page.goto(BASE + "/", { waitUntil: "networkidle" }); await page.waitForTimeout(800);
   const vp = await page.locator("meta[name=viewport]").getAttribute("content");
-  ok("pinch zoom stays available (no zoom lock in the viewport)", !/user-scalable|maximum-scale/.test(vp || ""), vp || "");
+  ok("pinch zoom is off (viewport locked to scale 1)", /user-scalable=no/.test(vp || "") && /maximum-scale=1/.test(vp || ""), vp || "");
   ok("double-tap zoom is off", (await page.evaluate(() => getComputedStyle(document.body).touchAction)) === "manipulation");
   ok("first name in the greeting uses the brand colour", (await page.locator("h1 span.text-brand").first().textContent()) === "Test");
   const booked = page.getByTestId("booked-cars");
@@ -357,13 +360,15 @@ async function fresh(viewport, lang = "en") {
   await page.locator("div.rounded-card", { hasText: "Mercedes G63" }).getByRole("button", { name: /^Invoice$/ }).first().click(); await page.waitForTimeout(600);
   ok("the Invoice button on a card goes to the invoice, not twice", page.url().endsWith("/bookings/r1#invoice"), page.url());
 
+  T.customers[0].email = null; // the warning only shows without an email
   await page.goto(BASE + "/profile", { waitUntil: "networkidle" }); await page.waitForTimeout(600);
   ok("profile warns when there is no email", (await page.getByText("Add your email").count()) === 1);
   await page.screenshot({ path: OUT + "/i-profile-email.png" });
   await page.getByText("Add your email").click(); await page.waitForTimeout(600);
   ok("the warning opens the edit page", new URL(page.url()).pathname === "/profile/edit");
   ok("the email field no longer says (optional)", (await page.getByText("(optional)").count()) === 0 && (await page.getByText("Email", { exact: true }).count()) === 1);
-  ok("mobile number is shown in groups", (await page.locator("input[disabled]").inputValue()) === "+971 50 123 4567");
+  ok("mobile number is shown in groups", (await page.locator("input[disabled]").inputValue()) === "(+971) 50 123 4567");
+  T.customers[0].email = "test.customer@example.com";
   ok("no console errors (client tasks)", errors.length === 0, errors.join(" | "));
   await ctx.close();
 }
@@ -386,6 +391,9 @@ async function fresh(viewport, lang = "en") {
   ok("checkout lists insurance, driver and no-deposit rows with the total", /Full coverage insurance/.test(co) && /Additional driver/.test(co) && /No deposit/.test(co) && /16,629/.test(co));
   ok("checkout says no deposit is blocked", /No deposit is blocked on your card/.test(co) && !/refundable security deposit/.test(co));
   await page.screenshot({ path: OUT + "/i-checkout-nodeposit.png", fullPage: true });
+  ok("Pay stays disabled until the terms are accepted", await page.getByRole("button", { name: /^Pay/ }).isDisabled());
+  await page.getByRole("checkbox").check();
+  ok("accepting the terms enables Pay", await page.getByRole("button", { name: /^Pay/ }).isEnabled());
   await page.goto(BASE + "/book/mercedes-g63?period=daily", { waitUntil: "networkidle" }); await page.waitForTimeout(800);
   ok("daily: 3 x 750 less 15% = 1,913, plus insurance 15% = 2,200", (await total()) === "2200", await total());
   ok("driver shows the daily price on a daily plan", (await page.getByText(/25 \/ day/).count()) === 1);

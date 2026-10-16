@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { BellRing, Camera, CheckCircle2, ChevronRight, FileText, IdCard, Loader2, Smartphone, Upload } from "lucide-react";
 import { enablePush, pushSupported } from "@/lib/push";
-import { supabase } from "@/lib/supabase";
+import { api, supabase } from "@/lib/supabase";
 import { useStore } from "@/lib/store";
 import { REQUIRED_DOCUMENTS } from "@/data/documents";
 import { day, formatPhone, money } from "@/lib/format";
@@ -12,7 +12,8 @@ import { PayInvoiceSheet } from "@/screens/PaySheet";
 import { InvoiceDownload } from "@/components/InvoiceDownload";
 import { whatsappLink } from "@/config";
 import type { Invoice } from "@/lib/store";
-import { LANGS, useI18n } from "@/lib/i18n";
+import { useI18n } from "@/lib/i18n";
+import { LangSelect } from "@/components/LangSelect";
 
 export function EditProfile() {
   const { t } = useI18n();
@@ -30,7 +31,7 @@ export function EditProfile() {
       <Field label={t("Email")} value={email} onChange={setEmail} type="email" ltr />
       <Field label={t("Mobile number")} value={formatPhone(user!.phone)} disabled ltr />
       {error && <p className="mb-2 text-sm font-medium text-danger">{error}</p>}
-      <Button size="lg" className="mt-4" disabled={name.trim().length < 2 || busy || (!!email.trim() && !/^\S+@\S+\.\S+$/.test(email.trim()))}
+      <Button size="lg" className="mt-4" disabled={name.trim().length < 2 || busy || !/^\S+@\S+\.\S+$/.test(email.trim())}
         onClick={async () => { setBusy(true); setError(""); try { await updateUser({ name: name.trim(), email: email.trim() }); nav(-1); } catch (e) { setError((e as Error).message); setBusy(false); } }}>
         {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : t("Save")}
       </Button>
@@ -72,7 +73,7 @@ const Field = ({ label, value, onChange, type = "text", disabled, ltr }: { label
 
 export function Payments() {
   const { t } = useI18n();
-  const { invoices } = useStore();
+  const { invoices, fines } = useStore();
   const [paying, setPaying] = useState<Invoice | null>(null);
   return (
     <Screen tabs={false}>
@@ -93,6 +94,19 @@ export function Payments() {
           ))}
         </Card>
       ) : <Empty icon={<FileText />} title={t("No payments yet")} />}
+      {!!fines.length && (
+        <>
+          <h2 className="mb-2 mt-6 font-semibold">{t("Salik & fines")}</h2>
+          <Card className="divide-y divide-line">
+            {fines.map((f) => (
+              <div key={f.id} className="flex min-h-[56px] items-center gap-3 px-4 py-3">
+                <div className="flex-1"><p className="font-medium">{f.title ? t(f.title) : t(f.type === "traffic" ? "Fine" : "Salik")}</p><p className="text-xs text-ink-muted">{f.place ? `${f.place} · ` : ""}{day(f.date)}</p></div>
+                <p className="font-semibold"><Dirham /> {money(f.amount)}</p>
+              </div>
+            ))}
+          </Card>
+        </>
+      )}
       {paying && <PayInvoiceSheet invoice={paying} open onClose={() => setPaying(null)} />}
     </Screen>
   );
@@ -113,11 +127,16 @@ export function Documents() {
     const up = await supabase.storage.from("customer-documents").upload(path, file, { contentType: file.type });
     if (up.error) { setError(up.error.message); setBusy(null); return; }
     const { data: me } = await supabase.from("customers").select("lead_id, tenant_id").eq("id", user!.id).single();
-    const { error: e } = await supabase.from("customer_documents").insert({
+    const { data: row, error: e } = await supabase.from("customer_documents").insert({
       lead_id: me!.lead_id, tenant_id: me!.tenant_id, document_type: type, storage_bucket: "customer-documents", storage_path: path,
       file_name: file.name, mime_type: file.type, file_size: file.size, uploaded_by: "customer", verification_status: "pending",
-    });
+    }).select("id").single();
     if (e) setError(e.message);
+    // The AI check reads the picture and rejects it at once if it is unreadable, the wrong document or expired
+    if (row) {
+      const check = await api<{ status: string; reason?: string }>("doc-check", { documentId: row.id }).catch(() => null);
+      if (check?.status === "rejected" && check.reason) setError(check.reason);
+    }
     await refresh(); setBusy(null);
   };
   return (
@@ -188,17 +207,12 @@ export function Notifications() {
 }
 
 export function Language() {
-  const { t, lang, setLang } = useI18n();
+  const { t } = useI18n();
   return (
     <Screen tabs={false}>
       <BackBar title={t("Language")} />
-      <Card className="divide-y divide-line">
-        {LANGS.map((l) => (
-          <button key={l.value} type="button" onClick={() => setLang(l.value)} className="flex h-16 w-full items-center justify-between px-4 text-start">
-            <span className="font-medium">{l.label}</span>
-            {lang === l.value && <CheckCircle2 className="h-5 w-5 text-brand" />}
-          </button>
-        ))}
+      <Card className="p-4">
+        <LangSelect block />
       </Card>
     </Screen>
   );

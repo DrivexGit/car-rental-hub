@@ -76,4 +76,7 @@ export default {
   "Apply": "تطبيق",
   "Apply · {n} day": "تطبيق · {n} يوم",
   "Apply · {n} days": "تطبيق · {n} أيام",
+  "Add your email before you book. We send the booking details there.": "أضف بريدك الإلكتروني قبل الحجز. نرسل تفاصيل الحجز إليه.",
+  "I agree to the Terms & Rental rules": "أوافق على الشروط وقواعد الإيجار",
+  "Read the terms": "اقرأ الشروط",
 } as Record<string, string>;

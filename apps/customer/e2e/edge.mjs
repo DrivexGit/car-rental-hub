@@ -16,7 +16,7 @@ async function fresh(vp, lang = "en") {
 const total = async (p) => (await p.locator(".fixed.inset-x-0.bottom-0 .text-2xl").innerText()).replace(/\D/g, "");
 
 // A. no horizontal overflow on changed pages: 3 widths x 2 languages
-for (const [w, h] of [[360, 740], [768, 1024], [1440, 900]]) for (const lang of ["en", "ar"]) {
+for (const [w, h] of [[360, 740], [768, 1024], [1440, 900]]) for (const lang of ["en", "ar", "fa"]) {
   const { ctx, page, errors } = await fresh({ width: w, height: h }, lang);
   for (const path of ["/", "/bookings", "/profile", "/profile/edit", "/book/mercedes-g63?period=monthly", "/bookings/r1"]) {
     await page.goto(BASE + path, { waitUntil: "networkidle" }); await page.waitForTimeout(500);
@@ -33,7 +33,7 @@ for (const [w, h] of [[360, 740], [768, 1024], [1440, 900]]) for (const lang of 
   await page.goto(BASE + "/profile", { waitUntil: "networkidle" }); await page.waitForTimeout(500);
   ok("with an email there is no warning", (await page.getByText("Add your email").count()) === 0);
   ok("profile shows the email", (await page.getByText("a@b.com").count()) >= 1);
-  await ctx.close(); T.customers[0].email = null; }
+  await ctx.close(); T.customers[0].email = "test.customer@example.com"; }
 
 // C. keyboard: focus a booking card and press Enter
 { const { ctx, page } = await fresh({ width: 1200, height: 800 });

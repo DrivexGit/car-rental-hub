@@ -4,6 +4,7 @@ import { Mail } from "lucide-react";
 import { motion } from "framer-motion";
 import { useStore } from "@/lib/store";
 import { useI18n } from "@/lib/i18n";
+import { LangSelect } from "@/components/LangSelect";
 import { COMPANY, whatsappLink } from "@/config";
 import { LEGAL, type DocId } from "@/content/legal";
 import { BackBar, Button, Logo, Screen } from "@/components/ui";
@@ -23,14 +24,14 @@ const LINKS: { id: DocId; to: string; label: string }[] = [
 /** Signed-in users get the normal app page; visitors get a plain page with the logo and the same links. */
 function Frame({ title, children }: { title: string; children: ReactNode }) {
   const { user } = useStore();
-  const { t, lang, setLang } = useI18n();
+  const { t, lang } = useI18n();
   if (user) return <Screen tabs={false}><BackBar title={title} />{children}</Screen>;
   return (
     <div className="min-h-full bg-bg">
       <header className="mx-auto flex max-w-3xl items-center justify-between px-5 py-5">
-        <Link to="/" aria-label="Drivex"><Logo className="h-8" /></Link>
+        <Link to="/" aria-label="Drivex"><Logo className="text-[28px]" /></Link>
         <div className="flex items-center gap-3">
-          <button onClick={() => setLang(lang === "en" ? "ar" : "en")} className="h-9 rounded-full border border-line bg-white px-3.5 text-sm font-medium text-ink-muted">{lang === "en" ? "العربية" : "English"}</button>
+          <LangSelect />
           <Link to="/" className="text-sm font-semibold text-brand">{t("Back to the app")}</Link>
         </div>
       </header>
@@ -50,7 +51,7 @@ function Frame({ title, children }: { title: string; children: ReactNode }) {
 
 function DocBody({ id }: { id: DocId }) {
   const { lang } = useI18n();
-  const doc = LEGAL[id][lang];
+  const doc = LEGAL[id][lang] ?? LEGAL[id].en;
   return (
     <motion.article initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="space-y-6 text-[15px] leading-relaxed">
       <p className="text-sm text-ink-faint">{doc.updated}</p>
@@ -71,7 +72,7 @@ function DocBody({ id }: { id: DocId }) {
 
 function Page({ id, children }: { id: DocId; children?: ReactNode }) {
   const { lang } = useI18n();
-  return <Frame title={LEGAL[id][lang].title}><DocBody id={id} />{children}</Frame>;
+  return <Frame title={(LEGAL[id][lang] ?? LEGAL[id].en).title}><DocBody id={id} />{children}</Frame>;
 }
 
 export const Terms = () => <Page id="terms" />;

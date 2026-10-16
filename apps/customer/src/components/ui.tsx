@@ -25,7 +25,10 @@ export const Price = ({ value, unit, old, size = "text-xl" }: { value: number; u
   </span>
 );
 
-export const Logo = ({ className = "h-6" }: { className?: string }) => <img src="/logo-dark.png" alt="Drivex" className={className} />;
+/** The brand name as plain text (no logo mark), in the same weight as the splash screen. */
+export const Logo = ({ className = "text-[22px]" }: { className?: string }) => (
+  <span lang="en" dir="ltr" className={cx("font-extrabold leading-none tracking-tight text-brand", className)}>Drivex</span>
+);
 
 /** The customer's photo, or their initials when they have not uploaded one. */
 export function Face({ size = 40, className }: { size?: number; className?: string }) {
@@ -46,7 +49,7 @@ export function Avatar({ size = 40 }: { size?: number }) {
 /** Top bar of every tab: logo left, avatar (or custom) right. */
 export const TopBar = ({ right }: { right?: ReactNode }) => (
   <div className="flex items-center justify-between pt-3 pb-4 lg:hidden">
-    <Logo className="h-6" />
+    <Logo />
     {right ?? <div className="flex items-center gap-2.5"><Bell /><Avatar /></div>}
   </div>
 );

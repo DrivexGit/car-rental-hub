@@ -97,7 +97,7 @@ export default function BookingDetail() {
       <Card className="divide-y divide-line">
         {myFines.map((f) => (
           <div key={f.id} className="flex min-h-[60px] items-center gap-3 px-4 py-3">
-            <Badge className={f.type === "salik" ? "bg-brand-soft text-brand" : "bg-danger-soft text-danger"}>{f.type === "salik" ? t("Salik") : t("Fine")}</Badge>
+            <Badge className={f.type.startsWith("salik") ? "bg-brand-soft text-brand" : "bg-danger-soft text-danger"}>{f.title ? t(f.title) : f.type === "salik" ? t("Salik") : t("Fine")}</Badge>
             <div className="flex-1"><p className="text-sm font-medium">{f.place}</p><p className="text-xs text-ink-muted">{shortDay(f.date)}</p></div>
             <p className="font-semibold"><Dirham /> {f.amount}</p>
           </div>

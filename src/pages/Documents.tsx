@@ -8,12 +8,17 @@ import { useToast } from '@/hooks/use-toast';
 import { FileText, Image as ImageIcon, FileArchive, Eye, LayoutGrid, List, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
 
 export default function Documents() {
   const [docs, setDocs] = useState<any[]>([]);
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
   const [filter, setFilter] = useState('all');
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('grid');
+  const [rejecting, setRejecting] = useState<any | null>(null);
+  const [reason, setReason] = useState('');
+  const [saving, setSaving] = useState(false);
   const { toast } = useToast();
 
   const sanitizePath = (path: string, bucketName?: string) => {
@@ -92,11 +97,43 @@ export default function Documents() {
 
   useEffect(() => { load(); }, [filter]);
 
-  const updateStatus = async (id: string, status: string) => {
-    await supabase.from('customer_documents').update({ verification_status: status }).eq('id', id);
-    toast({ title: `Document ${status}` });
-    load();
+  // Approve or reject a document. A rejection needs a reason, which is saved on the document and sent to the customer.
+  // The customer gets a notification in the app; approval does not stop a booking (the documents only need to be uploaded).
+  const decide = async (d: any, status: 'approved' | 'rejected', why?: string) => {
+    setSaving(true);
+    try {
+      const { error } = await supabase.from('customer_documents').update({ verification_status: status, reject_reason: status === 'rejected' ? why : null } as any).eq('id', d.id);
+      if (error) throw error;
+      const { data: customer } = await supabase.from('customers').select('id').eq('lead_id', d.lead_id).maybeSingle();
+      if (customer) {
+        const what = (d.document_type || 'document').replace(/_/g, ' ');
+        const { error: nError } = await supabase.from('notifications').insert({
+          tenant_id: d.tenant_id, audience: 'customer', customer_id: customer.id, type: 'document',
+          title: status === 'approved' ? `Your ${what} is approved` : `Your ${what} was rejected`,
+          body: status === 'rejected' ? why : null, link: '/profile/documents',
+        });
+        if (nError) throw nError;
+      }
+      toast({ title: `Document ${status}` });
+      setRejecting(null); setReason('');
+      load();
+    } catch (err: any) {
+      toast({ title: 'Could not update the document', description: err.message, variant: 'destructive' });
+    } finally {
+      setSaving(false);
+    }
   };
+
+  const decision = (d: any) => (
+    <div className="flex items-center gap-1.5">
+      {d.verification_status !== 'approved' && (
+        <Button size="sm" className="h-7 px-2 text-[10px] font-bold uppercase" disabled={saving} onClick={() => decide(d, 'approved')}>Approve</Button>
+      )}
+      {d.verification_status !== 'rejected' && (
+        <Button size="sm" variant="outline" className="h-7 px-2 text-[10px] font-bold uppercase" disabled={saving} onClick={() => { setRejecting(d); setReason(''); }}>Reject</Button>
+      )}
+    </div>
+  );
 
   const getDocUrl = async (doc: any) => {
     const bucket = doc.storage_bucket || 'customer-documents';
@@ -224,14 +261,10 @@ export default function Documents() {
                       </a>
                     </TableCell>
                     <TableCell className="py-4 px-6 text-center">
-                      <Select value={d.verification_status} onValueChange={v => updateStatus(d.id, v)}>
-                        <SelectTrigger className="w-28 h-7 text-[10px] font-bold uppercase tracking-wider bg-card">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {VERIFICATION_STATUSES.map(s => <SelectItem key={s} value={s} className="text-[10px] uppercase font-bold">{s}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
+                      <div className="flex flex-col items-center gap-2">
+                        <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-wider">{d.verification_status}</Badge>
+                        {decision(d)}
+                      </div>
                     </TableCell>
                     <TableCell className="py-4 px-6 text-[10px] font-bold text-muted-foreground uppercase tracking-tight">
                       {new Date(d.created_at).toLocaleDateString()}
@@ -279,15 +312,9 @@ export default function Documents() {
                     <Badge variant="outline" className="text-[9px] font-black uppercase tracking-widest bg-primary/5 text-primary border-primary/20 shrink-0">
                       {(d.document_type || 'unknown').replace(/_/g, ' ')}
                     </Badge>
-                    <Select value={d.verification_status} onValueChange={v => updateStatus(d.id, v)}>
-                      <SelectTrigger className="h-6 w-24 text-[9px] uppercase font-black tracking-widest border-muted shadow-none focus:ring-0">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {VERIFICATION_STATUSES.map(s => <SelectItem key={s} value={s} className="text-[10px] uppercase font-bold">{s}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                    <Badge variant="outline" className="text-[9px] font-black uppercase tracking-widest shrink-0">{d.verification_status}</Badge>
                   </div>
+                  <div className="mt-3">{decision(d)}</div>
                   <h3 className="text-sm font-bold mt-3 line-clamp-1 group-hover:text-primary transition-colors">
                     {(d.leads as any)?.full_name || 'Anonymous Lead'}
                   </h3>
@@ -310,6 +337,20 @@ export default function Documents() {
           })}
         </div>
       )}
+
+      <Dialog open={!!rejecting} onOpenChange={(open) => { if (!open) { setRejecting(null); setReason(''); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject document</DialogTitle>
+            <DialogDescription>The customer is notified with this reason. They have to upload the document again.</DialogDescription>
+          </DialogHeader>
+          <Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="For example: the licence is expired" rows={3} />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setRejecting(null); setReason(''); }}>Cancel</Button>
+            <Button variant="destructive" disabled={!reason.trim() || saving} onClick={() => rejecting && decide(rejecting, 'rejected', reason.trim())}>Reject</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {docs.length === 0 && (
         <div className="py-24 text-center rounded-2xl border-2 border-dashed flex flex-col items-center justify-center space-y-4 bg-muted/10 grayscale opacity-40">

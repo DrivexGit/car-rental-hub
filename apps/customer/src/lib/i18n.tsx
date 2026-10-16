@@ -1,19 +1,22 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
 import ar from "@/locales/ar";
+import fa from "@/locales/fa";
 
 // Strings are keyed by their English text: t("Pay now"). A missing translation falls back to the English key.
 // Dynamic values use {name} placeholders: t("{n} days left", { n }).
-export type Lang = "en" | "ar";
-export const LANGS: { value: Lang; label: string }[] = [{ value: "en", label: "English" }, { value: "ar", label: "العربية" }];
+export type Lang = "en" | "ar" | "fa";
+export const LANGS: { value: Lang; label: string }[] = [{ value: "en", label: "English" }, { value: "ar", label: "العربية" }, { value: "fa", label: "فارسی" }];
+/** Languages written right to left. */
+const RTL: Lang[] = ["ar", "fa"];
 
 const KEY = "drivex.lang";
-const DICT: Record<Lang, Record<string, string>> = { en: {}, ar };
-const isLang = (v: unknown): v is Lang => v === "en" || v === "ar";
+const DICT: Record<Lang, Record<string, string>> = { en: {}, ar, fa };
+const isLang = (v: unknown): v is Lang => v === "en" || v === "ar" || v === "fa";
 
 let current: Lang = "en";
 export const currentLang = () => current;
-/** Locale for dates and numbers. Arabic keeps Latin digits, which is what UAE apps use. */
-export const currentLocale = () => (current === "ar" ? "ar-AE-u-nu-latn" : "en-GB");
+/** Locale for dates and numbers. Arabic and Persian keep Latin digits, which is what UAE apps use. */
+export const currentLocale = () => (current === "ar" ? "ar-AE-u-nu-latn" : current === "fa" ? "fa-IR-u-nu-latn" : "en-GB");
 
 export function translate(key: string, vars?: Record<string, string | number>, lang: Lang = current): string {
   const text = DICT[lang][key] ?? key;
@@ -24,7 +27,7 @@ function apply(lang: Lang) {
   current = lang;
   const el = document.documentElement;
   el.lang = lang;
-  el.dir = lang === "ar" ? "rtl" : "ltr";
+  el.dir = RTL.includes(lang) ? "rtl" : "ltr";
   try { localStorage.setItem(KEY, lang); } catch { /* private mode: the choice just won't persist */ }
 }
 
@@ -41,7 +44,7 @@ const I18n = createContext<Ctx>(null!);
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>(current);
   const value = useMemo<Ctx>(() => ({
-    lang, dir: lang === "ar" ? "rtl" : "ltr",
+    lang, dir: RTL.includes(lang) ? "rtl" : "ltr",
     setLang: (l) => { apply(l); setLangState(l); },
     t: (key, vars) => translate(key, vars, lang),
   }), [lang]);

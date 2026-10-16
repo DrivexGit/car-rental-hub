@@ -21,9 +21,12 @@ html, body, #root { height: 100%; }
 
 /* Arabic: its own font, and no letter-spacing (it breaks the joined letters). */
 html[lang="ar"] { font-family: "IBM Plex Sans Arabic", Inter, system-ui, sans-serif; }
-html[lang="ar"] [class*="tracking-"] { letter-spacing: normal; }
+html[lang="ar"] [class*="tracking-"], html[lang="fa"] [class*="tracking-"] { letter-spacing: normal; }
 /* the serif has no Arabic letters; Arabic headings keep the Arabic font */
 html[lang="ar"] .font-display { font-family: "IBM Plex Sans Arabic", Inter, system-ui, sans-serif; }
+/* Persian: Vazirmatn for all text, headings included (the serif has no Persian letters) */
+html[lang="fa"] { font-family: Vazirmatn, Inter, system-ui, sans-serif; }
+html[lang="fa"] .font-display { font-family: Vazirmatn, Inter, system-ui, sans-serif; }
 body { @apply bg-bg text-ink antialiased; -webkit-tap-highlight-color: transparent; touch-action: manipulation; } /* no double-tap zoom (pinch zoom stays available for accessibility) */
 /* iPhones zoom the page when an input under 16px gets focus; keep inputs at 16px on touch screens so that never happens */
 @media (pointer: coarse) { input, textarea, select { font-size: 16px !important; } }
