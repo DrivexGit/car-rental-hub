@@ -8,7 +8,7 @@ export default {
   "Your next journey, beautifully taken care of.": "رحلتك القادمة، بكل عناية وأناقة.",
   "Pending invoice": "فاتورة معلّقة",
   "Your Offers": "عروضك",
-  "Community": "المجتمع",
+  "DriveX community": "مجتمع DriveX",
   "Slide {n}": "الشريحة {n}",
   "Your personal code — show it at the venue": "رمزك الخاص — أبرزه في المكان",
   "Copied": "تم النسخ",

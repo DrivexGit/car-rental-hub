@@ -8,7 +8,7 @@ export default {
   "Your next journey, beautifully taken care of.": "سفر بعدی شما، با بهترین مراقبت.",
   "Pending invoice": "فاکتور در انتظار",
   "Your Offers": "پیشنهادهای شما",
-  "Community": "جامعه",
+  "DriveX community": "جامعه‌ی DriveX",
   "Slide {n}": "اسلاید {n}",
   "Your personal code — show it at the venue": "کد اختصاصی شما — هنگام مراجعه نشان دهید",
   "Copied": "کپی شد",
