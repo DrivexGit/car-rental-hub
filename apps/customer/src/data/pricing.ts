@@ -43,3 +43,27 @@ export const isExtra = (id: string) => id in EXTRA_LABELS;
 export function extrasTotal(ids: string[], input: PriceInput): number {
   return ids.reduce((s, id) => s + extraCost(id, input), 0);
 }
+
+/** How each extra appears as a row on the invoice: its category and VAT rate. Insurance carries no VAT; the rest carry 5%. */
+export const EXTRA_LINE: Record<string, { category: string; vatRate: number }> = {
+  full_cover: { category: "insurance", vatRate: 0 },
+  extra_driver: { category: "extra_driver", vatRate: 0.05 },
+  child_seat: { category: "child_seat", vatRate: 0.05 },
+  no_deposit: { category: "no_deposit", vatRate: 0.05 },
+};
+
+/** The standard VAT rate. The prices in the app already include it: the VAT is worked out from the total. */
+export const RENTAL_VAT = 0.05;
+/** VAT inside a VAT-inclusive amount, rounded to the fil. */
+export const vatIn = (gross: number, rate: number) => (rate > 0 ? Math.round((gross - Math.round((gross / (1 + rate)) * 100) / 100) * 100) / 100 : 0);
+
+/** The charge for a rental: the rental and its extras, each at its own VAT rate. `total` is what the customer pays (VAT included); `vat` is the VAT inside it. */
+export function priceWithVat(base: number, extras: string[], input: PriceInput) {
+  const rows = [
+    { gross: base, rate: RENTAL_VAT },
+    ...extras.filter((id) => id in EXTRA_LINE).map((id) => ({ gross: extraCost(id, input), rate: EXTRA_LINE[id].vatRate })),
+  ];
+  const total = Math.round(rows.reduce((s, r) => s + r.gross, 0) * 100) / 100;
+  const vat = Math.round(rows.reduce((s, r) => s + vatIn(r.gross, r.rate), 0) * 100) / 100;
+  return { net: Math.round((total - vat) * 100) / 100, vat, total };
+}

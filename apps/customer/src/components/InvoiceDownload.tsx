@@ -10,14 +10,16 @@ import { Sheet } from "@/components/ui";
 /** Two small buttons on an invoice row: View (shows the tax invoice on screen) and Download (saves it as a PDF file). */
 export function InvoiceDownload({ invoice, detail }: { invoice: Invoice; detail?: string }) {
   const { t } = useI18n();
-  const { user } = useStore();
+  const { user, seller } = useStore();
   const [busy, setBusy] = useState(false);
   const [viewing, setViewing] = useState(false);
   const [error, setError] = useState("");
+  // the seller's TRN, address and bank details come from the tenant settings; the static config is the fallback
+  const company = { ...COMPANY, address: seller?.legal_address || COMPANY.address, trn: seller?.trn || COMPANY.trn, bank: { accountName: seller?.bank_account_name, bankName: seller?.bank_name, iban: seller?.iban, bic: seller?.bic } };
   const html = () => invoiceHtml({
-    invoice: { number: invoice.number, issued: invoice.issued, status: invoice.status, paidAt: invoice.paidAt, description: invoice.description, detail, amount: invoice.amount },
+    invoice: { number: invoice.number, issued: invoice.issued, status: invoice.status, paidAt: invoice.paidAt, dueDate: invoice.dueDate, description: invoice.description, detail, amount: invoice.amount, lines: invoice.lines, payments: invoice.payments },
     to: { name: user?.name || "", phone: user?.phone, email: user?.email },
-    company: COMPANY, logoUrl: `${location.origin}/logo-dark.png`,
+    company, logoUrl: `${location.origin}/logo-dark.png`,
   });
   const download = async () => {
     setBusy(true); setError("");

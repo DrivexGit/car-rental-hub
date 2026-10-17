@@ -11,10 +11,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { CustomerSelect, ReservationSelect } from '@/components/CustomerSelect';
 import { aed, fdate } from '@/lib/format';
-import { Download, Plus } from 'lucide-react';
+import { Download, Plus, Upload } from 'lucide-react';
 import { COMPANY } from '@/lib/company';
 import { invoiceHtml } from '@/lib/invoice';
 import { downloadInvoicePdf, type InvoiceAttachment } from '@/lib/invoicePdf';
+
+/** How a payment is shown on the invoice's transactions table. */
+const PAYMENT_METHOD: Record<string, string> = { ziina: 'Card (Ziina)', manual: 'Cash / bank transfer', test: 'Test payment' };
 
 const STATUS_STYLE: Record<string, string> = { pending: 'bg-amber-100 text-amber-800', paid: 'bg-emerald-100 text-emerald-800', void: 'bg-muted text-muted-foreground' };
 
@@ -31,16 +34,35 @@ export async function markPaidManually(inv: any) {
 async function downloadInvoice(r: any, onError: (message: string) => void) {
   const v = r.reservations?.vehicles;
   try {
+    // an invoice uploaded as a PDF is downloaded as that same file, unchanged
+    if (r.file_path) {
+      const { data, error } = await supabase.storage.from('invoices').createSignedUrl(r.file_path, 300);
+      if (error || !data) throw new Error('Could not open the invoice file');
+      const link = document.createElement('a');
+      link.href = data.signedUrl; link.download = `${r.number}.pdf`;
+      document.body.appendChild(link); link.click(); link.remove();
+      return;
+    }
     // Salik and fine screenshots that belong to this invoice go after it, one page each
     const { data: fines } = await supabase.from('fines' as any).select('title, attachment_path').eq('invoice_id', r.id).not('attachment_path', 'is', null);
     const attachments: InvoiceAttachment[] = await Promise.all(((fines ?? []) as any[]).map(async (f) => {
       const { data } = await supabase.storage.from('fine-attachments').createSignedUrl(f.attachment_path, 300);
       return { title: f.title || 'Attachment', name: String(f.attachment_path).split('/').pop() || 'file', url: data?.signedUrl ?? '' };
     }));
+    // rows (each with its VAT rate), payments so far, and the seller's TRN and bank details from the tenant settings
+    const [{ data: items }, { data: pays }, { data: seller }] = await Promise.all([
+      supabase.from('invoice_items' as any).select('description, amount, discount, vat_rate, sort').eq('invoice_id', r.id).order('sort'),
+      supabase.from('payments' as any).select('amount, provider, category, created_at').eq('invoice_id', r.id).eq('status', 'succeeded').order('created_at'),
+      supabase.from('tenants' as any).select('trn, legal_address, bank_account_name, bank_name, iban, bic').eq('id', r.tenant_id).maybeSingle(),
+    ]);
+    const lines = ((items ?? []) as any[]).map((i) => ({ description: i.description, amount: Number(i.amount), discount: Number(i.discount), vatRate: Number(i.vat_rate) }));
+    const payments = ((pays ?? []) as any[]).map((p) => ({ date: p.created_at, method: PAYMENT_METHOD[p.provider] ?? p.provider, category: p.category, amount: Number(p.amount) }));
+    const s = seller as any;
+    const company = { ...COMPANY, address: s?.legal_address || COMPANY.address, trn: s?.trn || COMPANY.trn, bank: { accountName: s?.bank_account_name, bankName: s?.bank_name, iban: s?.iban, bic: s?.bic } };
     await downloadInvoicePdf(invoiceHtml({
-    invoice: { number: r.number, issued: r.issued_at, status: r.status, paidAt: r.paid_at, description: r.description, detail: v ? `${v.make} ${v.model} · ${v.plate_number}` : undefined, amount: Number(r.amount) },
+    invoice: { number: r.number, issued: r.issued_at, status: r.status, paidAt: r.paid_at, dueDate: r.due_date, description: r.description, detail: v ? `${v.make} ${v.model} · ${v.plate_number}` : undefined, amount: Number(r.amount), lines, payments },
     to: { name: r.customers?.full_name || 'Customer', phone: r.customers?.phone, email: r.customers?.email },
-    company: COMPANY, logoUrl: `${location.origin}/logo-dark.png`,
+    company, logoUrl: `${location.origin}/logo-dark.png`,
     }), `${r.number}.pdf`, attachments.filter((x) => x.url));
   } catch (err: any) {
     onError(err?.message || 'Could not create the PDF');
@@ -52,7 +74,9 @@ export default function Invoices() {
   const [status, setStatus] = useState('all');
   const [q, setQ] = useState('');
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ customer_id: '', reservation_id: '', amount: '', description: '' });
+  const [form, setForm] = useState({ customer_id: '', reservation_id: '', amount: '', description: '', category: 'other' as 'other' | 'delivery' });
+  // an invoice made outside the app: the PDF is uploaded as it is, and the total is typed in (AI reads it later, once the key is set)
+  const [upload, setUpload] = useState({ open: false, customer_id: '', reservation_id: '', amount: '', description: '', file: null as File | null, busy: false });
   const tenantId = useTenantId();
   const { toast } = useToast();
 
@@ -67,10 +91,38 @@ export default function Invoices() {
   const create = async () => {
     const amount = Number(form.amount);
     if (!form.customer_id || !(amount > 0) || !form.description.trim()) { toast({ title: 'Customer, amount and description are required', variant: 'destructive' }); return; }
-    const { error } = await supabase.from('invoices' as any).insert({ tenant_id: tenantId, customer_id: form.customer_id, reservation_id: form.reservation_id || null, amount, description: form.description.trim() });
+    const description = form.description.trim();
+    const { data: inv, error } = await supabase.from('invoices' as any).insert({ tenant_id: tenantId, customer_id: form.customer_id, reservation_id: form.reservation_id || null, amount, description }).select('id').single();
     if (error) { toast({ title: 'Error', description: error.message, variant: 'destructive' }); return; }
+    // one row, at the standard 5% VAT rate (the panel does not yet split a manual invoice into rows)
+    // delivery is sold only on a manual invoice (not in the app); it carries the standard 5% VAT
+    const { error: rowError } = await supabase.from('invoice_items' as any).insert({ tenant_id: tenantId, invoice_id: (inv as any).id, sort: 0, description, category: form.category, amount, discount: 0, vat_rate: 0.05 });
+    if (rowError) { toast({ title: 'Error', description: rowError.message, variant: 'destructive' }); return; }
     toast({ title: 'Invoice sent to the customer' });
-    setOpen(false); setForm({ customer_id: '', reservation_id: '', amount: '', description: '' }); load();
+    setOpen(false); setForm({ customer_id: '', reservation_id: '', amount: '', description: '', category: 'other' }); load();
+  };
+
+  const uploadPdf = async () => {
+    const amount = Number(upload.amount);
+    if (!upload.customer_id || !(amount > 0) || !upload.file) { toast({ title: 'Customer, total and the PDF are required', variant: 'destructive' }); return; }
+    if (upload.file.type !== 'application/pdf') { toast({ title: 'The invoice must be a PDF file', variant: 'destructive' }); return; }
+    setUpload((u) => ({ ...u, busy: true }));
+    try {
+      const path = `${tenantId}/${crypto.randomUUID()}-${upload.file.name.replace(/[^\w.-]+/g, '_')}`;
+      const { error: upError } = await supabase.storage.from('invoices').upload(path, upload.file, { contentType: 'application/pdf' });
+      if (upError) throw upError;
+      const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Dubai' }).format(new Date()); // due the day it is issued
+      const { error } = await supabase.from('invoices' as any).insert({
+        tenant_id: tenantId, customer_id: upload.customer_id, reservation_id: upload.reservation_id || null, amount,
+        description: upload.description.trim() || 'Invoice', file_path: path, source: 'uploaded', due_date: today,
+      });
+      if (error) throw error;
+      toast({ title: 'Invoice uploaded and sent to the customer' });
+      setUpload({ open: false, customer_id: '', reservation_id: '', amount: '', description: '', file: null, busy: false }); load();
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+      setUpload((u) => ({ ...u, busy: false }));
+    }
   };
 
   const filtered = rows.filter((r) => !q || `${r.number} ${r.customers?.full_name} ${r.customers?.phone} ${r.description}`.toLowerCase().includes(q.toLowerCase()));
@@ -80,7 +132,10 @@ export default function Invoices() {
     <div>
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Invoices</h1>
-        <Button onClick={() => setOpen(true)}><Plus className="mr-2 h-4 w-4" />New invoice</Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setUpload((u) => ({ ...u, open: true }))}><Upload className="mr-2 h-4 w-4" />Upload PDF</Button>
+          <Button onClick={() => setOpen(true)}><Plus className="mr-2 h-4 w-4" />New invoice</Button>
+        </div>
       </div>
       <div className="mb-4 grid gap-3 sm:grid-cols-2">
         <div className="rounded-lg border p-4"><p className="text-xs text-muted-foreground">Unpaid</p><p className="text-xl font-semibold text-amber-700">{aed(total('pending'))}</p></div>
@@ -124,10 +179,31 @@ export default function Invoices() {
             <div><Label>Customer *</Label><CustomerSelect value={form.customer_id} onChange={(v) => setForm({ ...form, customer_id: v, reservation_id: '' })} /></div>
             <div><Label>Booking</Label><ReservationSelect customerId={form.customer_id} value={form.reservation_id} onChange={(v) => setForm({ ...form, reservation_id: v })} /></div>
             <div><Label>Description *</Label><Input placeholder="e.g. Car wash, late return, damage" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
-            <div><Label>Amount (AED) *</Label><Input type="number" min="1" step="0.01" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} /></div>
+            <div><Label>Amount (AED, VAT included) *</Label><Input type="number" min="1" step="0.01" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} /></div>
+            <div><Label>Type</Label>
+              <Select value={form.category} onValueChange={(v) => setForm({ ...form, category: v as 'other' | 'delivery' })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent><SelectItem value="other">Other</SelectItem><SelectItem value="delivery">Delivery</SelectItem></SelectContent>
+              </Select>
+            </div>
             <p className="text-xs text-muted-foreground">The customer gets a notification and can pay it in the app.</p>
           </div>
           <DialogFooter><Button onClick={create}>Create invoice</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={upload.open} onOpenChange={(v) => setUpload((u) => ({ ...u, open: v }))}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Upload an invoice (PDF)</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div><Label>Customer *</Label><CustomerSelect value={upload.customer_id} onChange={(v) => setUpload({ ...upload, customer_id: v, reservation_id: '' })} /></div>
+            <div><Label>Booking</Label><ReservationSelect customerId={upload.customer_id} value={upload.reservation_id} onChange={(v) => setUpload({ ...upload, reservation_id: v })} /></div>
+            <div><Label>Description</Label><Input placeholder="e.g. Rental, 30 days" value={upload.description} onChange={(e) => setUpload({ ...upload, description: e.target.value })} /></div>
+            <div><Label>Total (AED, VAT included) *</Label><Input type="number" min="1" step="0.01" value={upload.amount} onChange={(e) => setUpload({ ...upload, amount: e.target.value })} /></div>
+            <div><Label>PDF file *</Label><Input type="file" accept="application/pdf" onChange={(e) => setUpload({ ...upload, file: e.target.files?.[0] ?? null })} /></div>
+            <p className="text-xs text-muted-foreground">The PDF is kept as it is; the customer sees and downloads the same file.</p>
+          </div>
+          <DialogFooter><Button onClick={uploadPdf} disabled={upload.busy}>Upload and send</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
