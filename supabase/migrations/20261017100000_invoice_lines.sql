@@ -35,6 +35,37 @@ ALTER TABLE public.tenants
   ADD COLUMN IF NOT EXISTS iban text,
   ADD COLUMN IF NOT EXISTS bic text;
 
--- Customers need the seller details to see the same invoice in the app. These columns are printed on invoices anyway.
+-- A customer reads only the seller details of their own tenant (the same invoice as the app shows).
 DROP POLICY IF EXISTS "Customer reads seller details" ON public.tenants;
-CREATE POLICY "Customer reads seller details" ON public.tenants FOR SELECT TO authenticated USING (public.is_customer());
+CREATE POLICY "Customer reads seller details" ON public.tenants FOR SELECT TO authenticated
+  USING (public.is_customer() AND id = (SELECT c.tenant_id FROM public.customers c WHERE c.id = auth.uid()));
+
+-- Backfill (idempotent: only invoices that have no rows yet are touched).
+-- Invoices made before rows existed: a fine or Salik keeps its own VAT (none for traffic fines and Salik), anything else is a rental at the standard rate.
+-- Their amounts already include VAT, so the rows keep the same amount.
+INSERT INTO public.invoice_items (tenant_id, invoice_id, sort, description, category, discount, amount, vat_rate)
+SELECT i.tenant_id, i.id, 0, COALESCE(NULLIF(i.description, ''), 'Charge'),
+  CASE
+    WHEN f.type IN ('salik', 'salik_parking') THEN 'salik'
+    WHEN f.type = 'traffic' THEN 'fine'
+    WHEN f.type = 'damage' THEN 'damage'
+    WHEN f.type = 'other' THEN 'other'
+    WHEN i.reservation_id IS NULL THEN 'other'
+    ELSE 'rental'
+  END,
+  0, i.amount,
+  CASE WHEN f.type IN ('salik', 'salik_parking', 'traffic') THEN 0 ELSE 0.05 END
+FROM public.invoices i
+LEFT JOIN LATERAL (
+  SELECT x.type FROM public.fines x WHERE x.invoice_id = i.id ORDER BY (x.type IN ('salik', 'salik_parking', 'traffic')) DESC LIMIT 1
+) f ON true
+WHERE NOT EXISTS (SELECT 1 FROM public.invoice_items e WHERE e.invoice_id = i.id)
+  AND NOT EXISTS (SELECT 1 FROM public.invoices c WHERE c.consolidated_into = i.id);  -- monthly invoices get their rows below
+
+-- A monthly invoice that folds other invoices in gets copies of their rows (so each keeps its own VAT).
+INSERT INTO public.invoice_items (tenant_id, invoice_id, sort, description, category, discount, amount, vat_rate)
+SELECT p.tenant_id, p.id, ci.sort, ci.description, ci.category, ci.discount, ci.amount, ci.vat_rate
+FROM public.invoices p
+JOIN public.invoices c ON c.consolidated_into = p.id
+JOIN public.invoice_items ci ON ci.invoice_id = c.id
+WHERE NOT EXISTS (SELECT 1 FROM public.invoice_items e WHERE e.invoice_id = p.id);

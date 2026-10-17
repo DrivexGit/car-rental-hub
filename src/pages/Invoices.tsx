@@ -21,13 +21,29 @@ const PAYMENT_METHOD: Record<string, string> = { ziina: 'Card (Ziina)', manual: 
 
 const STATUS_STYLE: Record<string, string> = { pending: 'bg-amber-100 text-amber-800', paid: 'bg-emerald-100 text-emerald-800', void: 'bg-muted text-muted-foreground' };
 
-/** Marks an invoice paid outside the app (cash / bank) and confirms its booking if it was waiting. */
-export async function markPaidManually(inv: any) {
-  await supabase.from('invoices' as any).update({ status: 'paid', paid_at: new Date().toISOString() }).eq('id', inv.id);
-  await supabase.from('payments' as any).insert({ tenant_id: inv.tenant_id, invoice_id: inv.id, customer_id: inv.customer_id, amount: inv.amount, provider: 'manual', status: 'succeeded' });
+/**
+ * Marks an invoice paid outside the app (cash / bank) for what is still owed, and confirms its booking if it was waiting.
+ * Only a pending invoice counts: the status is changed first, with a condition, so a second click or a second staff member records nothing.
+ */
+export async function markPaidManually(inv: any): Promise<'paid' | 'nothing-due'> {
+  const { data: pays, error: readErr } = await supabase.from('payments' as any).select('amount').eq('invoice_id', inv.id).eq('status', 'succeeded');
+  if (readErr) throw readErr;
+  const paid = ((pays ?? []) as any[]).reduce((s, p) => s + Number(p.amount), 0);
+  const due = Math.round((Number(inv.amount) - paid) * 100) / 100;
+  if (due <= 0) return 'nothing-due';
+  const now = new Date().toISOString();
+  const { data: row, error } = await supabase.from('invoices' as any).update({ status: 'paid', paid_at: now }).eq('id', inv.id).eq('status', 'pending').select('id').maybeSingle();
+  if (error) throw error;
+  if (!row) return 'nothing-due';
+  const { error: payErr } = await supabase.from('payments' as any).insert({ tenant_id: inv.tenant_id, invoice_id: inv.id, customer_id: inv.customer_id, amount: due, provider: 'manual', status: 'succeeded' });
+  if (payErr) {
+    await supabase.from('invoices' as any).update({ status: 'pending', paid_at: null }).eq('id', inv.id).eq('status', 'paid');
+    throw payErr;
+  }
   if (inv.reservation_id) await supabase.from('reservations').update({ status: 'confirmed' }).eq('id', inv.reservation_id).eq('status', 'pending');
   // invoices folded into this monthly one are paid with it
-  await supabase.from('invoices' as any).update({ status: 'paid', paid_at: new Date().toISOString() }).eq('consolidated_into', inv.id).eq('status', 'pending');
+  await supabase.from('invoices' as any).update({ status: 'paid', paid_at: now }).eq('consolidated_into', inv.id).eq('status', 'pending');
+  return 'paid';
 }
 
 /** Saves the tax invoice straight to the device as a PDF file (no print dialog). */
@@ -76,6 +92,7 @@ export default function Invoices() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ customer_id: '', reservation_id: '', amount: '', description: '', category: 'other' as 'other' | 'delivery' });
   // an invoice made outside the app: the PDF is uploaded as it is, and the total is typed in (AI reads it later, once the key is set)
+  const [paying, setPaying] = useState<string | null>(null); // the invoice being marked paid, so its button cannot be clicked twice
   const [upload, setUpload] = useState({ open: false, customer_id: '', reservation_id: '', amount: '', description: '', file: null as File | null, busy: false });
   const tenantId = useTenantId();
   const { toast } = useToast();
@@ -100,6 +117,20 @@ export default function Invoices() {
     if (rowError) { toast({ title: 'Error', description: rowError.message, variant: 'destructive' }); return; }
     toast({ title: 'Invoice sent to the customer' });
     setOpen(false); setForm({ customer_id: '', reservation_id: '', amount: '', description: '', category: 'other' }); load();
+  };
+
+  const markPaid = async (r: any) => {
+    if (paying) return;
+    setPaying(r.id);
+    try {
+      const result = await markPaidManually(r);
+      toast(result === 'paid' ? { title: 'Marked as paid' } : { title: 'Nothing is left to pay on this invoice' });
+      load();
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } finally {
+      setPaying(null);
+    }
   };
 
   const uploadPdf = async () => {
@@ -162,7 +193,7 @@ export default function Invoices() {
               <TableCell className="whitespace-nowrap text-right">
                 <Button size="sm" variant="ghost" aria-label={`Download invoice ${r.number}`} title="Download invoice (PDF)" onClick={() => downloadInvoice(r, (message) => toast({ title: 'Could not create the PDF', description: message, variant: 'destructive' }))}><Download className="h-4 w-4" /></Button>
                 {r.status === 'pending' && <>
-                  <Button size="sm" variant="ghost" onClick={async () => { await markPaidManually(r); toast({ title: 'Marked as paid' }); load(); }}>Mark paid</Button>
+                  <Button size="sm" variant="ghost" disabled={paying === r.id} onClick={() => markPaid(r)}>Mark paid</Button>
                   <Button size="sm" variant="ghost" onClick={async () => { await supabase.from('invoices' as any).update({ status: 'void' }).eq('id', r.id); load(); }}>Void</Button>
                 </>}
               </TableCell>

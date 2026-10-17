@@ -4,7 +4,7 @@ import { createCheckout, getCheckout } from "./_stripe.js";
 // Pay an invoice. Provider, in order of preference:
 //  - STRIPE_SECRET_KEY: a Stripe Checkout page; the app calls action "confirm" when the customer comes back (the webhook also marks it).
 //  - ZIINA_API_KEY: a Ziina payment page (kept until Stripe is live).
-//  - neither: a test payment, marked paid at once.
+//  - neither: a test payment only when ALLOW_TEST_PAYMENTS=true; otherwise the payment is refused.
 // The amount charged is what is still owed, so a customer can pay an invoice in parts.
 export async function POST(req: Request) {
   const me = await getCustomer(req);
@@ -55,6 +55,8 @@ export async function POST(req: Request) {
   }
 
   if (!ziina) {
+    // without a provider the invoice is never paid for free: a test payment only when ALLOW_TEST_PAYMENTS is set (never in production)
+    if (process.env.ALLOW_TEST_PAYMENTS !== "true") return fail("Online payment is not available yet. Please pay at our office.", 503);
     await db.from("payments").insert({ tenant_id: me.tenant_id, invoice_id: inv.id, customer_id: me.id, amount: due, provider: "test", status: "succeeded", category });
     await markPaidIfCovered(inv.id);
     return json({ paid: true, test: true, remaining: await remainingDue(inv.id, inv.amount) });
