@@ -3,6 +3,7 @@ import { translate } from "@/lib/i18n";
 import { api, supabase } from "@/lib/supabase";
 import { disablePush } from "@/lib/push";
 import { carImage, slug, toFleet, type Car, type Period } from "@/data/catalog";
+import type { InvoiceLine, InvoicePayment } from "@/lib/invoice";
 
 export type User = { id: string; phone: string; name: string; email?: string; avatarUrl?: string; notify: { bookings: boolean; invoices: boolean; offers: boolean } };
 export type BookingStatus = "pending" | "upcoming" | "ongoing" | "overdue" | "completed" | "cancelled";
@@ -10,14 +11,16 @@ export type Booking = {
   id: string; car: Car; plate: string; period: Period; pickup: string; dropoff: string;
   total: number; extras: string[]; status: BookingStatus; rawStatus: string;
 };
-export type Invoice = { id: string; number: string; bookingId: string | null; amount: number; issued: string; status: "pending" | "paid" | "void"; paidAt?: string; description?: string };
+export type Invoice = { id: string; number: string; bookingId: string | null; amount: number; issued: string; status: "pending" | "paid" | "void"; paidAt?: string; description?: string; dueDate?: string; lines: InvoiceLine[]; payments: InvoicePayment[]; /** set when staff uploaded the invoice as a PDF: that file is shown, not a rebuilt one */ filePath?: string };
+/** Seller details printed on invoices (TRN, legal address, bank). Set in the panel's tenant settings. */
+export type Seller = { trn: string | null; legal_address: string | null; bank_account_name: string | null; bank_name: string | null; iban: string | null; bic: string | null };
 export type Fine = { id: string; bookingId: string | null; type: string; title: string | null; amount: number; date: string; place: string };
 export type Offer = { id: string; kind: "car" | "partner"; title: string; subtitle?: string; off: number; image?: string; car?: Car; description?: string; terms?: string; location?: string; code?: string };
 export type Specs = { engine?: string; transmission: string; fuel: string; seats: number; doors: number; bags: number; features: string[]; image?: string; gallery: string[] };
 export type Note = { id: string; type: string; title: string; body?: string; link?: string; read: boolean; created: string };
 export type Doc = { id: string; type: string; fileName: string; status: string; created: string };
 
-type Data = { fleet: Car[]; bookings: Booking[]; invoices: Invoice[]; fines: Fine[]; offers: Offer[]; documents: Doc[]; specs: Record<string, Specs>; notes: Note[] };
+type Data = { fleet: Car[]; bookings: Booking[]; invoices: Invoice[]; fines: Fine[]; offers: Offer[]; documents: Doc[]; specs: Record<string, Specs>; notes: Note[]; seller: Seller | null };
 type Store = Data & {
   ready: boolean;
   user: User | null;
@@ -31,7 +34,7 @@ type Store = Data & {
   markNotesRead: () => Promise<void>;
 };
 
-const empty: Data = { fleet: [], bookings: [], invoices: [], fines: [], offers: [], documents: [], specs: {}, notes: [] };
+const empty: Data = { fleet: [], bookings: [], invoices: [], fines: [], offers: [], documents: [], specs: {}, notes: [], seller: null };
 
 function statusOf(raw: string, start: string, end: string): BookingStatus {
   if (raw === "pending" || raw === "draft") return "pending";
@@ -50,7 +53,7 @@ async function loadAll(): Promise<{ user: User; data: Data } | null> {
     supabase.from("customers").select("*").eq("id", uid).maybeSingle(),
     supabase.from("vehicles").select("id,make,model,year,categories,daily_price,weekly_price,monthly_price").neq("status", "unavailable"),
     supabase.from("reservations").select("id,status,start_datetime,end_datetime,rental_period,extras,total_amount,vehicles(id,make,model,year,categories,plate_number,daily_price,weekly_price,monthly_price)").eq("customer_id", uid).order("start_datetime", { ascending: false }),
-    supabase.from("invoices").select("*").is("consolidated_into", null).order("issued_at", { ascending: false }), // invoices folded into a monthly one are shown through that one
+    supabase.from("invoices").select("*, invoice_items(description,amount,discount,vat_rate,sort), payments(amount,provider,category,created_at,status)").is("consolidated_into", null).order("issued_at", { ascending: false }), // invoices folded into a monthly one are shown through that one
     supabase.from("fines").select("*").order("occurred_at", { ascending: false }),
     supabase.from("offers").select("*").order("sort_order"),
     supabase.from("customer_documents").select("id,document_type,file_name,verification_status,created_at").order("created_at", { ascending: false }),
@@ -58,6 +61,8 @@ async function loadAll(): Promise<{ user: User; data: Data } | null> {
     supabase.from("notifications").select("*").eq("audience", "customer").order("created_at", { ascending: false }).limit(50),
   ]);
   if (!c.data) return null; // a staff account or a half-created customer
+  // the seller's TRN and bank details, so the invoice in the app matches the one the panel prints
+  const { data: seller } = await supabase.from("tenants").select("trn,legal_address,bank_account_name,bank_name,iban,bic").eq("id", c.data.tenant_id).maybeSingle();
 
   const specs: Record<string, Specs> = Object.fromEntries((sp.data ?? []).map((x: any) => [slug(x.make, x.model), { engine: x.engine ?? undefined, transmission: x.transmission, fuel: x.fuel, seats: x.seats, doors: x.doors, bags: x.bags, features: x.features ?? [], image: x.image_url ?? undefined, gallery: x.gallery ?? [] }]));
   // Photos managed in the panel ("Car photos") win over the bundled /cars/ images.
@@ -84,7 +89,12 @@ async function loadAll(): Promise<{ user: User; data: Data } | null> {
     },
     data: {
       fleet, bookings,
-      invoices: (i.data ?? []).map((x: any) => ({ id: x.id, number: x.number, bookingId: x.reservation_id, amount: Number(x.amount), issued: x.issued_at, status: x.status, paidAt: x.paid_at ?? undefined, description: x.description ?? undefined })),
+      invoices: (i.data ?? []).map((x: any) => ({
+        id: x.id, number: x.number, bookingId: x.reservation_id, amount: Number(x.amount), issued: x.issued_at, status: x.status, paidAt: x.paid_at ?? undefined, description: x.description ?? undefined, dueDate: x.due_date ?? undefined, filePath: x.file_path ?? undefined,
+        lines: [...(x.invoice_items ?? [])].sort((a: any, b: any) => a.sort - b.sort).map((l: any) => ({ description: l.description, amount: Number(l.amount), discount: Number(l.discount), vatRate: Number(l.vat_rate) })),
+        payments: (x.payments ?? []).filter((p: any) => p.status === "succeeded").map((p: any) => ({ date: p.created_at, method: p.provider === "ziina" ? "Card (Ziina)" : p.provider === "manual" ? "Cash / bank transfer" : "Test payment", category: p.category, amount: Number(p.amount) })),
+      })),
+      seller: (seller as Seller | null) ?? null,
       fines: (f.data ?? []).map((x: any) => ({ id: x.id, bookingId: x.reservation_id, type: x.type, title: x.title ?? null, amount: Number(x.amount), date: x.occurred_at, place: x.location ?? "" })),
       offers: (o.data ?? []).map((x: any) => ({ id: x.id, kind: x.kind, title: x.title, subtitle: x.subtitle ?? undefined, off: x.discount_pct, image: x.image_url ?? undefined, car: x.kind === "car" ? byTitle(x.title) : undefined, description: x.description ?? undefined, terms: x.terms ?? undefined, location: x.location ?? undefined, code: x.redeem_code ?? undefined }))
         .filter((x: Offer) => x.kind === "partner" || x.car),

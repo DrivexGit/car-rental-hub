@@ -69,9 +69,16 @@ export default function Fines() {
       // Salik and parking are billed once a month, with the other Salik of that month (see the monthly job)
       const monthly = form.type === 'salik' || form.type === 'salik_parking';
       if (form.invoice && !monthly && amount > 0) {
-        const { data, error } = await supabase.from('invoices' as any).insert({ tenant_id: tenantId, customer_id: form.customer_id, reservation_id: form.reservation_id || null, amount, description: label }).select('id').single();
+        const { data, error } = await supabase.from('invoices' as any).insert({ tenant_id: tenantId, customer_id: form.customer_id, reservation_id: form.reservation_id || null, amount, description: label, due_date: new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Dubai' }).format(new Date()) }).select('id').single(); // a fine is due the day it is recorded
         if (error) throw error;
         invoice_id = (data as any).id;
+        // A fine carries no VAT; damage and other charges carry the standard 5% (to be confirmed with DriveX)
+        const { error: rowError } = await supabase.from('invoice_items' as any).insert({
+          tenant_id: tenantId, invoice_id, sort: 0, description: label, amount, discount: 0,
+          category: form.type === 'traffic' ? 'fine' : form.type === 'damage' ? 'damage' : 'other',
+          vat_rate: form.type === 'traffic' ? 0 : 0.05,
+        });
+        if (rowError) throw rowError;
       }
       const { error } = await supabase.from('fines' as any).insert({
         tenant_id: tenantId, customer_id: form.customer_id, reservation_id: form.reservation_id || null, type: form.type, title, amount,

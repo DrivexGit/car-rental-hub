@@ -1,6 +1,7 @@
 import { admin, busyIds, fail, getCustomer, json, PERIOD_DAYS, slug, type Period } from "./_lib.js";
-import { extrasTotal, isExtra } from "../src/data/pricing.js";
+import { EXTRA_LABELS, EXTRA_LINE, extraCost, isExtra, priceWithVat } from "../src/data/pricing.js";
 import { missingDocuments } from "../src/data/documents.js";
+import { uaeToday } from "./_billing.js";
 import { TERMS_VERSION } from "../src/data/terms.js";
 
 // Creates a pending reservation + invoice. Price, discount and the actual car are decided here, never by the client.
@@ -44,8 +45,9 @@ export async function POST(req: Request) {
     .eq("is_active", true).ilike("title", `${car.make} ${car.model}`).maybeSingle();
   const off = offer?.discount_pct ?? 0;
   const base = Math.round(unit * n * (1 - off / 100));
-  const extrasCost = extrasTotal(ex, { base, period: period as Period, qty: n });
-  const total = base + extrasCost;
+  // prices include VAT; each row carries its own VAT rate (see priceWithVat)
+  const price = priceWithVat(base, ex, { base, period: period as Period, qty: n });
+  const total = price.total;
 
   const { data: r, error } = await db.from("reservations").insert({
     tenant_id: me.tenant_id, vehicle_id: car.id, lead_id: me.lead_id, customer_id: me.id, source: "app",
@@ -53,13 +55,21 @@ export async function POST(req: Request) {
     status: payLater ? "confirmed" : "pending", reservation_type: "booking", start_datetime: start.toISOString(), end_datetime: end.toISOString(),
     pickup_location: "Drivex, Dubai", return_location: "Drivex, Dubai", customer_name_snapshot: me.full_name,
     customer_phone_snapshot: me.phone, rental_period: period, extras: ex, total_amount: total,
-    price_note: `${n} × ${period} @ ${unit}${off ? ` −${off}%` : ""} + extras ${extrasCost}`,
+    price_note: `${n} × ${period} @ ${unit}${off ? ` −${off}%` : ""} + extras ${price.total - base} (VAT ${price.vat} included)`,
   }).select("id").single();
   if (error) return fail(error.message, 500);
 
-  const { data: inv } = await db.from("invoices").insert({
-    tenant_id: me.tenant_id, customer_id: me.id, reservation_id: r.id, amount: total,
+  const { data: inv, error: invErr } = await db.from("invoices").insert({
+    tenant_id: me.tenant_id, customer_id: me.id, reservation_id: r.id, amount: total, due_date: uaeToday(), // a booking is paid at once
     description: `Rental ${car.make} ${car.model} (${n} ${period})`,
   }).select("id").single();
+  if (invErr) return fail(invErr.message, 500);
+  // One row per charge, each with its own VAT rate (see EXTRA_LINE). The rows add up to the total.
+  const rows = [
+    { description: `${car.make} ${car.model} · ${n} ${period}`, category: "rental", amount: base, discount: unit * n - base, vat_rate: 0.05 },
+    ...ex.map((id) => ({ description: EXTRA_LABELS[id], category: EXTRA_LINE[id].category, amount: extraCost(id, { base, period: period as Period, qty: n }), discount: 0, vat_rate: EXTRA_LINE[id].vatRate })),
+  ].map((row, sort) => ({ ...row, sort, tenant_id: me.tenant_id, invoice_id: inv!.id }));
+  const { error: itemErr } = await db.from("invoice_items").insert(rows);
+  if (itemErr) return fail(itemErr.message, 500);
   return json({ reservationId: r.id, invoiceId: inv!.id, total, payLater });
 }

@@ -32,6 +32,7 @@ export default {
   "Invoice": "فاکتور",
   "Invoices": "فاکتورها",
   "Total": "جمع کل",
+  "VAT included": "شامل مالیات بر ارزش افزوده",
   "Price": "قیمت",
   "Share": "اشتراک‌گذاری",
   "Send": "ارسال",

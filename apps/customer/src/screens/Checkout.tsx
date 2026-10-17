@@ -63,6 +63,7 @@ export default function Checkout() {
       <Card className="divide-y divide-line">
         <Row label={q.discount ? t("Rental ({n}% off)", { n: q.discount }) : t("Rental")} value={<><Dirham /> {money(q.base)}</>} />
         {q.extras.filter((id) => id in EXTRA_LABELS).map((id) => <Row key={id} label={t(EXTRA_LABELS[id])} value={<><Dirham /> {money(extraCost(id, q))}</>} />)}
+        <Row label={t("VAT included")} value={<><Dirham /> {money(q.vat)}</>} />
         <Row label={<b>{t("Total")}</b>} value={<span className="text-xl font-bold"><Dirham /> {money(q.total)}</span>} />
       </Card>
 

@@ -7,7 +7,7 @@ Object.assign(process.env, { SUPABASE_URL: "https://fake.supabase.co", SUPABASE_
 const CUSTOMER = { id: "c1", tenant_id: "t1", lead_id: "lead1", phone: "+971501234567", full_name: "Test Customer", email: "test.customer@example.com" };
 const CARS = [1, 2].map((i) => ({ id: `v${i}`, make: "Mercedes", model: "GLE 53", plate_number: `A ${i}`, daily_price: 1000, weekly_price: 6000, monthly_price: 20000, status: "available" }));
 const DOCS = [{ document_type: "id_card", verification_status: "approved" }, { document_type: "driving_license", verification_status: "pending" }];
-const state = { offer: null, reservations: [], invoices: [], docs: DOCS, noLead: false, noEmail: false, payMonthly: false, docsError: false, docsQuery: "" };
+const state = { offer: null, reservations: [], invoices: [], items: [], docs: DOCS, noLead: false, noEmail: false, payMonthly: false, docsError: false, docsQuery: "" };
 const realFetch = globalThis.fetch;
 globalThis.fetch = async (input, init = {}) => {
   const req = new Request(input, init);
@@ -22,6 +22,7 @@ globalThis.fetch = async (input, init = {}) => {
   if (table === "offers") return state.offer ? json(200, { discount_pct: state.offer }) : json(406, { code: "PGRST116", details: "The result contains 0 rows", message: "JSON object requested, multiple (or no) rows returned" });
   if (table === "reservations" && req.method === "POST") { const row = await req.json(); state.reservations.push(row); return json(201, { id: "r1" }); }
   if (table === "invoices" && req.method === "POST") { const row = await req.json(); state.invoices.push(row); return json(201, { id: "i1" }); }
+  if (table === "invoice_items" && req.method === "POST") { const rows = await req.json(); state.items.push(...(Array.isArray(rows) ? rows : [rows])); return json(201, []); }
   return json(200, []);
 };
 
@@ -32,7 +33,7 @@ const check = (name, pass, extra = "") => results.push({ name, pass, extra });
 
 const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
 async function book(body, { token = "good", offer = null, docs = null, noLead = false, noEmail = false, payMonthly = false, docsError = false } = {}) {
-  Object.assign(state, { offer, reservations: [], invoices: [], docs: docs ?? DOCS, noLead, noEmail, payMonthly, docsError });
+  Object.assign(state, { offer, reservations: [], invoices: [], items: [], docs: docs ?? DOCS, noLead, noEmail, payMonthly, docsError });
   const r = await POST(new Request("http://local/api/book", { method: "POST", headers: { authorization: token ? `Bearer ${token}` : "" }, body: JSON.stringify({ modelId: "mercedes-gle-53", pickup: tomorrow, terms: true, ...body }) }));
   return { status: r.status, body: await r.json(), row: state.reservations[0], inv: state.invoices[0] };
 }
@@ -87,6 +88,15 @@ check("no token -> 401", (await book({ period: "daily", qty: 1 }, { token: "" })
   check("terms not accepted -> 400, nothing created", r.status === 400 && /accept the terms/i.test(r.body.error) && !r.row, JSON.stringify(r.body)); }
 { const r = await book({ period: "daily", qty: 1 });
   check("accepted terms are stored with their version and time", r.status === 200 && r.row?.terms_version === "2026-10" && !!r.row?.terms_accepted_at, JSON.stringify(r.row)); }
+// invoice rows: one per charge, VAT per row, and they add up to the invoice total
+{ const r = await book({ period: "daily", qty: 3, extras: ["full_cover", "extra_driver", "no_deposit"] });
+  const row = (c) => state.items.find((i) => i.category === c);
+  const sum = Math.round(state.items.reduce((s, i) => s + i.amount, 0));
+  check("invoice rows add up to the invoice total (3,000 + 450 + 75 + 200)", r.status === 200 && sum === r.body.total && sum === 3725, JSON.stringify({ sum, total: r.body.total, items: state.items }));
+  check("rental and no-deposit carry 5% VAT, full cover none", row("rental")?.vat_rate === 0.05 && row("no_deposit")?.vat_rate === 0.05 && row("insurance")?.vat_rate === 0, JSON.stringify(state.items)); }
+{ const r = await book({ period: "daily", qty: 3 }, { offer: 20 });
+  const rental = state.items.find((i) => i.category === "rental");
+  check("an offer is a discount row: 2,400 charged, 600 off", r.status === 200 && rental?.amount === 2400 && rental?.discount === 600, JSON.stringify(rental)); }
 
 // "Pay at month end": the booking is confirmed straight away and the response says there is no payment step
 { const r = await book({ period: "daily", qty: 1 }, { payMonthly: true });

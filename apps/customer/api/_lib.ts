@@ -51,3 +51,16 @@ export async function markInvoicePaid(invoiceId: string) {
   if (inv?.reservation_id)
     await admin().from("reservations").update({ status: "confirmed" }).eq("id", inv.reservation_id).eq("status", "pending");
 }
+
+/** What is still owed on an invoice: its amount less the payments that have succeeded (a partial payment leaves the rest). */
+export async function remainingDue(invoiceId: string, amount: number): Promise<number> {
+  const { data } = await admin().from("payments").select("amount").eq("invoice_id", invoiceId).eq("status", "succeeded");
+  const paid = (data ?? []).reduce((s, p) => s + Number(p.amount), 0);
+  return Math.max(Math.round((Number(amount) - paid) * 100) / 100, 0);
+}
+
+/** Marks the invoice paid once its successful payments cover the whole amount. */
+export async function markPaidIfCovered(invoiceId: string) {
+  const { data: inv } = await admin().from("invoices").select("amount").eq("id", invoiceId).maybeSingle();
+  if (inv && (await remainingDue(invoiceId, inv.amount)) === 0) await markInvoicePaid(invoiceId);
+}

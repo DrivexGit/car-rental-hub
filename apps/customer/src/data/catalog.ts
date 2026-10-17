@@ -39,6 +39,6 @@ export const BANNERS = [
 ];
 
 // Prices of extras come from pricing.ts, the same file the server (api/book.ts) uses to price the booking.
-export { EXTRA_LABELS, DEPOSIT_AMOUNT, NO_DEPOSIT_FEE, FULL_COVER_PCT, DRIVER_DAILY, DRIVER_MONTHLY, CHILD_SEAT_DAILY, extraCost } from "./pricing";
+export { EXTRA_LABELS, DEPOSIT_AMOUNT, NO_DEPOSIT_FEE, FULL_COVER_PCT, DRIVER_DAILY, DRIVER_MONTHLY, CHILD_SEAT_DAILY, extraCost, priceWithVat } from "./pricing";
 import { EXTRA_LABELS, PICKABLE_EXTRAS } from "./pricing";
 export const EXTRAS = PICKABLE_EXTRAS.map((id) => ({ id, label: EXTRA_LABELS[id] }));

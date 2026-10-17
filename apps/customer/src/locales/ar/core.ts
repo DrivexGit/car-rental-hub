@@ -32,6 +32,7 @@ export default {
   "Invoice": "الفاتورة",
   "Invoices": "الفواتير",
   "Total": "الإجمالي",
+  "VAT included": "شامل ضريبة القيمة المضافة",
   "Price": "السعر",
   "Share": "مشاركة",
   "Send": "إرسال",

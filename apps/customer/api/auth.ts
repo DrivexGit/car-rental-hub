@@ -1,10 +1,11 @@
 import { createHmac } from "node:crypto";
 import { admin, anonClient, fail, json, TENANT_ID } from "./_lib.js";
 import { allowed, clientIp, record } from "./_ratelimit.js";
+import { checkWhatsAppCode, sendWhatsAppCode, whatsappOtpOn } from "./_whatsapp-otp.js";
 
 // Phone sign-in. Each customer is a Supabase auth user with a hidden email + server-derived password,
 // so the app gets a normal Supabase session and RLS works.
-// ponytail: OTP is checked against OTP_TEST_CODE until an SMS provider is configured; then send/verify a real code here.
+// The code goes by WhatsApp once the WhatsApp credentials are set (see _whatsapp-otp.ts); until then it is checked against OTP_TEST_CODE.
 
 const normalize = (p: string) => {
   const ascii = String(p || "").replace(/[۰-۹]/g, (c) => String(c.charCodeAt(0) - 0x06f0)).replace(/[٠-٩]/g, (c) => String(c.charCodeAt(0) - 0x0660));
@@ -28,13 +29,19 @@ export async function POST(req: Request) {
     // ponytail: when an SMS provider is connected, send the real code here (after this check).
     if (!(await allowed("send", who, { phone: [5, 10], ip: [20, 60] }))) return fail(TOO_MANY, 429);
     await record("send", who);
+    if (whatsappOtpOn()) {
+      const sent = await sendWhatsAppCode(phone).catch(() => false);
+      if (!sent) return fail("We could not send the code on WhatsApp. Please try again.", 502);
+      return json({ ok: true, testMode: false, channel: "whatsapp" });
+    }
     return json({ ok: true, testMode: !process.env.SMS_PROVIDER });
   }
 
   if (action !== "verify") return fail("Unknown action");
   // Wrong guesses are limited, so a 6-digit code cannot be brute forced.
   if (!(await allowed("verify_fail", who, { phone: [5, 10], ip: [30, 60] }))) return fail(TOO_MANY, 429);
-  if (String(code) !== (process.env.OTP_TEST_CODE || "")) {
+  const valid = whatsappOtpOn() ? await checkWhatsAppCode(phone, String(code)) : String(code) === (process.env.OTP_TEST_CODE || "");
+  if (!valid) {
     await record("verify_fail", who);
     return fail("Wrong code. Please try again.", 401);
   }
