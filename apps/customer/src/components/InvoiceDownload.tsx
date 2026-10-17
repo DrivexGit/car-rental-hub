@@ -6,14 +6,29 @@ import { invoiceHtml } from "@/lib/invoice";
 import { downloadInvoicePdf } from "@/lib/invoicePdf";
 import { COMPANY } from "@/config";
 import { Sheet } from "@/components/ui";
+import { supabase } from "@/lib/supabase";
 
-/** Two small buttons on an invoice row: View (shows the tax invoice on screen) and Download (saves it as a PDF file). */
+/** Two small buttons on an invoice row: View (shows the tax invoice on screen) and Download (saves it as a PDF file).
+ *  An invoice the staff uploaded as a PDF is shown and saved as that same file, never rebuilt. */
 export function InvoiceDownload({ invoice, detail }: { invoice: Invoice; detail?: string }) {
   const { t } = useI18n();
   const { user, seller } = useStore();
   const [busy, setBusy] = useState(false);
   const [viewing, setViewing] = useState(false);
   const [error, setError] = useState("");
+  // a short-lived link to the uploaded file (the storage policy only lets the customer read their own invoices)
+  const fileUrl = async () => {
+    const { data, error } = await supabase.storage.from("invoices").createSignedUrl(invoice.filePath!, 300);
+    if (error || !data) throw new Error(t("Could not open the invoice. Please try again."));
+    return data.signedUrl;
+  };
+  const view = async () => {
+    if (!invoice.filePath) return setViewing(true);
+    // the tab is opened first, so the browser does not block it after the wait
+    const win = window.open("", "_blank");
+    try { const url = await fileUrl(); if (win) win.location.href = url; else window.open(url, "_blank"); }
+    catch (e: any) { win?.close(); setError(e.message); setViewing(true); }
+  };
   // the seller's TRN, address and bank details come from the tenant settings; the static config is the fallback
   const company = { ...COMPANY, address: seller?.legal_address || COMPANY.address, trn: seller?.trn || COMPANY.trn, bank: { accountName: seller?.bank_account_name, bankName: seller?.bank_name, iban: seller?.iban, bic: seller?.bic } };
   const html = () => invoiceHtml({
@@ -23,19 +38,27 @@ export function InvoiceDownload({ invoice, detail }: { invoice: Invoice; detail?
   });
   const download = async () => {
     setBusy(true); setError("");
-    try { await downloadInvoicePdf(html(), `${invoice.number}.pdf`); }
+    try {
+      if (invoice.filePath) {
+        const link = document.createElement("a");
+        link.href = await fileUrl(); link.download = `${invoice.number}.pdf`;
+        document.body.appendChild(link); link.click(); link.remove();
+        return;
+      }
+      await downloadInvoicePdf(html(), `${invoice.number}.pdf`);
+    }
     catch { setError(t("Could not create the PDF. Please try again.")); setViewing(true); } // the sheet is where the message is shown
     finally { setBusy(false); }
   };
   const btn = "grid h-9 w-9 shrink-0 place-items-center rounded-full border border-line text-ink-muted active:bg-bg disabled:opacity-50";
   return (
     <>
-      <button type="button" onClick={() => setViewing(true)} aria-label={t("View invoice")} title={t("View invoice")} className={btn}><Eye className="h-4 w-4" /></button>
+      <button type="button" onClick={view} aria-label={t("View invoice")} title={t("View invoice")} className={btn}><Eye className="h-4 w-4" /></button>
       <button type="button" onClick={download} disabled={busy} aria-label={t("Download invoice")} title={t("Download invoice")} className={btn}>
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
       </button>
       <Sheet open={viewing} onClose={() => setViewing(false)} title={invoice.number}>
-        <iframe title={invoice.number} srcDoc={viewing ? html() : ""} className="h-[58vh] w-full rounded-xl border border-line bg-white" />
+        {!invoice.filePath && <iframe title={invoice.number} srcDoc={viewing ? html() : ""} className="h-[58vh] w-full rounded-xl border border-line bg-white" />}
         {error && <p role="alert" className="mt-3 text-sm font-medium text-danger">{error}</p>}
         <button type="button" onClick={download} disabled={busy} className="mt-4 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-brand font-semibold text-white disabled:opacity-60">
           {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Download className="h-5 w-5" />} {t("Download PDF")}

@@ -11,7 +11,7 @@ export type Booking = {
   id: string; car: Car; plate: string; period: Period; pickup: string; dropoff: string;
   total: number; extras: string[]; status: BookingStatus; rawStatus: string;
 };
-export type Invoice = { id: string; number: string; bookingId: string | null; amount: number; issued: string; status: "pending" | "paid" | "void"; paidAt?: string; description?: string; dueDate?: string; lines: InvoiceLine[]; payments: InvoicePayment[] };
+export type Invoice = { id: string; number: string; bookingId: string | null; amount: number; issued: string; status: "pending" | "paid" | "void"; paidAt?: string; description?: string; dueDate?: string; lines: InvoiceLine[]; payments: InvoicePayment[]; /** set when staff uploaded the invoice as a PDF: that file is shown, not a rebuilt one */ filePath?: string };
 /** Seller details printed on invoices (TRN, legal address, bank). Set in the panel's tenant settings. */
 export type Seller = { trn: string | null; legal_address: string | null; bank_account_name: string | null; bank_name: string | null; iban: string | null; bic: string | null };
 export type Fine = { id: string; bookingId: string | null; type: string; title: string | null; amount: number; date: string; place: string };
@@ -90,7 +90,7 @@ async function loadAll(): Promise<{ user: User; data: Data } | null> {
     data: {
       fleet, bookings,
       invoices: (i.data ?? []).map((x: any) => ({
-        id: x.id, number: x.number, bookingId: x.reservation_id, amount: Number(x.amount), issued: x.issued_at, status: x.status, paidAt: x.paid_at ?? undefined, description: x.description ?? undefined, dueDate: x.due_date ?? undefined,
+        id: x.id, number: x.number, bookingId: x.reservation_id, amount: Number(x.amount), issued: x.issued_at, status: x.status, paidAt: x.paid_at ?? undefined, description: x.description ?? undefined, dueDate: x.due_date ?? undefined, filePath: x.file_path ?? undefined,
         lines: [...(x.invoice_items ?? [])].sort((a: any, b: any) => a.sort - b.sort).map((l: any) => ({ description: l.description, amount: Number(l.amount), discount: Number(l.discount), vatRate: Number(l.vat_rate) })),
         payments: (x.payments ?? []).filter((p: any) => p.status === "succeeded").map((p: any) => ({ date: p.created_at, method: p.provider === "ziina" ? "Card (Ziina)" : p.provider === "manual" ? "Cash / bank transfer" : "Test payment", category: p.category, amount: Number(p.amount) })),
       })),
