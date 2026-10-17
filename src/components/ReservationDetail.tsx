@@ -81,7 +81,7 @@ export function ReservationDetail({ id, onChanged }: { id: string; onChanged: ()
       <Section title="Payments">
         {d.p.map((x: any) => (
           <div key={x.id} className="flex justify-between rounded-md border p-3 text-sm">
-            <span>{x.provider === 'ziina' ? 'Card (Ziina)' : x.provider === 'manual' ? 'Cash / bank (manual)' : 'Test payment'}<span className="block text-xs text-muted-foreground">{fdatetime(x.created_at)}{x.provider_ref ? ` · ${x.provider_ref}` : ''}</span></span>
+            <span>{x.provider === 'stripe' ? 'Card (Stripe)' : x.provider === 'ziina' ? 'Card (Ziina)' : x.provider === 'manual' ? 'Cash / bank (manual)' : 'Test payment'}<span className="block text-xs text-muted-foreground">{fdatetime(x.created_at)}{x.provider_ref ? ` · ${x.provider_ref}` : ''}</span></span>
             <span>{aed(x.amount)} <Badge variant="outline">{x.status}</Badge></span>
           </div>
         ))}

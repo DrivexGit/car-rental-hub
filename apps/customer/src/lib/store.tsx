@@ -5,7 +5,7 @@ import { disablePush } from "@/lib/push";
 import { carImage, slug, toFleet, type Car, type Period } from "@/data/catalog";
 import type { InvoiceLine, InvoicePayment } from "@/lib/invoice";
 
-export type User = { id: string; phone: string; name: string; email?: string; avatarUrl?: string; notify: { bookings: boolean; invoices: boolean; offers: boolean } };
+export type User = { id: string; phone: string; name: string; email?: string; customerNo?: number; nationality?: string; avatarUrl?: string; notify: { bookings: boolean; invoices: boolean; offers: boolean } };
 export type BookingStatus = "pending" | "upcoming" | "ongoing" | "overdue" | "completed" | "cancelled";
 export type Booking = {
   id: string; car: Car; plate: string; period: Period; pickup: string; dropoff: string;
@@ -83,7 +83,7 @@ async function loadAll(): Promise<{ user: User; data: Data } | null> {
 
   return {
     user: {
-      id: uid, phone: c.data.phone, name: c.data.full_name, email: c.data.email ?? undefined,
+      id: uid, phone: c.data.phone, name: c.data.full_name, email: c.data.email ?? undefined, customerNo: c.data.customer_no ?? undefined, nationality: c.data.nationality ?? undefined,
       avatarUrl: c.data.avatar_url ?? undefined,
       notify: { bookings: c.data.notify_bookings, invoices: c.data.notify_invoices, offers: c.data.notify_offers },
     },
@@ -92,7 +92,7 @@ async function loadAll(): Promise<{ user: User; data: Data } | null> {
       invoices: (i.data ?? []).map((x: any) => ({
         id: x.id, number: x.number, bookingId: x.reservation_id, amount: Number(x.amount), issued: x.issued_at, status: x.status, paidAt: x.paid_at ?? undefined, description: x.description ?? undefined, dueDate: x.due_date ?? undefined, filePath: x.file_path ?? undefined,
         lines: [...(x.invoice_items ?? [])].sort((a: any, b: any) => a.sort - b.sort).map((l: any) => ({ description: l.description, amount: Number(l.amount), discount: Number(l.discount), vatRate: Number(l.vat_rate) })),
-        payments: (x.payments ?? []).filter((p: any) => p.status === "succeeded").map((p: any) => ({ date: p.created_at, method: p.provider === "ziina" ? "Card (Ziina)" : p.provider === "manual" ? "Cash / bank transfer" : "Test payment", category: p.category, amount: Number(p.amount) })),
+        payments: (x.payments ?? []).filter((p: any) => p.status === "succeeded").map((p: any) => ({ date: p.created_at, method: p.provider === "stripe" ? "Card (Stripe)" : p.provider === "ziina" ? "Card (Ziina)" : p.provider === "manual" ? "Cash / bank transfer" : "Test payment", category: p.category, amount: Number(p.amount) })),
       })),
       seller: (seller as Seller | null) ?? null,
       fines: (f.data ?? []).map((x: any) => ({ id: x.id, bookingId: x.reservation_id, type: x.type, title: x.title ?? null, amount: Number(x.amount), date: x.occurred_at, place: x.location ?? "" })),
