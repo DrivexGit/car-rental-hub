@@ -40,7 +40,7 @@ export type InvoiceData = {
   lines?: InvoiceLine[];
   payments?: InvoicePayment[];
 };
-export type BillTo = { name: string; phone?: string | null; email?: string | null };
+export type BillTo = { name: string; phone?: string | null; email?: string | null; /** the customer number printed as #no */ no?: number | string | null; nationality?: string | null };
 export type Company = {
   name: string;
   address: string;
@@ -153,7 +153,7 @@ export function invoiceHtml({ invoice, to, company, logoUrl }: { invoice: Invoic
   </div>
 
   <div class="cols">
-    <div><div class="label">Billed to</div><strong>${esc(to.name)}</strong>${to.phone ? `<br><span dir="ltr">${esc(phone(to.phone))}</span>` : ''}${to.email ? `<br>${esc(to.email)}` : ''}</div>
+    <div><div class="label">Billed to</div><strong>${esc(to.name)}</strong>${to.no ? ` #${esc(to.no)}` : ''}${to.nationality ? `<br>Nationality: ${esc(to.nationality)}` : ''}${to.phone ? `<br><span dir="ltr">${esc(phone(to.phone))}</span>` : ''}${to.email ? `<br>${esc(to.email)}` : ''}</div>
   </div>
 
   <table>

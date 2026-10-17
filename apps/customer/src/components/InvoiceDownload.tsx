@@ -33,7 +33,7 @@ export function InvoiceDownload({ invoice, detail }: { invoice: Invoice; detail?
   const company = { ...COMPANY, address: seller?.legal_address || COMPANY.address, trn: seller?.trn || COMPANY.trn, bank: { accountName: seller?.bank_account_name, bankName: seller?.bank_name, iban: seller?.iban, bic: seller?.bic } };
   const html = () => invoiceHtml({
     invoice: { number: invoice.number, issued: invoice.issued, status: invoice.status, paidAt: invoice.paidAt, dueDate: invoice.dueDate, description: invoice.description, detail, amount: invoice.amount, lines: invoice.lines, payments: invoice.payments },
-    to: { name: user?.name || "", phone: user?.phone, email: user?.email },
+    to: { name: user?.name || "", phone: user?.phone, email: user?.email, no: user?.customerNo, nationality: user?.nationality },
     company, logoUrl: `${location.origin}/logo-dark.png`,
   });
   const download = async () => {

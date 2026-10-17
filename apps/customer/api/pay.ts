@@ -40,6 +40,9 @@ export async function POST(req: Request) {
   const due = await remainingDue(inv.id, inv.amount);
   if (due <= 0) return fail("This invoice is already paid.");
   const category = inv.reservation_id ? "rental" : "other";
+  // one online payment at a time per invoice: a second checkout would charge the customer twice
+  const { data: open } = await db.from("payments").select("id").eq("invoice_id", inv.id).eq("status", "pending").gte("created_at", new Date(Date.now() - 30 * 60_000).toISOString()).limit(1);
+  if (open?.length) return fail("A payment for this invoice is already in progress. Finish it, or try again in 30 minutes.", 409);
 
   if (process.env.STRIPE_SECRET_KEY) {
     const { data: pay } = await db.from("payments").insert({ tenant_id: me.tenant_id, invoice_id: inv.id, customer_id: me.id, amount: due, provider: "stripe", category }).select("id").single();

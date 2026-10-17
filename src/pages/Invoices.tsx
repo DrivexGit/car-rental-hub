@@ -17,7 +17,7 @@ import { invoiceHtml } from '@/lib/invoice';
 import { downloadInvoicePdf, type InvoiceAttachment } from '@/lib/invoicePdf';
 
 /** How a payment is shown on the invoice's transactions table. */
-const PAYMENT_METHOD: Record<string, string> = { ziina: 'Card (Ziina)', manual: 'Cash / bank transfer', test: 'Test payment' };
+const PAYMENT_METHOD: Record<string, string> = { ziina: 'Card (Ziina)', stripe: 'Card (Stripe)', manual: 'Cash / bank transfer', test: 'Test payment' };
 
 const STATUS_STYLE: Record<string, string> = { pending: 'bg-amber-100 text-amber-800', paid: 'bg-emerald-100 text-emerald-800', void: 'bg-muted text-muted-foreground' };
 
@@ -77,7 +77,7 @@ async function downloadInvoice(r: any, onError: (message: string) => void) {
     const company = { ...COMPANY, address: s?.legal_address || COMPANY.address, trn: s?.trn || COMPANY.trn, bank: { accountName: s?.bank_account_name, bankName: s?.bank_name, iban: s?.iban, bic: s?.bic } };
     await downloadInvoicePdf(invoiceHtml({
     invoice: { number: r.number, issued: r.issued_at, status: r.status, paidAt: r.paid_at, dueDate: r.due_date, description: r.description, detail: v ? `${v.make} ${v.model} · ${v.plate_number}` : undefined, amount: Number(r.amount), lines, payments },
-    to: { name: r.customers?.full_name || 'Customer', phone: r.customers?.phone, email: r.customers?.email },
+    to: { name: r.customers?.full_name || 'Customer', phone: r.customers?.phone, email: r.customers?.email, no: r.customers?.customer_no, nationality: r.customers?.nationality },
     company, logoUrl: `${location.origin}/logo-dark.png`,
     }), `${r.number}.pdf`, attachments.filter((x) => x.url));
   } catch (err: any) {
@@ -98,7 +98,7 @@ export default function Invoices() {
   const { toast } = useToast();
 
   const load = async () => {
-    let query = supabase.from('invoices' as any).select('*, customers(full_name, phone, email), reservations(vehicles(make, model, plate_number))').is('consolidated_into', null).order('issued_at', { ascending: false }); // folded invoices show through their monthly one
+    let query = supabase.from('invoices' as any).select('*, customers(full_name, phone, email, customer_no, nationality), reservations(vehicles(make, model, plate_number))').is('consolidated_into', null).order('issued_at', { ascending: false }); // folded invoices show through their monthly one
     if (status !== 'all') query = query.eq('status', status);
     const { data } = await query;
     setRows((data as any) || []);
