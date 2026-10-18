@@ -28,6 +28,8 @@ export default {
   "Upload once. We need these before your first pickup.": "ارفعها مرة واحدة. نحتاجها قبل أول استلام.",
   "File is too large (max 10 MB).": "حجم الملف كبير (الحد الأقصى 10 ميغابايت).",
   "Approved": "تمت الموافقة",
+  "Required": "مطلوب",
+  "Optional": "اختياري",
   "View": "عرض",
   "We sent a code to your WhatsApp. Enter it to open this document.": "أرسلنا رمزًا إلى واتساب. أدخله لفتح هذا المستند.",
   "Open document": "فتح المستند",

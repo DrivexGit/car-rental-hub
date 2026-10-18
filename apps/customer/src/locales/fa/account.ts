@@ -28,6 +28,8 @@ export default {
   "Upload once. We need these before your first pickup.": "یک بار بارگذاری کنید. قبل از اولین تحویل به آن‌ها نیاز داریم.",
   "File is too large (max 10 MB).": "حجم فایل زیاد است (حداکثر 10 مگابایت).",
   "Approved": "تأیید شد",
+  "Required": "الزامی",
+  "Optional": "اختیاری",
   "View": "مشاهده",
   "We sent a code to your WhatsApp. Enter it to open this document.": "کدی به واتساپ شما فرستادیم. برای باز کردن این مدرک آن را وارد کنید.",
   "Open document": "باز کردن مدرک",
