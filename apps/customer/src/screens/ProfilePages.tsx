@@ -6,7 +6,7 @@ import { api, supabase } from "@/lib/supabase";
 import { useStore } from "@/lib/store";
 import { REQUIRED_DOCUMENTS } from "@/data/documents";
 import { day, formatPhone, money } from "@/lib/format";
-import { BackBar, Button, Card, Dirham, Empty, Face, ListGroup, ListRow, Screen } from "@/components/ui";
+import { BackBar, Button, Card, Dirham, Empty, Face, ListGroup, ListRow, Screen, Sheet } from "@/components/ui";
 import { compressSquare } from "@/lib/image";
 import { PayInvoiceSheet } from "@/screens/PaySheet";
 import { InvoiceDownload } from "@/components/InvoiceDownload";
@@ -139,6 +139,47 @@ export function Documents() {
     }
     await refresh(); setBusy(null);
   };
+
+  // Viewing an approved document needs a code sent to the phone (see api/doc-view.ts). The unlock lasts five minutes and is kept
+  // in memory only, so it is gone when the page is closed. Uploading is never gated.
+  const [unlock, setUnlock] = useState<{ token: string; expiresAt: number } | null>(null);
+  const [viewing, setViewing] = useState<{ id: string; name: string } | null>(null);
+  const [code, setCode] = useState("");
+  const [viewBusy, setViewBusy] = useState(false);
+  const [viewError, setViewError] = useState("");
+  const openDocument = async (documentId: string, token: string) => {
+    const win = window.open("", "_blank"); // opened first, so the browser does not block it after the wait
+    try {
+      const out = await api<{ url: string }>("doc-view", { action: "view", documentId, unlock: token });
+      if (win) win.location.href = out.url; else window.open(out.url, "_blank");
+      setViewing(null); setCode("");
+    } catch (e) {
+      win?.close();
+      throw e;
+    }
+  };
+  const view = async (d: { id: string; name: string }) => {
+    setViewError(""); setCode(""); setViewBusy(true);
+    try {
+      if (unlock && unlock.expiresAt > Date.now()) { await openDocument(d.id, unlock.token); return; }
+      setUnlock(null); setViewing(d);
+      await api("doc-view", { action: "send" });
+    } catch (e: any) {
+      setUnlock(null); setViewError(t(e.message));
+    } finally { setViewBusy(false); }
+  };
+  const checkCode = async () => {
+    if (!viewing) return;
+    setViewBusy(true); setViewError("");
+    try {
+      const u = await api<{ token: string; expiresAt: number }>("doc-view", { action: "unlock", code });
+      setUnlock(u);
+      await openDocument(viewing.id, u.token);
+    } catch (e: any) {
+      setViewError(t(e.message));
+    } finally { setViewBusy(false); }
+  };
+
   return (
     <Screen tabs={false}>
       <BackBar title={t("Documents")} />
@@ -147,16 +188,27 @@ export function Documents() {
         {DOC_TYPES.map(([id, label]) => {
           const doc = documents.find((d) => d.type === id);
           return (
-            <label key={id} className="flex min-h-[64px] cursor-pointer items-center gap-3 px-4 py-3">
-              <IdCard className="h-5 w-5" />
-              <span className="flex-1"><span className="block font-medium">{t(label)}</span>
-                <span className="text-xs text-ink-muted">{doc ? `${doc.fileName} · ${doc.status === "approved" ? t("Approved") : doc.status === "rejected" ? t("Rejected — upload again") : t("In review")}` : t("Photo or PDF")}</span></span>
-              {busy === id ? <Loader2 className="h-5 w-5 animate-spin text-brand" /> : doc && doc.status !== "rejected" ? <CheckCircle2 className="h-6 w-6 text-brand" /> : <Upload className="h-5 w-5 text-brand" />}
-              <input type="file" accept="image/*,application/pdf" className="hidden" disabled={!!busy} onChange={(e) => e.target.files?.[0] && upload(id, e.target.files[0])} />
-            </label>
+            <div key={id} className="flex min-h-[64px] items-center gap-3 px-4 py-3">
+              <label className="flex flex-1 cursor-pointer items-center gap-3">
+                <IdCard className="h-5 w-5" />
+                <span className="flex-1"><span className="block font-medium">{t(label)}</span>
+                  <span className="text-xs text-ink-muted">{doc ? `${doc.fileName} · ${doc.status === "approved" ? t("Approved") : doc.status === "rejected" ? t("Rejected — upload again") : t("In review")}` : t("Photo or PDF")}</span></span>
+                {busy === id ? <Loader2 className="h-5 w-5 animate-spin text-brand" /> : doc && doc.status !== "rejected" ? <CheckCircle2 className="h-6 w-6 text-brand" /> : <Upload className="h-5 w-5 text-brand" />}
+                <input type="file" accept="image/*,application/pdf" className="hidden" disabled={!!busy} onChange={(e) => e.target.files?.[0] && upload(id, e.target.files[0])} />
+              </label>
+              {doc?.status === "approved" && (
+                <button type="button" onClick={() => view({ id: doc.id, name: t(label) })} disabled={viewBusy} className="shrink-0 rounded-full border border-line px-3 py-1.5 text-sm font-medium text-brand disabled:opacity-60">{t("View")}</button>
+              )}
+            </div>
           );
         })}
       </Card>
+      <Sheet open={!!viewing} onClose={() => { setViewing(null); setCode(""); setViewError(""); }} title={viewing?.name ?? t("Documents")}>
+        <p className="mb-3 text-sm text-ink-muted">{t("We sent a code to your WhatsApp. Enter it to open this document.")}</p>
+        <input inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))} placeholder={t("Enter the code")} className="h-12 w-full rounded-xl border border-line bg-white px-4 text-center text-xl tracking-[0.4em]" />
+        {viewError && <p role="alert" className="mt-3 text-sm font-medium text-danger">{viewError}</p>}
+        <Button onClick={checkCode} disabled={viewBusy || code.length !== 6} className="mt-4 w-full">{viewBusy ? <Loader2 className="h-5 w-5 animate-spin" /> : t("Open document")}</Button>
+      </Sheet>
       {error && <p className="mt-3 text-sm font-medium text-danger">{error}</p>}
     </Screen>
   );
