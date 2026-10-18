@@ -91,9 +91,9 @@ export default function Invoices() {
   const [q, setQ] = useState('');
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ customer_id: '', reservation_id: '', amount: '', description: '', category: 'other' as 'other' | 'delivery' });
-  // an invoice made outside the app: the PDF is uploaded as it is, and the total is typed in (AI reads it later, once the key is set)
+  // an invoice made outside the app: the PDF is uploaded as it is, and the total is typed in, or read from the PDF with the AI ("Read from PDF")
   const [paying, setPaying] = useState<string | null>(null); // the invoice being marked paid, so its button cannot be clicked twice
-  const [upload, setUpload] = useState({ open: false, customer_id: '', reservation_id: '', amount: '', description: '', file: null as File | null, busy: false });
+  const [upload, setUpload] = useState({ open: false, customer_id: '', reservation_id: '', amount: '', description: '', file: null as File | null, busy: false, reading: false });
   const tenantId = useTenantId();
   const { toast } = useToast();
 
@@ -133,6 +133,33 @@ export default function Invoices() {
     }
   };
 
+  // reads the total from the chosen PDF with the AI; the number is only filled in, staff check it and then send
+  const readTotal = async () => {
+    if (!upload.file || upload.file.type !== 'application/pdf') { toast({ title: 'Choose the PDF first', variant: 'destructive' }); return; }
+    setUpload((u) => ({ ...u, reading: true }));
+    try {
+      const file64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result).split(',')[1] ?? '');
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(upload.file!);
+      });
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(`${import.meta.env.VITE_CUSTOMER_API_URL || 'https://drivex-customer.vercel.app'}/api/invoice-extract`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session?.access_token ?? ''}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ file: file64 }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.error || 'Could not read the invoice');
+      setUpload((u) => ({ ...u, amount: String(body.total), reading: false }));
+      toast({ title: 'Total read from the PDF', description: 'Check it before you send.' });
+    } catch (err: any) {
+      toast({ title: 'Could not read the total', description: err.message, variant: 'destructive' });
+      setUpload((u) => ({ ...u, reading: false }));
+    }
+  };
+
   const uploadPdf = async () => {
     const amount = Number(upload.amount);
     if (!upload.customer_id || !(amount > 0) || !upload.file) { toast({ title: 'Customer, total and the PDF are required', variant: 'destructive' }); return; }
@@ -149,7 +176,7 @@ export default function Invoices() {
       });
       if (error) throw error;
       toast({ title: 'Invoice uploaded and sent to the customer' });
-      setUpload({ open: false, customer_id: '', reservation_id: '', amount: '', description: '', file: null, busy: false }); load();
+      setUpload({ open: false, customer_id: '', reservation_id: '', amount: '', description: '', file: null, busy: false, reading: false }); load();
     } catch (err: any) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
       setUpload((u) => ({ ...u, busy: false }));
@@ -230,9 +257,14 @@ export default function Invoices() {
             <div><Label>Customer *</Label><CustomerSelect value={upload.customer_id} onChange={(v) => setUpload({ ...upload, customer_id: v, reservation_id: '' })} /></div>
             <div><Label>Booking</Label><ReservationSelect customerId={upload.customer_id} value={upload.reservation_id} onChange={(v) => setUpload({ ...upload, reservation_id: v })} /></div>
             <div><Label>Description</Label><Input placeholder="e.g. Rental, 30 days" value={upload.description} onChange={(e) => setUpload({ ...upload, description: e.target.value })} /></div>
-            <div><Label>Total (AED, VAT included) *</Label><Input type="number" min="1" step="0.01" value={upload.amount} onChange={(e) => setUpload({ ...upload, amount: e.target.value })} /></div>
             <div><Label>PDF file *</Label><Input type="file" accept="application/pdf" onChange={(e) => setUpload({ ...upload, file: e.target.files?.[0] ?? null })} /></div>
-            <p className="text-xs text-muted-foreground">The PDF is kept as it is; the customer sees and downloads the same file.</p>
+            <div><Label>Total (AED, VAT included) *</Label>
+              <div className="flex gap-2">
+                <Input type="number" min="1" step="0.01" value={upload.amount} onChange={(e) => setUpload({ ...upload, amount: e.target.value })} />
+                <Button type="button" variant="outline" onClick={readTotal} disabled={!upload.file || upload.reading}>{upload.reading ? 'Reading…' : 'Read from PDF'}</Button>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">The PDF is kept as it is; the customer sees and downloads the same file. "Read from PDF" fills the total only; check it before you send.</p>
           </div>
           <DialogFooter><Button onClick={uploadPdf} disabled={upload.busy}>Upload and send</Button></DialogFooter>
         </DialogContent>
