@@ -191,7 +191,7 @@ export function Documents() {
             <div key={id} className="flex min-h-[64px] items-center gap-3 px-4 py-3">
               <label className="flex flex-1 cursor-pointer items-center gap-3">
                 <IdCard className="h-5 w-5" />
-                <span className="flex-1"><span className="block font-medium">{t(label)}<span className={`ms-2 align-middle text-xs font-normal ${id === "visa" ? "text-ink-muted" : "text-brand"}`}>{id === "visa" ? t("Optional") : t("Required")}</span></span>
+                <span className="flex-1"><span className="block font-medium">{t(label)}<span className={`ms-2 align-middle text-xs font-normal ${id === "visa" ? "text-ink-muted" : "text-amber-600"}`}>{id === "visa" ? t("Optional") : t("Required")}</span></span>
                   <span className="text-xs text-ink-muted">{doc ? `${doc.fileName} · ${doc.status === "approved" ? t("Approved") : doc.status === "rejected" ? t("Rejected — upload again") : t("In review")}` : t("Photo or PDF")}</span></span>
                 {busy === id ? <Loader2 className="h-5 w-5 animate-spin text-brand" /> : doc && doc.status !== "rejected" ? <CheckCircle2 className="h-6 w-6 text-brand" /> : <Upload className="h-5 w-5 text-brand" />}
                 <input type="file" accept="image/*,application/pdf" className="hidden" disabled={!!busy} onChange={(e) => e.target.files?.[0] && upload(id, e.target.files[0])} />
