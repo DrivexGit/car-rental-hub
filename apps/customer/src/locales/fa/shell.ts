@@ -38,6 +38,7 @@ export default {
   "View invoice": "مشاهده فاکتور",
   "Download PDF": "دانلود PDF",
   "Could not create the PDF. Please try again.": "ساخت فایل PDF ممکن نشد. لطفاً دوباره امتحان کنید.",
+  "Could not open the invoice. Please try again.": "باز کردن فاکتور ممکن نشد. لطفاً دوباره امتحان کنید.",
   "Upload your documents": "مدارک خود را بارگذاری کنید",
   "You need these before you can book: {list}.": "برای رزرو به این مدارک نیاز دارید: {list}.",
   "Please update your documents first: {list}.": "لطفاً ابتدا مدارک خود را به‌روز کنید: {list}.",

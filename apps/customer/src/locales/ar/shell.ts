@@ -38,6 +38,7 @@ export default {
   "View invoice": "عرض الفاتورة",
   "Download PDF": "تنزيل PDF",
   "Could not create the PDF. Please try again.": "تعذّر إنشاء ملف PDF. يرجى المحاولة مرة أخرى.",
+  "Could not open the invoice. Please try again.": "تعذّر فتح الفاتورة. يرجى المحاولة مرة أخرى.",
   "Upload your documents": "ارفع مستنداتك",
   "You need these before you can book: {list}.": "تحتاج إلى هذه المستندات قبل الحجز: {list}.",
   "Please update your documents first: {list}.": "يرجى تحديث مستنداتك أولاً: {list}.",
