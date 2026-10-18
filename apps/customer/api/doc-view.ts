@@ -61,6 +61,8 @@ export async function POST(req: Request) {
     const { data: doc } = await db.from("customer_documents").select("*").eq("id", body.documentId).maybeSingle();
     if (!doc || doc.lead_id !== me.lead_id || doc.tenant_id !== me.tenant_id) return fail("Document not found.", 404);
     if (doc.verification_status !== "approved") return fail("This document is not approved yet.", 403);
+    // only files the customer uploaded into their own folder: a row cannot point at someone else's file
+    if ((doc.storage_bucket || "customer-documents") !== "customer-documents" || !String(doc.storage_path).startsWith(`${me.id}/`)) return fail("Document not found.", 404);
     const { data: link, error } = await db.storage.from(doc.storage_bucket || "customer-documents").createSignedUrl(doc.storage_path, LINK_SECONDS);
     if (error || !link) return fail("Could not open the document. Please try again.", 500);
     return json({ url: link.signedUrl, expiresIn: LINK_SECONDS });
