@@ -50,6 +50,8 @@ export default {
   "Child seat": "صندلی کودک",
   "Total · {count}": "جمع کل · {count}",
   "{name} photo {n}": "عکس {n} از {name}",
+  "Previous photo": "عکس قبلی",
+  "Next photo": "عکس بعدی",
   "Close photo": "بستن عکس",
 
   // Checkout

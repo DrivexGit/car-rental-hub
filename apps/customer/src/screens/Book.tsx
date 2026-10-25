@@ -97,8 +97,9 @@ export default function Book() {
         {cars.map((c, i) => {
           const off = offersOnly ? offerOff.get(c.id) ?? 0 : 0;
           const base = priceFor(c, period);
+          const open = () => nav(`/book/${c.id}?period=${period}${off ? `&off=${off}` : ""}${dateQuery}`);
           return (
-          <Card key={c.id} className="p-4" delay={Math.min(i, 6) * 0.05}>
+          <Card key={c.id} className="cursor-pointer p-4" delay={Math.min(i, 6) * 0.05} onClick={open}>
             <div className="flex items-start justify-between gap-2">
               <p className="text-lg font-bold leading-tight">{carName(c)}</p>
               {!!off && <Badge className="shrink-0 bg-danger text-white">{t("{n}% off", { n: off })}</Badge>}
@@ -107,7 +108,7 @@ export default function Book() {
             <img src={c.image} alt={carName(c)} className="mx-auto my-2 h-[130px] w-full object-contain" loading="lazy" />
             <div className="flex items-center justify-between">
               <Price value={off ? Math.round(base * (1 - off / 100)) : base} old={off ? base : undefined} unit={t(PERIOD_UNIT[period])} />
-              <Button size="sm" arrow onClick={() => nav(`/book/${c.id}?period=${period}${off ? `&off=${off}` : ""}${dateQuery}`)}>{t("View & book")}</Button>
+              <Button size="sm" arrow onClick={(e) => { e.stopPropagation(); open(); }}>{t("View & book")}</Button>
             </div>
           </Card>
           );
