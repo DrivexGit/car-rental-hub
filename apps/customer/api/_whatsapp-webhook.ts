@@ -2,6 +2,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { admin, fail, json, TENANT_ID } from "./_lib.js";
 
 // WhatsApp Cloud API webhook (Meta). Set this URL in the Meta app under WhatsApp > Configuration:
+// Served at /api/whatsapp-webhook through stripe-webhook.ts (12-function Hobby limit).
 //   GET  Meta checks the URL once: hub.verify_token must equal WHATSAPP_VERIFY_TOKEN, then hub.challenge is sent back.
 //   POST each incoming customer message is saved to the lead's history (messages, inbound) and staff get a notification.
 //        The body is signed with the app secret (X-Hub-Signature-256), so WHATSAPP_APP_SECRET is needed; without it

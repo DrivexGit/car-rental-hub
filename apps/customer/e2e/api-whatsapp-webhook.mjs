@@ -26,7 +26,7 @@ globalThis.fetch = async (input, init = {}) => {
 };
 
 const s = await createServer({ configFile: false, server: { middlewareMode: true }, appType: "custom", logLevel: "error" });
-const { GET, POST } = await s.ssrLoadModule("/api/whatsapp-webhook.ts");
+const { GET, POST } = await s.ssrLoadModule("/api/_whatsapp-webhook.ts");
 const results = [];
 const check = (name, pass, extra = "") => results.push({ name, pass, extra });
 const post = async (payload, secret = "app-secret") => {
