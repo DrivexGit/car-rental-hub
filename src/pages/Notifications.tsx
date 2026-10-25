@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, CalendarPlus, CreditCard, FileText, TriangleAlert, UserPlus, CheckCheck } from 'lucide-react';
+import { Bell, CalendarPlus, CreditCard, FileText, TriangleAlert, UserPlus, CheckCheck, MessageCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNotifications } from '@/hooks/useNotifications';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { ago } from '@/lib/format';
 
-const ICON: Record<string, typeof Bell> = { booking_new: CalendarPlus, booking_paid: CreditCard, urgent: TriangleAlert, document: FileText, customer_new: UserPlus };
+const ICON: Record<string, typeof Bell> = { booking_new: CalendarPlus, booking_paid: CreditCard, urgent: TriangleAlert, document: FileText, customer_new: UserPlus, message: MessageCircle };
 
 export default function Notifications() {
   const { notes, unread, markAllRead, markRead } = useNotifications();
