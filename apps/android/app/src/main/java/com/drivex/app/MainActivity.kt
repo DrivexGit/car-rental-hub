@@ -298,7 +298,7 @@ class MainActivity : ComponentActivity() {
 
     /** A link to the Drivex site that opened the app (from WhatsApp, an email, a notification). */
     private fun linkFrom(intent: Intent?): String? =
-        intent?.takeIf { it.action == Intent.ACTION_VIEW }?.dataString?.takeIf { router.route(it) == Route.IN_APP }
+        intent?.takeIf { it.action == Intent.ACTION_VIEW }?.dataString?.takeIf { it == appOrigin || it.startsWith("$appOrigin/") } // only Drivex pages, not a payment host
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
