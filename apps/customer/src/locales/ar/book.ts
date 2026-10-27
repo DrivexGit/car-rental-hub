@@ -50,6 +50,8 @@ export default {
   "Child seat": "مقعد أطفال",
   "Total · {count}": "الإجمالي · {count}",
   "{name} photo {n}": "صورة {name} رقم {n}",
+  "Previous photo": "الصورة السابقة",
+  "Next photo": "الصورة التالية",
   "Close photo": "إغلاق الصورة",
 
   // Checkout

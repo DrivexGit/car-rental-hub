@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useI18n } from "@/lib/i18n";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { Briefcase, CalendarDays, Check, DoorOpen, Fuel, Gauge, Minus, Plus, Settings2, ShieldCheck, Sparkles, Users } from "lucide-react";
+import { Briefcase, CalendarDays, Check, ChevronLeft, ChevronRight, DoorOpen, Fuel, Gauge, Minus, Plus, Settings2, ShieldCheck, Sparkles, Users, X } from "lucide-react";
 import { DateSheet } from "@/components/DatePicker";
 import { DEPOSIT_AMOUNT, DRIVER_DAILY, DRIVER_MONTHLY, CHILD_SEAT_DAILY, EXTRAS, FULL_COVER_PCT, NO_DEPOSIT_FEE, PERIOD_DAYS, PERIOD_UNIT, carName, extraCost, priceFor, priceWithVat, type Car, type Period } from "@/data/catalog";
 import { useStore } from "@/lib/store";
@@ -37,6 +38,7 @@ export default function Reserve() {
   const missing = missingDocuments(documents);
   const [needDocs, setNeedDocs] = useState(false);
   const [needEmail, setNeedEmail] = useState(false);
+  const [photo, setPhoto] = useState<number | null>(null);
   const [picking, setPicking] = useState(false);
   const car = carById(carId);
   const off = offers.find((o) => o.kind === "car" && o.car?.id === carId)?.off ?? 0;
@@ -57,6 +59,8 @@ export default function Reserve() {
     : <><Dirham /> {t("{n} / day", { n: id === "extra_driver" ? DRIVER_DAILY : CHILD_SEAT_DAILY })}</>;
   const toggle = (id: string) => setExtras((x) => (x.includes(id) ? x.filter((i) => i !== id) : [...x, id]));
 
+  // the album: the studio photo first, then the gallery
+  const album = [car.image, ...(specs?.gallery ?? [])].filter((x, i, a) => x && a.indexOf(x) === i);
   return (
     <Screen tabs={false} wide className="pb-36">
       <BackBar title={t("Book your car")} right={<span className="text-sm text-ink-muted">{t("1 of 3")}</span>} />
@@ -66,9 +70,10 @@ export default function Reserve() {
       <div>
       <Card className="overflow-hidden">
         <div className="bg-gradient-to-b from-tint to-white px-4 pt-4">
-          <img src={car.image} alt={carName(car)} className="mx-auto h-[170px] w-full object-contain" />
+          <img src={car.image} alt={carName(car)} className={`mx-auto h-[170px] w-full object-contain ${album.length > 1 ? "cursor-zoom-in" : ""}`} onClick={() => album.length > 1 && setPhoto(0)} />
         </div>
-        {!!specs?.gallery.length && <Gallery photos={specs.gallery} name={carName(car)} />}
+        {!!specs?.gallery.length && <Gallery photos={album} name={carName(car)} onOpen={setPhoto} />}
+        {photo !== null && <Album photos={album} name={carName(car)} index={photo} onIndex={setPhoto} onClose={() => setPhoto(null)} />}
         <div className="p-4">
           <p className="text-2xl font-bold">{carName(car)}</p>
           <div className="mt-2 flex flex-wrap gap-4 text-sm text-ink-muted">
@@ -184,23 +189,47 @@ const RoundBtn = ({ children, onClick, label }: { children: React.ReactNode; onC
 );
 
 /** Swipeable real photos of the model; tap one to see it full screen. */
-function Gallery({ photos, name }: { photos: string[]; name: string }) {
+function Gallery({ photos, name, onOpen }: { photos: string[]; name: string; onOpen: (i: number) => void }) {
   const { t } = useI18n();
-  const [open, setOpen] = useState<string | null>(null);
   return (
-    <>
-      <div className="no-scrollbar flex snap-x gap-2 overflow-x-auto px-4 pt-3">
-        {photos.map((src, i) => (
-          <button key={src} onClick={() => setOpen(src)} className="h-20 w-28 shrink-0 snap-start overflow-hidden rounded-xl bg-line" aria-label={t("{name} photo {n}", { name, n: i + 1 })}>
-            <img src={src} alt="" loading="lazy" className="h-full w-full object-cover" />
-          </button>
-        ))}
-      </div>
-      {open && (
-        <button onClick={() => setOpen(null)} className="fixed inset-0 z-50 grid place-items-center bg-black/90 p-4" aria-label={t("Close photo")}>
-          <img src={open} alt={name} className="max-h-full max-w-full rounded-xl object-contain" />
+    <div className="no-scrollbar flex snap-x gap-2 overflow-x-auto px-4 pt-3">
+      {photos.map((src, i) => (
+        <button key={src} onClick={() => onOpen(i)} className="h-20 w-28 shrink-0 snap-start overflow-hidden rounded-xl bg-line" aria-label={t("{name} photo {n}", { name, n: i + 1 })}>
+          <img src={src} alt="" loading="lazy" className="h-full w-full object-cover" />
         </button>
-      )}
-    </>
+      ))}
+    </div>
+  );
+}
+
+/** Full-screen photo viewer: previous / next buttons, swipe, arrow keys, Escape to close. */
+function Album({ photos, name, index, onIndex, onClose }: { photos: string[]; name: string; index: number; onIndex: (i: number) => void; onClose: () => void }) {
+  const { t, dir } = useI18n();
+  const n = photos.length;
+  const go = (step: number) => onIndex((index + step + n) % n);
+  const startX = useRef<number | null>(null);
+  useEffect(() => {
+    const key = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      if (e.key === "ArrowRight") go(dir === "rtl" ? -1 : 1);
+      if (e.key === "ArrowLeft") go(dir === "rtl" ? 1 : -1);
+    };
+    window.addEventListener("keydown", key);
+    return () => window.removeEventListener("keydown", key);
+  });
+  const arrow = "absolute top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white/15 text-white hover:bg-white/25";
+  return createPortal( // on <body>, so no animated parent or fixed bar of the page can show through
+    <div role="dialog" aria-modal="true" aria-label={name} className="fixed inset-0 z-[100]" style={{ background: "rgba(0,0,0,.95)" }} onClick={onClose}
+      onTouchStart={(e) => { startX.current = e.touches[0].clientX; }}
+      onTouchEnd={(e) => { if (startX.current === null) return; const dx = e.changedTouches[0].clientX - startX.current; startX.current = null; if (Math.abs(dx) > 40) go((dx < 0 ? 1 : -1) * (dir === "rtl" ? -1 : 1)); }}>
+      <img src={photos[index]} alt={t("{name} photo {n}", { name, n: index + 1 })} className="absolute inset-0 m-auto max-h-[85%] max-w-[92%] rounded-xl object-contain" onClick={(e) => e.stopPropagation()} />
+      <button onClick={onClose} className="absolute end-4 top-[max(1rem,env(safe-area-inset-top))] grid h-11 w-11 place-items-center rounded-full bg-white/15 text-white" aria-label={t("Close photo")}><X className="h-5 w-5" /></button>
+      {n > 1 && <>
+        <button onClick={(e) => { e.stopPropagation(); go(-1); }} className={`${arrow} start-3`} aria-label={t("Previous photo")}><ChevronLeft className="h-6 w-6 rtl:-scale-x-100" /></button>
+        <button onClick={(e) => { e.stopPropagation(); go(1); }} className={`${arrow} end-3`} aria-label={t("Next photo")}><ChevronRight className="h-6 w-6 rtl:-scale-x-100" /></button>
+        <p dir="ltr" className="absolute inset-x-0 bottom-[max(1.5rem,env(safe-area-inset-bottom))] text-center text-sm font-medium text-white/80">{index + 1} / {n}</p>
+      </>}
+    </div>,
+    document.body,
   );
 }
