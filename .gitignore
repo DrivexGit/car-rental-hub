@@ -33,3 +33,4 @@ docs/customer-app/ui/
 
 # Supabase CLI cache
 supabase/.temp/
+.vercel
