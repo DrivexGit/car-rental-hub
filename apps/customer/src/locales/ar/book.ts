@@ -71,7 +71,7 @@ export default {
   "Invoice {number} is paid.": "تم دفع الفاتورة {number}.",
   "Amount due": "المبلغ المستحق",
   "Card or Apple Pay": "بطاقة أو Apple Pay",
-  "Secure payment by Ziina": "دفع آمن عبر زينا",
+  "Secure payment by Stripe": "دفع آمن عبر Stripe",
 
   // Date picker
   "Rental dates": "تواريخ الإيجار",
