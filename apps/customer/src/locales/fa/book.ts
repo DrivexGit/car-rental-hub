@@ -69,7 +69,7 @@ export default {
   "Invoice {number} is paid.": "فاکتور {number} پرداخت شد.",
   "Amount due": "مبلغ قابل پرداخت",
   "Card or Apple Pay": "کارت یا Apple Pay",
-  "Secure payment by Ziina": "پرداخت امن با زیینا",
+  "Secure payment by Stripe": "پرداخت امن با Stripe",
 
   // Date picker
   "Rental dates": "تاریخ‌های اجاره",

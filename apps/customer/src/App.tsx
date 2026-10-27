@@ -31,7 +31,7 @@ export default function App() {
   const { pathname, search } = useLocation();
   useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
 
-  // Back from Ziina checkout: confirm the payment with the provider, then reload data.
+  // Back from the Stripe (or Ziina) checkout: confirm the payment with the provider, then reload data.
   useEffect(() => {
     const id = new URLSearchParams(search).get("payment");
     if (id && user) api("pay", { action: "confirm", paymentId: id }).catch(() => {}).finally(refresh);

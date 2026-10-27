@@ -38,7 +38,7 @@ export function PayInvoiceSheet({ invoice, open, onClose }: { invoice: Invoice; 
           </div>
           <div className="mt-4 flex items-center gap-3 rounded-card border border-line p-4">
             <CreditCard className="h-6 w-6 text-brand" />
-            <div className="flex-1"><p className="font-medium">{t("Card or Apple Pay")}</p><p className="text-xs text-ink-muted">{t("Secure payment by Ziina")}</p></div>
+            <div className="flex-1"><p className="font-medium">{t("Card or Apple Pay")}</p><p className="text-xs text-ink-muted">{t("Secure payment by Stripe")}</p></div>
           </div>
           {error && <p className="mt-3 text-sm font-medium text-danger">{error}</p>}
           <Button size="lg" className="mt-5" disabled={state === "busy"} onClick={pay}>

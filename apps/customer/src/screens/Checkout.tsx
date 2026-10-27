@@ -80,7 +80,7 @@ export default function Checkout() {
       <h2 className="mb-2 mt-6 font-semibold">{t("Payment")}</h2>
       <Card className="flex items-center gap-3 border-brand p-4">
         <CreditCard className="h-6 w-6 text-brand" />
-        <div className="flex-1"><p className="font-medium">{t("Card or Apple Pay")}</p><p className="text-xs text-ink-muted">{t("Secure payment by Ziina")}</p></div>
+        <div className="flex-1"><p className="font-medium">{t("Card or Apple Pay")}</p><p className="text-xs text-ink-muted">{t("Secure payment by Stripe")}</p></div>
         <span className="h-5 w-5 rounded-full border-[6px] border-brand" />
       </Card>
       {error && <p className="mt-4 rounded-card bg-danger-soft p-3 text-sm font-medium text-danger">{error}</p>}
