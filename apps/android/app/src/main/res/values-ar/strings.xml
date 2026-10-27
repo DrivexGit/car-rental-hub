@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="offline_title">لا يوجد اتصال</string>
+    <string name="offline_text">تحقق من اتصالك بالإنترنت وحاول مرة أخرى.</string>
+    <string name="retry">حاول مرة أخرى</string>
+    <string name="choose_file">اختر ملفًا</string>
+    <string name="download_started">جارٍ تنزيل %1$s…</string>
+    <string name="download_saved">تم الحفظ في التنزيلات: %1$s</string>
+    <string name="download_failed">تعذّر حفظ الملف. يرجى المحاولة مرة أخرى.</string>
+    <string name="no_app">لا يوجد تطبيق على هذا الهاتف لفتح هذا الرابط.</string>
+</resources>

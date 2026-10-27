@@ -6,7 +6,8 @@ import { useI18n } from "@/lib/i18n";
 
 type BIP = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> };
 const KEY = "drivex.install.dismissed";
-const standalone = () => matchMedia("(display-mode: standalone)").matches || (navigator as any).standalone === true;
+// installed: home-screen web app, or the Drivex Android app (its WebView adds "DrivexApp/" to the user agent)
+const standalone = () => matchMedia("(display-mode: standalone)").matches || (navigator as any).standalone === true || /DrivexApp\//.test(navigator.userAgent);
 const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent);
 const isMobile = () => /android|iphone|ipad|ipod/i.test(navigator.userAgent);
 
