@@ -1,0 +1,26 @@
+{
+ "fa": {
+  "Take photo": "گرفتن عکس",
+  "Photo library": "گالری عکس",
+  "Choose file": "انتخاب فایل",
+  "Cancel": "انصراف",
+  "Share PDF": "اشتراک‌گذاری PDF",
+  "Payment": "پرداخت",
+  "Checking your payment…": "در حال بررسی پرداخت…",
+  "The app is not set up yet": "اپ هنوز تنظیم نشده است",
+  "Add the Supabase URL and key in Config/Secrets.xcconfig, then build again.": "آدرس و کلید Supabase را در Config/Secrets.xcconfig وارد کنید و دوباره بیلد بگیرید.",
+  "Could not load your data. Pull down to try again.": "اطلاعات شما بارگیری نشد. برای تلاش دوباره صفحه را به پایین بکشید."
+ },
+ "ar": {
+  "Take photo": "التقاط صورة",
+  "Photo library": "مكتبة الصور",
+  "Choose file": "اختيار ملف",
+  "Cancel": "إلغاء",
+  "Share PDF": "مشاركة PDF",
+  "Payment": "الدفع",
+  "Checking your payment…": "جارٍ التحقق من الدفع…",
+  "The app is not set up yet": "التطبيق غير مُعدّ بعد",
+  "Add the Supabase URL and key in Config/Secrets.xcconfig, then build again.": "أضف عنوان Supabase ومفتاحه في Config/Secrets.xcconfig ثم أعد البناء.",
+  "Could not load your data. Pull down to try again.": "تعذّر تحميل بياناتك. اسحب للأسفل للمحاولة مرة أخرى."
+ }
+}

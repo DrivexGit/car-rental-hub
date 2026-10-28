@@ -1,0 +1,15 @@
+// Build settings the app reads through Info.plist.
+// "//" starts a comment in xcconfig files, so URLs are written as https:/$()/host.
+
+// The Drivex site: its /api functions, the car pictures and the payment return page.
+DRIVEX_SITE_URL = https:/$()/drivex-customer.vercel.app
+
+// The Supabase project and its public (anon) key, the same values as the site's VITE_SUPABASE_URL and
+// VITE_SUPABASE_ANON_KEY. Put them in Config/Secrets.xcconfig (not committed), see Secrets.example.xcconfig.
+SUPABASE_URL =
+SUPABASE_ANON_KEY =
+
+// Apple Developer team that signs the app (Xcode > Settings > Accounts). Also set in Secrets.xcconfig.
+DRIVEX_TEAM_ID =
+
+#include? "Secrets.xcconfig"
