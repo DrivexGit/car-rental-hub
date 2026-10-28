@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
-    <!-- photos taken for a document upload -->
+    <!-- photos taken for a document or the profile photo -->
     <cache-path name="camera" path="camera/" />
+    <!-- invoice PDFs handed to another app (share) -->
+    <cache-path name="invoices" path="invoices/" />
     <!-- invoices saved on Android 8-9 -->
     <external-files-path name="downloads" path="Download/" />
 </paths>

@@ -3,6 +3,4 @@
 <resources>
     <color name="brand">#1F4D2F</color>
     <color name="page">#F6F5F2</color>
-    <color name="ink">#141414</color>
-    <color name="ink_muted">#6B6B6B</color>
 </resources>

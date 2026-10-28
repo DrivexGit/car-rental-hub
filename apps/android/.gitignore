@@ -9,6 +9,7 @@ captures/
 .cxx/
 # release signing: never commit the key or its passwords
 keystore.properties
+secrets.properties
 *.jks
 *.keystore
 out/

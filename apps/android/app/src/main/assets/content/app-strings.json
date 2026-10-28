@@ -1,0 +1,28 @@
+{
+ "fa": {
+  "Cancel": "انصراف",
+  "Card": "کارت بانکی",
+  "Choose file": "انتخاب فایل",
+  "Could not load your data. Pull down to try again.": "اطلاعات شما بارگیری نشد. برای تلاش دوباره صفحه را به پایین بکشید.",
+  "Could not load your data.": "اطلاعات شما بارگیری نشد.",
+  "No app on this phone can open this link.": "هیچ برنامه‌ای روی این گوشی این لینک را باز نمی‌کند.",
+  "Photo library": "گالری عکس",
+  "Saved to Downloads": "در پوشه‌ی Downloads ذخیره شد",
+  "Take photo": "گرفتن عکس",
+  "Try again": "تلاش دوباره",
+  "Payment": "پرداخت"
+ },
+ "ar": {
+  "Cancel": "إلغاء",
+  "Card": "بطاقة",
+  "Choose file": "اختيار ملف",
+  "Could not load your data. Pull down to try again.": "تعذّر تحميل بياناتك. اسحب للأسفل للمحاولة مرة أخرى.",
+  "Could not load your data.": "تعذّر تحميل بياناتك.",
+  "No app on this phone can open this link.": "لا يوجد تطبيق على هذا الهاتف يفتح هذا الرابط.",
+  "Photo library": "مكتبة الصور",
+  "Saved to Downloads": "تم الحفظ في مجلد التنزيلات",
+  "Take photo": "التقاط صورة",
+  "Try again": "حاول مرة أخرى",
+  "Payment": "الدفع"
+ }
+}
