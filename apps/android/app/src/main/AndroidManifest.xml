@@ -2,11 +2,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <!-- Only asked for when the customer chooses to take a photo of a document. -->
-    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Photos are taken by the phone's camera app (ACTION_IMAGE_CAPTURE), so the app itself needs no camera permission. -->
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
-    <!-- Apps the page can hand a link to (WhatsApp, phone, mail, maps). Needed to resolve them on Android 11+. -->
+    <!-- Apps the app hands a link or file to (WhatsApp, phone, mail, PDF viewer). Needed to resolve them on Android 11+. -->
     <queries>
         <intent>
             <action android:name="android.intent.action.VIEW" />
@@ -22,12 +21,10 @@
         <intent>
             <action android:name="android.media.action.IMAGE_CAPTURE" />
         </intent>
-        <intent>
-            <action android:name="android.support.customtabs.action.CustomTabsService" />
-        </intent>
     </queries>
 
     <application
+        android:name=".DrivexApplication"
         android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="false"
