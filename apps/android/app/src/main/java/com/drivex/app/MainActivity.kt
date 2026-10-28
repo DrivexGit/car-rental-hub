@@ -49,7 +49,7 @@ class MainActivity : ComponentActivity() {
         if (uri.host != AppConfig.siteHost) return
         val path = (uri.path ?: "/") + (uri.fragment?.let { "#$it" } ?: "")
         val payment = uri.getQueryParameter("payment")
-        if (payment != null) AppStore.scope.launch { AppStore.confirmPayment(payment) }
+        if (payment != null && Auth.userId != null) AppStore.scope.launch { AppStore.confirmPayment(payment) }
         Router.open(path)
     }
 }
