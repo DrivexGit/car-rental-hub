@@ -30,7 +30,7 @@ android {
         // 1.x was the site in a web view; 2.0 is the native app. It installs over 1.x (same id and key).
         versionCode = 2
         versionName = "2.0.0"
-        buildConfigField("String", "SITE_URL", "\"${secret("drivexUrl").ifEmpty { "https://drivex-customer.vercel.app" }}\"")
+        buildConfigField("String", "SITE_URL", "\"${secret("drivexUrl").ifEmpty { "https://app.drivex.ae" }}\"")
         buildConfigField("String", "SUPABASE_URL", "\"${secret("supabaseUrl")}\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"${secret("supabaseAnonKey")}\"")
         resourceConfigurations += listOf("en", "fa", "ar")

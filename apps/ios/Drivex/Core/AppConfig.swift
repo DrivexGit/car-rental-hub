@@ -7,7 +7,7 @@ enum AppConfig {
     }
 
     /// The Drivex site: its /api functions, the bundled car pictures and the page Stripe returns to.
-    static let siteURL = URL(string: info("DrivexSiteURL")).flatMap { $0.host == nil ? nil : $0 } ?? URL(string: "https://drivex-customer.vercel.app")!
+    static let siteURL = URL(string: info("DrivexSiteURL")).flatMap { $0.host == nil ? nil : $0 } ?? URL(string: "https://app.drivex.ae")!
     static let supabaseURL = URL(string: info("SupabaseURL")).flatMap { $0.host == nil ? nil : $0 }
     static let supabaseKey = info("SupabaseAnonKey")
     /// False when Config/Secrets.xcconfig was not filled in: the app shows how to fix it instead of failing.

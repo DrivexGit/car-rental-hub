@@ -145,7 +145,7 @@ export default function Invoices() {
         reader.readAsDataURL(upload.file!);
       });
       const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch(`${import.meta.env.VITE_CUSTOMER_API_URL || 'https://drivex-customer.vercel.app'}/api/invoice-extract`, {
+      const res = await fetch(`${import.meta.env.VITE_CUSTOMER_API_URL || 'https://app.drivex.ae'}/api/invoice-extract`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${session?.access_token ?? ''}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ file: file64 }),

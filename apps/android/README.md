@@ -78,7 +78,7 @@ Every Play update must be signed with it. Raise `versionCode` / `versionName` in
 ## App links
 
 Site links already open in the app when the customer picks Drivex. To open them **without asking**, publish the signing
-key's SHA-256 fingerprint at `https://drivex-customer.vercel.app/.well-known/assetlinks.json`:
+key's SHA-256 fingerprint at `https://app.drivex.ae/.well-known/assetlinks.json`:
 
 ```json
 [{ "relation": ["delegate_permission/common.handle_all_urls"],
