@@ -79,4 +79,6 @@ export default {
   "Invoices, Salik and booking updates.": "فاکتورها، سالیک و به‌روزرسانی رزرو.",
   "Allow": "اجازه دادن",
   "Not now": "الان نه",
+  "View on Instagram": "مشاهده در اینستاگرام",
+  "Visit website": "رفتن به سایت",
 } as Record<string, string>;

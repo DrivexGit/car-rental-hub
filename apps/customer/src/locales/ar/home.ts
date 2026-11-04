@@ -79,4 +79,6 @@ export default {
   "Invoices, Salik and booking updates.": "الفواتير وسالك وتحديثات الحجز.",
   "Allow": "السماح",
   "Not now": "ليس الآن",
+  "View on Instagram": "عرض على إنستغرام",
+  "Visit website": "زيارة الموقع",
 } as Record<string, string>;

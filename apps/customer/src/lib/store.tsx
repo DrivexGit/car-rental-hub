@@ -15,7 +15,7 @@ export type Invoice = { id: string; number: string; bookingId: string | null; am
 /** Seller details printed on invoices (TRN, legal address, bank). Set in the panel's tenant settings. */
 export type Seller = { trn: string | null; legal_address: string | null; bank_account_name: string | null; bank_name: string | null; iban: string | null; bic: string | null };
 export type Fine = { id: string; bookingId: string | null; type: string; title: string | null; amount: number; date: string; place: string };
-export type Offer = { id: string; kind: "car" | "partner"; title: string; subtitle?: string; off: number; image?: string; car?: Car; description?: string; terms?: string; location?: string; code?: string };
+export type Offer = { id: string; kind: "car" | "partner"; title: string; subtitle?: string; off: number; image?: string; car?: Car; description?: string; terms?: string; location?: string; link?: string; code?: string };
 export type Specs = { engine?: string; transmission: string; fuel: string; seats: number; doors: number; bags: number; features: string[]; image?: string; gallery: string[] };
 export type Note = { id: string; type: string; title: string; body?: string; link?: string; read: boolean; created: string };
 export type Doc = { id: string; type: string; fileName: string; status: string; created: string };
@@ -96,7 +96,7 @@ async function loadAll(): Promise<{ user: User; data: Data } | null> {
       })),
       seller: (seller as Seller | null) ?? null,
       fines: (f.data ?? []).map((x: any) => ({ id: x.id, bookingId: x.reservation_id, type: x.type, title: x.title ?? null, amount: Number(x.amount), date: x.occurred_at, place: x.location ?? "" })),
-      offers: (o.data ?? []).map((x: any) => ({ id: x.id, kind: x.kind, title: x.title, subtitle: x.subtitle ?? undefined, off: x.discount_pct, image: x.image_url ?? undefined, car: x.kind === "car" ? byTitle(x.title) : undefined, description: x.description ?? undefined, terms: x.terms ?? undefined, location: x.location ?? undefined, code: x.redeem_code ?? undefined }))
+      offers: (o.data ?? []).map((x: any) => ({ id: x.id, kind: x.kind, title: x.title, subtitle: x.subtitle ?? undefined, off: x.discount_pct, image: x.image_url ?? undefined, car: x.kind === "car" ? byTitle(x.title) : undefined, description: x.description ?? undefined, terms: x.terms ?? undefined, location: x.location ?? undefined, link: x.link_url ?? undefined, code: x.redeem_code ?? undefined }))
         .filter((x: Offer) => x.kind === "partner" || x.car),
       specs,
       notes: (nt.data ?? []).map((x: any) => ({ id: x.id, type: x.type, title: x.title, body: x.body ?? undefined, link: x.link ?? undefined, read: !!x.read_at, created: x.created_at })),

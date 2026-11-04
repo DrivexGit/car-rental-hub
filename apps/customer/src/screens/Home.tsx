@@ -119,6 +119,7 @@ export default function Home() {
               <Badge className="bg-danger text-white">{t("{n}% off", { n: benefit.off })}</Badge>
             </div>
             {benefit.description && <p className="mt-2 text-[15px]">{benefit.description}</p>}
+            {benefit.link && <a href={benefit.link} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-sm font-semibold text-brand underline">{t(/instagram\.com/.test(benefit.link) ? "View on Instagram" : "Visit website")}</a>}
             <BenefitCode offerId={benefit.id} />
             {benefit.terms && <p className="mt-4 text-xs text-ink-muted">{benefit.terms}</p>}
           </div>

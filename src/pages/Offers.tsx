@@ -13,8 +13,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 
-type Offer = { id?: string; kind: 'car' | 'partner'; title: string; subtitle: string; discount_pct: number | string; image_url: string; description: string; terms: string; location: string; redeem_code: string; is_active: boolean; sort_order: number };
-const blank = (kind: Offer['kind'] = 'car'): Offer => ({ kind, title: '', subtitle: kind === 'partner' ? 'Dining' : '', discount_pct: 10, image_url: '', description: '', terms: '', location: '', redeem_code: '', is_active: true, sort_order: 0 });
+type Offer = { id?: string; kind: 'car' | 'partner'; title: string; subtitle: string; discount_pct: number | string; image_url: string; description: string; terms: string; location: string; link_url: string; redeem_code: string; is_active: boolean; sort_order: number };
+const blank = (kind: Offer['kind'] = 'car'): Offer => ({ kind, title: '', subtitle: kind === 'partner' ? 'Dining' : '', discount_pct: 10, image_url: '', description: '', terms: '', location: '', link_url: '', redeem_code: '', is_active: true, sort_order: 0 });
 
 /** Car discounts (applied automatically to app bookings) and partner benefits shown in the customer app. */
 export default function Offers() {
@@ -58,7 +58,7 @@ export default function Offers() {
     if (!edit) return;
     const pct = Number(edit.discount_pct);
     if (!edit.title.trim() || !(pct >= 1 && pct <= 90)) { toast({ title: 'Title and a discount between 1–90% are required', variant: 'destructive' }); return; }
-    const row = { ...edit, discount_pct: pct, tenant_id: tenantId, subtitle: edit.subtitle || null, image_url: edit.image_url || null, description: edit.description || null, terms: edit.terms || null, location: edit.location || null, redeem_code: edit.redeem_code || null };
+    const row = { ...edit, discount_pct: pct, tenant_id: tenantId, subtitle: edit.subtitle || null, image_url: edit.image_url || null, description: edit.description || null, terms: edit.terms || null, location: edit.location || null, link_url: edit.link_url || null, redeem_code: edit.redeem_code || null };
     const { error } = edit.id ? await supabase.from('offers' as any).update(row).eq('id', edit.id) : await supabase.from('offers' as any).insert(row);
     if (error) { toast({ title: 'Error', description: error.message, variant: 'destructive' }); return; }
     toast({ title: 'Offer saved' }); setEdit(null); load();
@@ -119,6 +119,7 @@ export default function Offers() {
                     <div><Label>Category</Label><Input placeholder="Dining" value={edit.subtitle} onChange={(e) => set({ subtitle: e.target.value })} /></div>
                   </div>
                   <div><Label>Location</Label><Input placeholder="e.g. DIFC, Dubai" value={edit.location} onChange={(e) => set({ location: e.target.value })} /></div>
+                  <div><Label>Link (Instagram or website)</Label><Input placeholder="https://instagram.com/…" value={edit.link_url} onChange={(e) => set({ link_url: e.target.value })} /></div>
                   <div><Label>Description</Label><Textarea rows={2} value={edit.description} onChange={(e) => set({ description: e.target.value })} /></div>
                   <div><Label>Terms</Label><Textarea rows={2} value={edit.terms} onChange={(e) => set({ terms: e.target.value })} /></div>
                   <div className="grid grid-cols-2 gap-2">
