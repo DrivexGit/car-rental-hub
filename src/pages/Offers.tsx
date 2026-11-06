@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 
-type Offer = { id?: string; kind: 'car' | 'partner'; title: string; subtitle: string; discount_pct: number | string; image_url: string; description: string; terms: string; location: string; link_url: string; redeem_code: string; is_active: boolean; sort_order: number };
+type Offer = { id?: string; kind: 'car' | 'partner'; title: string; subtitle: string; discount_pct: number | string | null; image_url: string; description: string; terms: string; location: string; link_url: string; redeem_code: string; is_active: boolean; sort_order: number };
 const blank = (kind: Offer['kind'] = 'car'): Offer => ({ kind, title: '', subtitle: kind === 'partner' ? 'Dining' : '', discount_pct: 10, image_url: '', description: '', terms: '', location: '', link_url: '', redeem_code: '', is_active: true, sort_order: 0 });
 
 /** Car discounts (applied automatically to app bookings) and partner benefits shown in the customer app. */
@@ -56,8 +56,9 @@ export default function Offers() {
 
   const save = async () => {
     if (!edit) return;
-    const pct = Number(edit.discount_pct);
-    if (!edit.title.trim() || !(pct >= 1 && pct <= 90)) { toast({ title: 'Title and a discount between 1–90% are required', variant: 'destructive' }); return; }
+    // Partner offers may leave the discount empty (intro only).
+    const pct = (edit.discount_pct ?? '') === '' && edit.kind === 'partner' ? null : Number(edit.discount_pct);
+    if (!edit.title.trim() || !(pct === null || (pct >= 1 && pct <= 90))) { toast({ title: 'Title and a discount between 1–90% are required', variant: 'destructive' }); return; }
     const row = { ...edit, discount_pct: pct, tenant_id: tenantId, subtitle: edit.subtitle || null, image_url: edit.image_url || null, description: edit.description || null, terms: edit.terms || null, location: edit.location || null, link_url: edit.link_url || null, redeem_code: edit.redeem_code || null };
     const { error } = edit.id ? await supabase.from('offers' as any).update(row).eq('id', edit.id) : await supabase.from('offers' as any).insert(row);
     if (error) { toast({ title: 'Error', description: error.message, variant: 'destructive' }); return; }
@@ -87,7 +88,7 @@ export default function Offers() {
             <TableRow key={r.id}>
               <TableCell><Badge variant={r.kind === 'car' ? 'default' : 'secondary'}>{r.kind === 'car' ? 'Car' : 'Partner'}</Badge></TableCell>
               <TableCell className="font-medium">{r.title}<div className="text-xs text-muted-foreground">{r.subtitle}</div></TableCell>
-              <TableCell>{r.discount_pct}%</TableCell>
+              <TableCell>{r.discount_pct == null ? '—' : `${r.discount_pct}%`}</TableCell>
               <TableCell className="font-mono text-xs">{r.redeem_code || '—'}</TableCell>
               <TableCell className="text-xs">{r.kind === 'partner' ? (() => { const s = stats(r.id); return <span title={codes.filter((c) => c.offer_id === r.id).map((c) => `${c.code} · ${c.customers?.full_name ?? ''} · ${c.uses}`).join('\n')}>{s.count} codes · <b>{s.uses} uses</b></span>; })() : '—'}</TableCell>
               <TableCell><Switch checked={r.is_active} onCheckedChange={async (v) => { await supabase.from('offers' as any).update({ is_active: v }).eq('id', r.id); load(); }} /></TableCell>
@@ -129,7 +130,7 @@ export default function Offers() {
                 </>
               )}
               <div className="grid grid-cols-2 gap-2">
-                <div><Label>Discount % *</Label><Input type="number" min="1" max="90" value={edit.discount_pct} onChange={(e) => set({ discount_pct: e.target.value })} /></div>
+                <div><Label>Discount %{edit.kind === 'partner' ? ' (empty = intro only)' : ' *'}</Label><Input type="number" min="1" max="90" value={edit.discount_pct ?? ''} onChange={(e) => set({ discount_pct: e.target.value })} /></div>
                 <div><Label>Order</Label><Input type="number" value={edit.sort_order} onChange={(e) => set({ sort_order: Number(e.target.value) })} /></div>
               </div>
               <label className="flex items-center gap-2 text-sm"><Switch checked={edit.is_active} onCheckedChange={(v) => set({ is_active: v })} /> Active</label>

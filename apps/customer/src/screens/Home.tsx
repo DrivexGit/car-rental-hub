@@ -104,7 +104,7 @@ export default function Home() {
             {d.image && <img src={d.image} alt={d.title} className="h-[100px] w-full object-cover lg:h-[150px]" loading="lazy" />}
             <div className="flex items-center justify-between p-3">
               <div><p className="text-sm font-semibold">{d.title}</p><p className="text-xs text-ink-muted">{d.subtitle}</p></div>
-              <Badge className="bg-danger-soft text-danger">{t("{n}% off", { n: d.off })}</Badge>
+              {!!d.off && <Badge className="bg-danger-soft text-danger">{t("{n}% off", { n: d.off })}</Badge>}
             </div>
           </Card>
         ))}
@@ -116,11 +116,11 @@ export default function Home() {
             {benefit.image && <img src={benefit.image} alt="" className="h-44 w-full rounded-card object-cover" />}
             <div className="mt-4 flex items-center justify-between">
               <p className="text-ink-muted">{benefit.subtitle}{benefit.location ? ` · ${benefit.location}` : ""}</p>
-              <Badge className="bg-danger text-white">{t("{n}% off", { n: benefit.off })}</Badge>
+              {!!benefit.off && <Badge className="bg-danger text-white">{t("{n}% off", { n: benefit.off })}</Badge>}
             </div>
             {benefit.description && <p className="mt-2 text-[15px]">{benefit.description}</p>}
             {benefit.link && <a href={benefit.link} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-sm font-semibold text-brand underline">{t(/instagram\.com/.test(benefit.link) ? "View on Instagram" : "Visit website")}</a>}
-            <BenefitCode offerId={benefit.id} />
+            {!!benefit.off && <BenefitCode offerId={benefit.id} />}
             {benefit.terms && <p className="mt-4 text-xs text-ink-muted">{benefit.terms}</p>}
           </div>
         )}
