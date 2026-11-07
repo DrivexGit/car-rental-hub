@@ -54,7 +54,7 @@ data class Fine(val id: String, val bookingId: String?, val type: String, val ti
 
 data class Offer(
     val id: String, val kind: String, val title: String, val subtitle: String?, val off: Int, val image: String?, val car: Car?,
-    val description: String?, val terms: String?, val location: String?,
+    val description: String?, val terms: String?, val location: String?, val link: String? = null,
 )
 
 data class Specs(

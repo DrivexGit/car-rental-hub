@@ -113,6 +113,7 @@ struct Offer: Identifiable, Hashable {
     let description: String?
     let terms: String?
     let location: String?
+    var link: String? = nil
 }
 
 struct Specs: Hashable {

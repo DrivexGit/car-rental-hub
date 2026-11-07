@@ -1,5 +1,7 @@
 package com.drivex.app.screens
 
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.platform.LocalUriHandler
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -280,7 +282,7 @@ private fun PartnerCard(o: Offer, onClick: () -> Unit) {
                 Text(o.title, style = dx(14.sp, FontWeight.SemiBold), color = DX.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 o.subtitle?.let { Text(it, style = dx(12.sp), color = DX.inkMuted, maxLines = 1, overflow = TextOverflow.Ellipsis) }
             }
-            Badge(t("{n}% off", "n" to o.off), DX.danger, DX.dangerSoft)
+            if (o.off > 0) Badge(t("{n}% off", "n" to o.off), DX.danger, DX.dangerSoft)
         }
     }
 }
@@ -289,18 +291,27 @@ private fun PartnerCard(o: Offer, onClick: () -> Unit) {
 @Composable
 private fun BenefitSheet(o: Offer, onClose: () -> Unit) {
     val context = LocalContext.current
+    val uriHandler = LocalUriHandler.current
     var code by remember { mutableStateOf("") }
     var copied by remember { mutableStateOf(false) }
-    LaunchedEffect(o.id) { code = runCatching { Db.rpc("my_offer_code", mapOf("p_offer" to o.id)).string }.getOrNull() ?: "" }
+    LaunchedEffect(o.id) { if (o.off > 0) code = runCatching { Db.rpc("my_offer_code", mapOf("p_offer" to o.id)).string }.getOrNull() ?: "" }
     LaunchedEffect(copied) { if (copied) { delay(1800); copied = false } }
     Sheet(o.title, onClose) {
         if (o.image != null) RemoteImage(o.image, Modifier.fillMaxWidth().height(176.dp).clip(RoundedCornerShape(14.dp)), fill = true)
         Row(Modifier.padding(top = 16.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(listOfNotNull(o.subtitle, o.location).joinToString(" · "), style = dx(15.sp), color = DX.inkMuted, modifier = Modifier.weight(1f))
-            Badge(t("{n}% off", "n" to o.off), Color.White, DX.danger)
+            if (o.off > 0) Badge(t("{n}% off", "n" to o.off), Color.White, DX.danger)
         }
         o.description?.let { Text(it, style = dx(15.sp), color = DX.ink, modifier = Modifier.padding(top = 8.dp)) }
-        Column(
+        o.link?.let { link ->
+            Text(
+                t(if ("instagram.com" in link) "View on Instagram" else "Visit website"),
+                style = dx(14.sp, FontWeight.SemiBold).copy(textDecoration = TextDecoration.Underline), color = DX.brand,
+                modifier = Modifier.padding(top = 8.dp).clickable { uriHandler.openUri(link) },
+            )
+        }
+        // An intro-only partner (no discount) has no code.
+        if (o.off > 0) Column(
             Modifier.padding(top = 20.dp).fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(DX.brandSoft)
                 .drawBehind { drawRoundRect(DX.brand, style = Stroke(2.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(18f, 12f))), cornerRadius = CornerRadius(14.dp.toPx())) }
                 .padding(16.dp).appear(150),

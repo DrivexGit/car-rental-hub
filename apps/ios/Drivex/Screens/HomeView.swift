@@ -233,7 +233,7 @@ private struct PartnerCard: View {
                         if let s = offer.subtitle { Text(s).font(.dx(12)).foregroundStyle(Color.inkMuted).lineLimit(1) }
                     }
                     Spacer(minLength: 4)
-                    Badge(text: t("{n}% off", ["n": offer.off]), fg: .danger, bg: .dangerSoft)
+                    if offer.off > 0 { Badge(text: t("{n}% off", ["n": offer.off]), fg: .danger, bg: .dangerSoft) }
                 }
                 .padding(12)
             }
@@ -245,17 +245,23 @@ private struct PartnerCard: View {
 /// A partner benefit, with the customer's own code to show at the venue.
 private struct BenefitSheet: View {
     let offer: Offer
+    @Environment(\.openURL) private var openURL
     var body: some View {
         SheetFrame(title: offer.title) {
             if offer.image != nil { RemoteImage(path: offer.image, fill: true).frame(height: 176).frame(maxWidth: .infinity).clipShape(RoundedRectangle(cornerRadius: 14)) }
             HStack {
                 Text([offer.subtitle, offer.location].compactMap { $0 }.joined(separator: " · ")).font(.dx(15)).foregroundStyle(Color.inkMuted)
                 Spacer()
-                Badge(text: t("{n}% off", ["n": offer.off]), fg: .white, bg: .danger)
+                if offer.off > 0 { Badge(text: t("{n}% off", ["n": offer.off]), fg: .white, bg: .danger) }
             }
             .padding(.top, 16)
             if let d = offer.description { Text(d).font(.dx(15)).foregroundStyle(Color.ink).padding(.top, 8) }
-            BenefitCode(offerId: offer.id)
+            if let link = offer.link, let url = URL(string: link) {
+                Button(t(link.contains("instagram.com") ? "View on Instagram" : "Visit website")) { openURL(url) }
+                    .font(.dx(14, .semibold)).foregroundStyle(Color.brand).underline().padding(.top, 8)
+            }
+            // An intro-only partner (no discount) has no code.
+            if offer.off > 0 { BenefitCode(offerId: offer.id) }
             if let terms = offer.terms { Text(terms).font(.dx(12)).foregroundStyle(Color.inkMuted).padding(.top, 16) }
         }
     }

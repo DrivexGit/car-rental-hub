@@ -150,7 +150,7 @@ final class AppStore {
             if kind == .car && car == nil { return nil }
             return Offer(
                 id: x["id"].string ?? "", kind: kind, title: title, subtitle: x["subtitle"].text, off: x["discount_pct"].int ?? 0,
-                image: x["image_url"].text, car: car, description: x["description"].text, terms: x["terms"].text, location: x["location"].text)
+                image: x["image_url"].text, car: car, description: x["description"].text, terms: x["terms"].text, location: x["location"].text, link: x["link_url"].text)
         }
 
         let user = User(

@@ -153,7 +153,7 @@ object AppStore {
             val car = if (kind == "car") byTitle(title) else null
             if (kind == "car" && car == null) null
             else Offer(x["id"].string ?: "", kind, title, x["subtitle"].text, x["discount_pct"].int ?: 0, x["image_url"].text, car,
-                x["description"].text, x["terms"].text, x["location"].text)
+                x["description"].text, x["terms"].text, x["location"].text, x["link_url"].text)
         }
 
         Loaded(
