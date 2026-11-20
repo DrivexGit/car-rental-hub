@@ -86,8 +86,19 @@ key's SHA-256 fingerprint at `https://app.drivex.ae/.well-known/assetlinks.json`
                "sha256_cert_fingerprints": ["AA:BB:…"] } }]
 ```
 
+## Push notifications
+
+Firebase Cloud Messaging, shown also when the app is closed (`core/Push.kt`). To turn on:
+
+1. In a Firebase project, add an Android app with package `com.drivex.app`; put its App ID, API key, project id and
+   sender id in `secrets.properties` (`fcmAppId`, `fcmApiKey`, `fcmProjectId`, `fcmSenderId`) and build again.
+   No `google-services.json` is needed.
+2. Project settings > Service accounts > Generate new private key; put the whole JSON, on one line, in the site's
+   `FCM_SERVICE_ACCOUNT` environment variable (Vercel) and redeploy.
+
+The phone's token goes to `push_subscriptions` (`platform = 'fcm'`) through `rpc register_device` (migration
+`20261121100000_native_push.sql`); `api/push-hook.ts` sends to it next to the web-push subscriptions.
+
 ## Not in this version
 
-- **Push notifications.** The site sends web push; the Android app needs Firebase Cloud Messaging (a Firebase project
-  with `google-services.json`, and the server sending to device tokens). Until then notifications appear in the app
-  (live while it is open, and on every open).
+

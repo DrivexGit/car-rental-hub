@@ -3,6 +3,7 @@ package com.drivex.app
 import android.app.Application
 import com.drivex.app.core.Auth
 import com.drivex.app.core.I18n
+import com.drivex.app.core.Push
 import com.drivex.app.core.ThemeStore
 
 class DrivexApplication : Application() {
@@ -13,5 +14,6 @@ class DrivexApplication : Application() {
         I18n.init(this)
         ThemeStore.init(this)
         Auth.init(this)
+        Push.init(this)
     }
 }

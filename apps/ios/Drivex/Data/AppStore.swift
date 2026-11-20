@@ -220,6 +220,7 @@ final class AppStore {
     // MARK: actions
 
     func signOut() async {
+        await Push.shared.signingOut()
         try? await supabase.auth.signOut()
         clear()
     }

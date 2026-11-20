@@ -36,6 +36,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.drivex.app
         PRODUCT_NAME: Drivex
         INFOPLIST_FILE: Drivex/Info.plist
+        CODE_SIGN_ENTITLEMENTS: Drivex/Drivex.entitlements
         TARGETED_DEVICE_FAMILY: "1"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         CODE_SIGN_STYLE: Automatic

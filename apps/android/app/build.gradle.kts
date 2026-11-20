@@ -33,6 +33,12 @@ android {
         buildConfigField("String", "SITE_URL", "\"${secret("drivexUrl").ifEmpty { "https://app.drivex.ae" }}\"")
         buildConfigField("String", "SUPABASE_URL", "\"${secret("supabaseUrl")}\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"${secret("supabaseAnonKey")}\"")
+        // Push (Firebase Cloud Messaging): the Android app's values from the Firebase console (Project settings > Your apps).
+        // Empty = no push; the app still shows notifications inside it.
+        buildConfigField("String", "FCM_APP_ID", "\"${secret("fcmAppId")}\"")
+        buildConfigField("String", "FCM_API_KEY", "\"${secret("fcmApiKey")}\"")
+        buildConfigField("String", "FCM_PROJECT_ID", "\"${secret("fcmProjectId")}\"")
+        buildConfigField("String", "FCM_SENDER_ID", "\"${secret("fcmSenderId")}\"")
         resourceConfigurations += listOf("en", "fa", "ar")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -101,6 +107,8 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.coil.compose)
     implementation(libs.androidx.exifinterface)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.messaging)
     testImplementation(libs.junit)
     // screen pictures rendered on the computer (ScreensTest): ./gradlew testDebugUnitTest -Pscreens
     testImplementation(libs.robolectric)
