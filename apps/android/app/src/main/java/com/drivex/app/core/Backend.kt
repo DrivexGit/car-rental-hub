@@ -127,6 +127,10 @@ object Db {
         request(url(table, filters.toList()), "PATCH", toJson(values).toString().toRequestBody(JSON_TYPE), "return=minimal")
     }
 
+    suspend fun delete(table: String, vararg filters: Pair<String, String>) {
+        request(url(table, filters.toList()), "DELETE", null, "return=minimal")
+    }
+
     suspend fun insert(table: String, values: Map<String, Any?>, select: String = "id"): List<J> =
         J.parse(request(url(table, listOf("select" to select)), "POST", toJson(values).toString().toRequestBody(JSON_TYPE), "return=representation")).array
 

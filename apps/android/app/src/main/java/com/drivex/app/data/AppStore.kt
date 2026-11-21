@@ -3,6 +3,7 @@ package com.drivex.app.data
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.drivex.app.core.Push
 import com.drivex.app.core.Api
 import com.drivex.app.core.AppConfig
 import com.drivex.app.core.AppError
@@ -56,7 +57,7 @@ object AppStore {
     suspend fun refresh() = loading.withLock {
         try {
             val out = if (Auth.userId == null) null else loadAll()
-            if (out == null) clear() else apply(out)
+            if (out == null) clear() else { apply(out); Push.register() }
             offline = false
         } catch (e: Exception) {
             offline = true // keep what is on screen
@@ -216,6 +217,7 @@ object AppStore {
     // ---- actions
 
     suspend fun signOut() {
+        Push.unregister()
         Auth.signOut()
         refresh()
     }

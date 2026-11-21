@@ -3,6 +3,7 @@ import UIKit
 
 @main
 struct DrivexApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @State private var store = AppStore()
     @State private var router = Router()
     @State private var i18n = I18n.shared
@@ -29,6 +30,7 @@ struct DrivexApp: App {
 /// The page under the splash: sign-in, or the app with its tabs.
 struct RootView: View {
     @Environment(AppStore.self) private var store
+    @Environment(Router.self) private var router
     @Environment(\.scenePhase) private var phase
     @State private var splashDone = false
 
@@ -43,10 +45,21 @@ struct RootView: View {
             if !splashDone { SplashView(ready: store.ready) { splashDone = true }.zIndex(10) }
         }
         .task { if AppConfig.isConfigured { store.start() } else { splashDone = true } }
+        // signed in: push on; a push tapped before sign-in finished loading opens once the customer is known
+        .onChange(of: store.user?.id, initial: true) { _, id in if id != nil { Push.shared.signedIn(); openPushed() } }
+        .onChange(of: Push.shared.pendingLink) { _, _ in openPushed() }
         .onChange(of: phase) { _, p in
             // back in the app: the data may have changed (a payment, a new invoice)
             if p == .active, store.user != nil { Task { @MainActor in await store.refresh() } }
         }
+    }
+}
+
+extension RootView {
+    func openPushed() {
+        guard let link = Push.shared.pendingLink, store.user != nil else { return }
+        router.open(link: link)
+        Push.shared.pendingLink = nil
     }
 }
 

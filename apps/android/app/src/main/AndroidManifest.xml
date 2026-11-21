@@ -2,6 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- Photos are taken by the phone's camera app (ACTION_IMAGE_CAPTURE), so the app itself needs no camera permission. -->
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
@@ -53,6 +54,16 @@
                 <data android:scheme="https" android:host="app.drivex.ae" />
             </intent-filter>
         </activity>
+
+        <!-- Push notifications (core/Push.kt). The defaults apply to pushes Android shows itself while the app is closed. -->
+        <service android:name=".core.PushService" android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+        <meta-data android:name="com.google.firebase.messaging.default_notification_channel_id" android:value="drivex" />
+        <meta-data android:name="com.google.firebase.messaging.default_notification_icon" android:resource="@drawable/ic_launcher_foreground" />
+        <meta-data android:name="com.google.firebase.messaging.default_notification_color" android:resource="@color/brand" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

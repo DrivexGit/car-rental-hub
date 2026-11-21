@@ -1,6 +1,11 @@
 package com.drivex.app
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.LaunchedEffect
 import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -35,7 +40,10 @@ class MainActivity : ComponentActivity() {
             }
         })
         handleLink(intent)
-        setContent { DrivexRoot() }
+        setContent {
+            LaunchedEffect(Auth.userId) { askForNotifications() } // on start, and right after sign-in
+            DrivexRoot()
+        }
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -43,8 +51,19 @@ class MainActivity : ComponentActivity() {
         handleLink(intent)
     }
 
-    /** A Drivex site link (from WhatsApp, an email) opens the same page in the app. */
+    // Android 13+: pushes need the customer's yes. Asked once they are signed in (the system asks at most twice).
+    private val notifyPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) {}
+    private fun askForNotifications() {
+        if (Build.VERSION.SDK_INT < 33 || Auth.userId == null) return
+        if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED)
+            notifyPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+    }
+
+    /** A Drivex site link (from WhatsApp, an email, or a tapped push) opens the same page in the app. */
     private fun handleLink(intent: Intent?) {
+        // a push tapped while the app was closed: Android opens the app with the push's data as extras
+        val pushed = intent?.getStringExtra("url")?.takeIf { it.startsWith("/") }
+        if (pushed != null && intent.data == null) { Router.open(pushed); return }
         val uri: Uri = intent?.data ?: return
         if (uri.host != AppConfig.siteHost) return
         val path = (uri.path ?: "/") + (uri.fragment?.let { "#$it" } ?: "")

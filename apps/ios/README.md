@@ -73,10 +73,16 @@ push that changes `apps/ios`.
 4. App Store Connect needs: screenshots, the privacy policy link (`/privacy` on the site), the account deletion link
    (`/delete-account`) and a test phone number with a fixed code for Apple's review (the server's `OTP_TEST_CODE`).
 
+## Push notifications
+
+APNs, shown also when the app is closed (`App/Push.swift`, entitlement `Drivex.entitlements`). To turn on:
+
+1. Apple Developer > Certificates, IDs & Profiles > Keys: create a key with Apple Push Notifications service (APNs) and
+   download the `.p8` (it can be downloaded only once). Enable Push Notifications on the app id `com.drivex.app`.
+2. Site environment (Vercel): `APNS_KEY` (the .p8 text, new lines as `\n`), `APNS_KEY_ID`, `APNS_TEAM_ID`; then redeploy.
+   For builds run from Xcode (sandbox tokens) also `APNS_SANDBOX=1`; App Store and TestFlight builds use production.
+
 ## Not in this version
 
-- **Push notifications.** The site sends web push; the iPhone app needs Apple push (APNs): an APNs key from the Apple
-  Developer account, and the server sending to device tokens next to the web-push subscriptions. Until then notifications
-  appear in the app (live while it is open, and on every open).
 - **Universal links** (site links opening the app) need an `apple-app-site-association` file on the site and the
   Associated Domains capability.

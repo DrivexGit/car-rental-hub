@@ -1,6 +1,7 @@
 import webpush from "web-push";
 import { admin, fail, json } from "./_lib.js";
 import { noteLink } from "../src/data/notifications.js";
+import { apnsOn, fcmOn, sendApns, sendFcm } from "./_native-push.js";
 
 // Called by the database (pg_net trigger on public.notifications) for every new notification.
 // Sends a web-push to all staff devices, or to the customer's devices if their preference allows it.
@@ -34,7 +35,16 @@ export async function POST(req: Request) {
   // one alert per notification: two fines in a row are two alerts, not one replacing the other
   const payload = JSON.stringify({ title: n.title, body: n.body || "", url, tag: n.id || n.type });
   let sent = 0;
+  const native = { title: n.title, body: n.body || "", url, tag: String(n.id || n.type), urgent: n.type === "urgent" };
   await Promise.all((subs ?? []).map(async (s) => {
+    // the Android and iPhone apps: a device token instead of a web-push subscription
+    if (s.platform === "fcm" || s.platform === "apns") {
+      if (!(s.platform === "fcm" ? fcmOn() : apnsOn())) return;
+      const r = await (s.platform === "fcm" ? sendFcm : sendApns)(s.endpoint, native).catch((e) => { console.error("[push]", e?.message); return "failed" as const; });
+      if (r === "sent") sent++;
+      if (r === "gone") await db.from("push_subscriptions").delete().eq("id", s.id);
+      return;
+    }
     try {
       await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, payload, { urgency: n.type === "urgent" ? "high" : "normal" });
       sent++;
