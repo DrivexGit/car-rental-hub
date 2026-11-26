@@ -16,6 +16,10 @@ const normalize = (p: string) => {
 const emailFor = (phone: string) => `c${phone.slice(1)}@customers.drivex.app`;
 const passwordFor = (phone: string) => createHmac("sha256", process.env.AUTH_SECRET!).update(phone).digest("hex");
 
+// App store review: one fixed number signs in with a fixed code and gets no WhatsApp message (reviewers have no UAE WhatsApp).
+// Off unless both REVIEW_PHONE (e.g. +971500000000) and REVIEW_CODE are set.
+const isReview = (phone: string) => !!process.env.REVIEW_PHONE && !!process.env.REVIEW_CODE && normalize(process.env.REVIEW_PHONE) === phone;
+
 const TOO_MANY = "Too many attempts. Please wait a few minutes and try again.";
 
 export async function POST(req: Request) {
@@ -29,6 +33,7 @@ export async function POST(req: Request) {
     // ponytail: when an SMS provider is connected, send the real code here (after this check).
     if (!(await allowed("send", who, { phone: [5, 10], ip: [20, 60] }))) return fail(TOO_MANY, 429);
     await record("send", who);
+    if (isReview(phone)) return json({ ok: true, testMode: false, channel: "whatsapp" });
     if (whatsappOtpOn()) {
       const sent = await sendWhatsAppCode(phone).catch(() => false);
       if (!sent) return fail("We could not send the code on WhatsApp. Please try again.", 502);
@@ -40,7 +45,7 @@ export async function POST(req: Request) {
   if (action !== "verify") return fail("Unknown action");
   // Wrong guesses are limited, so a 6-digit code cannot be brute forced.
   if (!(await allowed("verify_fail", who, { phone: [5, 10], ip: [30, 60] }))) return fail(TOO_MANY, 429);
-  const valid = whatsappOtpOn() ? await checkWhatsAppCode(phone, String(code)) : String(code) === (process.env.OTP_TEST_CODE || "");
+  const valid = isReview(phone) ? String(code) === process.env.REVIEW_CODE : whatsappOtpOn() ? await checkWhatsAppCode(phone, String(code)) : String(code) === (process.env.OTP_TEST_CODE || "");
   if (!valid) {
     await record("verify_fail", who);
     return fail("Wrong code. Please try again.", 401);
