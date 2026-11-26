@@ -30,7 +30,7 @@ android {
         minSdk = 26
         targetSdk = 36
         // 1.x was the site in a web view; 2.0 is the native app. It installs over 1.x (same id and key).
-        versionCode = 2
+        versionCode = 3
         versionName = "2.0.0"
         buildConfigField("String", "SITE_URL", "\"${secret("drivexUrl").ifEmpty { "https://app.drivex.ae" }}\"")
         buildConfigField("String", "SUPABASE_URL", "\"${secret("supabaseUrl")}\"")
