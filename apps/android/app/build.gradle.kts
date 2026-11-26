@@ -24,7 +24,9 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.drivex.app"
+        // Google Play id. com.drivex.app is taken on Play by another developer, so the store app is ae.drivex.app
+        // (the Kotlin package / namespace stays com.drivex.app).
+        applicationId = "ae.drivex.app"
         minSdk = 26
         targetSdk = 35
         // 1.x was the site in a web view; 2.0 is the native app. It installs over 1.x (same id and key).
