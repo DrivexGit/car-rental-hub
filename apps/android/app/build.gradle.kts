@@ -109,6 +109,8 @@ dependencies {
     implementation(libs.androidx.exifinterface)
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging)
+    // Firebase brings an old Fragment; 1.3+ is needed for the notification permission request (registerForActivityResult)
+    implementation(libs.androidx.fragment)
     testImplementation(libs.junit)
     // screen pictures rendered on the computer (ScreensTest): ./gradlew testDebugUnitTest -Pscreens
     testImplementation(libs.robolectric)
