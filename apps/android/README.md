@@ -82,7 +82,7 @@ key's SHA-256 fingerprint at `https://app.drivex.ae/.well-known/assetlinks.json`
 
 ```json
 [{ "relation": ["delegate_permission/common.handle_all_urls"],
-   "target": { "namespace": "android_app", "package_name": "com.drivex.app",
+   "target": { "namespace": "android_app", "package_name": "ae.drivex.app",
                "sha256_cert_fingerprints": ["AA:BB:…"] } }]
 ```
 
@@ -90,7 +90,7 @@ key's SHA-256 fingerprint at `https://app.drivex.ae/.well-known/assetlinks.json`
 
 Firebase Cloud Messaging, shown also when the app is closed (`core/Push.kt`). To turn on:
 
-1. In a Firebase project, add an Android app with package `com.drivex.app`; put its App ID, API key, project id and
+1. In a Firebase project, add an Android app with package `ae.drivex.app`; put its App ID, API key, project id and
    sender id in `secrets.properties` (`fcmAppId`, `fcmApiKey`, `fcmProjectId`, `fcmSenderId`) and build again.
    No `google-services.json` is needed.
 2. Project settings > Service accounts > Generate new private key; put the whole JSON, on one line, in the site's

@@ -21,14 +21,16 @@ val keystore = props("keystore.properties")
 
 android {
     namespace = "com.drivex.app"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.drivex.app"
+        // Google Play id. com.drivex.app is taken on Play by another developer, so the store app is ae.drivex.app
+        // (the Kotlin package / namespace stays com.drivex.app).
+        applicationId = "ae.drivex.app"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         // 1.x was the site in a web view; 2.0 is the native app. It installs over 1.x (same id and key).
-        versionCode = 2
+        versionCode = 3
         versionName = "2.0.0"
         buildConfigField("String", "SITE_URL", "\"${secret("drivexUrl").ifEmpty { "https://app.drivex.ae" }}\"")
         buildConfigField("String", "SUPABASE_URL", "\"${secret("supabaseUrl")}\"")
