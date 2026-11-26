@@ -4,7 +4,7 @@ import { createServer } from "vite";
 
 Object.assign(process.env, {
   SUPABASE_URL: "https://fake.supabase.co", SUPABASE_SERVICE_ROLE_KEY: "service", VITE_SUPABASE_ANON_KEY: "anon",
-  TENANT_ID: "t", AUTH_SECRET: "secret", OTP_TEST_CODE: "123456",
+  TENANT_ID: "t", AUTH_SECRET: "secret", OTP_TEST_CODE: "123456", REVIEW_PHONE: "+971500000001", REVIEW_CODE: "246810",
 });
 
 const rows = [];
@@ -52,6 +52,11 @@ check("locked even with the right code (429)", await call({ action: "verify", ph
 // right code for a fresh phone gets past the code check (stubbed sign-in then fails with 500, which is fine here)
 const st = await call({ action: "verify", phone: "+971503333333", code: "123456" });
 check("right code is not rejected as 401/429", st !== 401 && st !== 429, true);
+
+// store review number: fixed code only, other codes refused; other numbers do not get the review code
+check("review number: wrong code refused (401)", await call({ action: "verify", phone: "0500000001", code: "123456" }), 401);
+{ const r = await call({ action: "verify", phone: "+971500000001", code: "246810" }); check("review number: review code passes the code check", r !== 401 && r !== 429, true); }
+check("review code does not work for another number (401)", await call({ action: "verify", phone: "+971504444444", code: "246810" }), 401);
 
 // per-IP limit across different phones: 20 sends per hour
 let blocked = false;
